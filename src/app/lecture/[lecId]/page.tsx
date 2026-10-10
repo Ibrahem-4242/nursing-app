@@ -27,7 +27,7 @@ interface LecturePageProps {
 }
 
 export default async function LecturePage({ params }: LecturePageProps) {
-  const lecture = (await CmsService.getLectureById(params.lecId)) || DataService.getLectureById(params.lecId);
+  const lecture = await CmsService.getLectureById(params.lecId);
 
   if (!lecture) {
     notFound();

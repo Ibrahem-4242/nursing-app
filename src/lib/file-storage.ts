@@ -46,10 +46,12 @@ function getContentTypeForExt(ext: string): string {
   return 'application/octet-stream';
 }
 
-export function saveUploadedFile(
+import { getSupabase, isSupabaseConfigured } from './supabase';
+
+export async function saveUploadedFile(
   bytes: Uint8Array,
   filename: string
-): { fileId: string; url: string; sizeFormatted: string } {
+): Promise<{ fileId: string; url: string; sizeFormatted: string }> {
   const dir = getUploadsDirectory();
   const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
   const cleanFilename = filename.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
@@ -59,15 +61,47 @@ export function saveUploadedFile(
   const contentType = getContentTypeForExt(ext);
   const buffer = Buffer.from(bytes);
 
-  // 1. Always store in runtime memory cache (guarantees zero-failure in serverless)
+  // 1. Always store in runtime memory cache
   globalFileStorage.set(safeName, { buffer, filename: originalName, contentType });
 
-  // 2. Best-effort persistence to disk
+  const sizeKb = Math.round(bytes.length / 1024);
+  const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+
+  // 2. If Supabase Cloud Storage is configured, upload to bucket
+  if (isSupabaseConfigured) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const { error } = await supabase.storage
+          .from('lecture-pdfs')
+          .upload(safeName, buffer, { contentType, upsert: true });
+
+        if (!error) {
+          const { data } = supabase.storage
+            .from('lecture-pdfs')
+            .getPublicUrl(safeName);
+
+          if (data?.publicUrl) {
+            return {
+              fileId: safeName,
+              url: data.publicUrl,
+              sizeFormatted,
+            };
+          }
+        } else {
+          console.warn('[Supabase Storage] Notice:', error.message);
+        }
+      } catch (sbErr) {
+        console.warn('[Supabase Storage] Error:', sbErr);
+      }
+    }
+  }
+
+  // 3. Fallback persistence to disk
   try {
     const filePath = path.join(dir, safeName);
     fs.writeFileSync(filePath, buffer);
   } catch (diskErr) {
-    // If localDir failed, try /tmp
     try {
       const tmpPath = path.join('/tmp', 'nursing-uploads', safeName);
       const tmpDir = path.dirname(tmpPath);
@@ -76,12 +110,9 @@ export function saveUploadedFile(
       }
       fs.writeFileSync(tmpPath, buffer);
     } catch (tmpErr) {
-      console.warn('[Storage] Disk write skipped, preserved in memory:', tmpErr);
+      console.warn('[Storage] Preserved in memory cache:', tmpErr);
     }
   }
-
-  const sizeKb = Math.round(bytes.length / 1024);
-  const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
 
   return {
     fileId: safeName,

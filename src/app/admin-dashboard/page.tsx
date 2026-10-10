@@ -56,11 +56,14 @@ export default function AdminDashboardPage() {
   });
 
   // Upload Form state
+  const [yearId, setYearId] = useState('1');
   const [subjectId, setSubjectId] = useState('anatomy');
   const [lectureTitle, setLectureTitle] = useState('');
   const [lectureNumber, setLectureNumber] = useState(1);
   const [adminNote, setAdminNote] = useState('');
   const [overview, setOverview] = useState('');
+  const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
+  const [externalPdfUrl, setExternalPdfUrl] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [ankiFile, setAnkiFile] = useState<File | null>(null);
@@ -200,8 +203,8 @@ export default function AdminDashboardPage() {
   // Upload lecture handler
   const handleUploadLecture = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      setUploadFeedback({ type: 'error', message: 'يرجى اختيار ملف PDF أولاً' });
+    if (!file && !externalPdfUrl.trim()) {
+      setUploadFeedback({ type: 'error', message: 'يرجى اختيار ملف PDF أو وضع رابط تحميل مباشر' });
       return;
     }
     if (!lectureTitle.trim()) {
@@ -210,19 +213,21 @@ export default function AdminDashboardPage() {
     }
 
     // Validate total upload payload size before sending to prevent serverless 413 drop
-    const totalBytes =
-      (file?.size || 0) +
-      (ankiFile?.size || 0) +
-      (pptFile?.size || 0) +
-      (mindmapFile?.size || 0);
-    const totalMb = totalBytes / (1024 * 1024);
+    if (file) {
+      const totalBytes =
+        (file?.size || 0) +
+        (ankiFile?.size || 0) +
+        (pptFile?.size || 0) +
+        (mindmapFile?.size || 0);
+      const totalMb = totalBytes / (1024 * 1024);
 
-    if (totalMb > 4.5) {
-      setUploadFeedback({
-        type: 'error',
-        message: `حجم الملفات الإجمالي (${totalMb.toFixed(1)} MB) يتجاوز الحد الأقصى المسموح به في الرفع المباشر (4.5 MB). يرجى تقليل حجم الـ PDF أو ضغطه لتفادي انقطاع الاتصال من السيرفر.`,
-      });
-      return;
+      if (totalMb > 4.5) {
+        setUploadFeedback({
+          type: 'error',
+          message: `حجم الملفات الإجمالي (${totalMb.toFixed(1)} MB) يتجاوز الحد الأقصى في الرفع المباشر (4.5 MB). يمكنك ضغط الـ PDF أو استخدام خيار "رابط خارجي مباشر (Google Drive)" لنشر الملف بدون أي حدود!`,
+        });
+        return;
+      }
     }
 
     setIsUploading(true);
@@ -230,11 +235,13 @@ export default function AdminDashboardPage() {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      if (file) formData.append('file', file);
+      if (externalPdfUrl.trim()) formData.append('externalPdfUrl', externalPdfUrl.trim());
       if (ankiFile) formData.append('ankiFile', ankiFile);
       if (pptFile) formData.append('pptFile', pptFile);
       if (mindmapFile) formData.append('mindmapFile', mindmapFile);
       formData.append('subjectId', subjectId);
+      formData.append('yearId', yearId);
       formData.append('lectureTitle', lectureTitle.trim());
       formData.append('lectureNumber', String(lectureNumber));
       formData.append('adminNote', adminNote.trim());
@@ -281,6 +288,7 @@ export default function AdminDashboardPage() {
         setAnkiFile(null);
         setPptFile(null);
         setMindmapFile(null);
+        setExternalPdfUrl('');
         loadLectures();
         loadStats();
       } else {
@@ -718,7 +726,31 @@ export default function AdminDashboardPage() {
             </div>
 
             <form onSubmit={handleUploadLecture} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Academic Year Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    الفرقة الدراسية:
+                  </label>
+                  <select
+                    value={yearId}
+                    onChange={(e) => {
+                      const newYear = e.target.value;
+                      setYearId(newYear);
+                      const available = MOCK_SUBJECTS.filter((s) => s.yearId === newYear);
+                      if (available.length > 0) {
+                        setSubjectId(available[0].id);
+                      }
+                    }}
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="1">السنة الأولى (الفرقة الأولى)</option>
+                    <option value="2">السنة الثانية (الفرقة الثانية)</option>
+                    <option value="3">السنة الثالثة (الفرقة الثالثة)</option>
+                    <option value="4">السنة الرابعة (الفرقة الرابعة)</option>
+                  </select>
+                </div>
+
                 {/* Subject Selector */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -727,9 +759,9 @@ export default function AdminDashboardPage() {
                   <select
                     value={subjectId}
                     onChange={(e) => setSubjectId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
-                    {MOCK_SUBJECTS.map((sub) => (
+                    {MOCK_SUBJECTS.filter((s) => s.yearId === yearId).map((sub) => (
                       <option key={sub.id} value={sub.id}>
                         {sub.title} ({sub.code})
                       </option>
@@ -748,7 +780,7 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setLectureTitle(e.target.value)}
                     placeholder="مثال: الجهاز التنفسي والتبادل الغازي"
                     required
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
@@ -762,65 +794,115 @@ export default function AdminDashboardPage() {
                     min="1"
                     value={lectureNumber}
                     onChange={(e) => setLectureNumber(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
 
-              {/* PDF Dropzone / File Picker */}
+              {/* PDF Upload Mode Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  ملف المحاضرة (صيغة PDF فقط):
+                  طريقة إضافة ملف المحاضرة (PDF):
                 </label>
-                <div
-                  className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer ${
-                    file
-                      ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-teal-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
-                  onClick={() => document.getElementById('pdf-file-input')?.click()}
-                >
-                  <input
-                    id="pdf-file-input"
-                    type="file"
-                    accept=".pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setFile(e.target.files[0]);
-                      }
-                    }}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('file')}
+                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                      uploadMode === 'file'
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <FileUp className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span>رفع ملف PDF مباشر (حتى 4.5 MB)</span>
+                  </button>
 
-                  {file ? (
-                    <div className="space-y-2">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mx-auto">
-                        <Check className="w-6 h-6" />
-                      </div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">{file.name}</p>
-                      <p className="text-xs text-slate-500">
-                        الحجم: {(file.size / (1024 * 1024)).toFixed(2)} MB • جاهز للرفع والختم
-                      </p>
-                      <span className="inline-block text-[11px] text-teal-600 dark:text-teal-400 font-bold underline">
-                        اضغط لتغيير الملف
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
-                        <FileUp className="w-7 h-7" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                          اضغط هنا لاختيار ملف PDF أو اسحبه وأفلته هنا
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          الحد الأقصى للملف: 4.5 MB (لأفضل سرعة رفع وعرض) • تطبق العلامة المائية تلقائياً
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('link')}
+                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                      uploadMode === 'link'
+                        ? 'border-teal-500 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <ExternalLink className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span>رابط خارجي مباشر (Google Drive / سحابي) - بدون حد للحجم 🚀</span>
+                  </button>
                 </div>
+
+                {uploadMode === 'file' ? (
+                  <div
+                    className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer ${
+                      file
+                        ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20'
+                        : 'border-slate-300 dark:border-slate-700 hover:border-teal-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                    onClick={() => document.getElementById('pdf-file-input')?.click()}
+                  >
+                    <input
+                      id="pdf-file-input"
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+
+                    {file ? (
+                      <div className="space-y-2">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mx-auto">
+                          <Check className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{file.name}</p>
+                        <p className="text-xs text-slate-500">
+                          الحجم: {(file.size / (1024 * 1024)).toFixed(2)} MB • جاهز للرفع والختم
+                        </p>
+                        <span className="inline-block text-[11px] text-teal-600 dark:text-teal-400 font-bold underline">
+                          اضغط لتغيير الملف
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
+                          <FileUp className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">
+                            اضغط هنا لاختيار ملف PDF أو اسحبه وأفلته هنا
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            الحد الأقصى للملف: 4.5 MB (لأفضل سرعة رفع وعرض) • تطبق العلامة المائية تلقائياً
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300 text-xs font-bold">
+                      <ExternalLink className="w-4 h-4" />
+                      <span>ضع رابط ملف المحاضرة (Google Drive / Telegram / MediaFire):</span>
+                    </div>
+                    <input
+                      type="url"
+                      value={externalPdfUrl}
+                      onChange={(e) => setExternalPdfUrl(e.target.value)}
+                      placeholder="https://drive.google.com/file/d/.../view أو رابط مباشر"
+                      className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
+                    />
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">
+                      <p className="font-bold">💡 نصيحة لنشر ملفات Google Drive لأي حجم بدون أي قيود:</p>
+                      <p>1. ارفع ملف الـ PDF على Google Drive من حسابك.</p>
+                      <p>2. اضغط كليك يمين على الملف ⬅️ مشاركة (Share) ⬅️ اجعل الوصول العام: <strong>أي شخص لديه الرابط (Anyone with the link)</strong>.</p>
+                      <p>3. انسخ الرابط والصقه هنا مباشرة. سيعمل للطلاب فوراً وبسرعة فائقة!</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Watermark Checkbox */}
@@ -1055,13 +1137,13 @@ export default function AdminDashboardPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isUploading || !file}
+                disabled={isUploading || (uploadMode === 'file' ? !file : !externalPdfUrl.trim()) || !lectureTitle.trim()}
                 className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-base shadow-xl shadow-teal-600/25 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>جارِ معالجة الـ PDF ودمج العلامة المائية والنشر...</span>
+                    <span>جارِ معالجة البيانات ونشر المحاضرة سحابياً...</span>
                   </>
                 ) : (
                   <>
@@ -1407,16 +1489,16 @@ export default function AdminDashboardPage() {
                           <td className="py-3 px-4">
                             {customQuiz ? (
                               <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200">
-                                مرفوع ومحدث مخصصاً 🟢 ({customQuiz.fileSize})
+                                مرفوع ومتاح للطلاب 🟢 ({customQuiz.fileSize})
                               </span>
                             ) : (
-                              <span className="px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px] border border-amber-200">
-                                متاح بالبنك الافتراضي المعتمد 🟡
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-[11px]">
+                                لم يُرفع ملف كويز بعد ⚪️
                               </span>
                             )}
                           </td>
                           <td className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300">
-                            +{customQuiz?.questionsCount || 150} سؤال
+                            {customQuiz ? `+${customQuiz.questionsCount} سؤال` : '—'}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <Link

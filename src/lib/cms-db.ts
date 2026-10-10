@@ -10,7 +10,8 @@ import {
   DownloadEvent,
   SubjectQuizFile,
 } from './types';
-import { MOCK_LECTURES, MOCK_SUBJECTS } from './mock-data';
+import { MOCK_SUBJECTS } from './mock-data';
+import { getSupabase, isSupabaseConfigured } from './supabase';
 
 interface CmsStore {
   announcement: AnnouncementConfig;
@@ -33,6 +34,37 @@ const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
 
 // Global in-memory cache to guarantee instant updates in runtime
 let memoryStore: CmsStore | null = null;
+const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a12675d818365e';
+
+export async function syncFromCloud(): Promise<CmsStore | null> {
+  try {
+    const res = await fetch(CLOUD_SYNC_URL, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && Array.isArray(json.data.lectures)) {
+        return json.data as CmsStore;
+      }
+    }
+  } catch (err) {
+    console.warn('[CMS DB] Cloud read error:', err);
+  }
+  return null;
+}
+
+export async function syncToCloud(store: CmsStore): Promise<void> {
+  try {
+    await fetch(CLOUD_SYNC_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'nursing-cms-production', data: store }),
+    });
+  } catch (err) {
+    console.warn('[CMS DB] Cloud write error:', err);
+  }
+}
 
 function getStoreFilePath(): string {
   // On Vercel or serverless environments, prioritize /tmp immediately
@@ -54,24 +86,28 @@ function getStoreFilePath(): string {
 function initMemoryStore(): CmsStore {
   if (memoryStore) return memoryStore;
 
-  const filePath = getStoreFilePath();
-  try {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const parsed = JSON.parse(content) as CmsStore;
-      if (parsed && Array.isArray(parsed.lectures)) {
-        memoryStore = parsed;
-        return memoryStore;
+  const tmpPath = getStoreFilePath();
+  const rootDataPath = path.join(process.cwd(), 'data', 'cms-store.json');
+
+  for (const candidate of [tmpPath, rootDataPath]) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const content = fs.readFileSync(candidate, 'utf-8');
+        const parsed = JSON.parse(content) as CmsStore;
+        if (parsed && Array.isArray(parsed.lectures)) {
+          memoryStore = parsed;
+          return memoryStore;
+        }
       }
+    } catch (err) {
+      console.warn('[CMS DB] Read candidate error:', candidate, err);
     }
-  } catch (err) {
-    console.warn('[CMS DB] Failed to read store file, falling back to seed data:', err);
   }
 
-  // Seed with mock data
+  // Pure clean store without test data
   memoryStore = {
     announcement: DEFAULT_ANNOUNCEMENT,
-    lectures: [...MOCK_LECTURES],
+    lectures: [],
     subjectQuizzes: {},
     brokenLinks: [],
     complaints: [],
@@ -100,6 +136,9 @@ function persistStore(store: CmsStore): void {
       console.warn('[CMS DB] Persistence to disk skipped, kept in memory store.');
     }
   }
+
+  // Background sync to cloud storage
+  syncToCloud(store).catch(() => {});
 }
 
 function getTodayString(): string {
@@ -143,6 +182,70 @@ export const CmsService = {
 
   // --- LECTURES & CONTENT ---
   async getAllLectures(): Promise<Lecture[]> {
+    if (isSupabaseConfigured) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('nursing_lectures')
+            .select('*')
+            .order('lecture_number', { ascending: true });
+
+          if (!error && data && data.length > 0) {
+            return data.map((row: any) => {
+              if (row.raw_data && typeof row.raw_data === 'object') {
+                return row.raw_data as Lecture;
+              }
+              return {
+                id: row.id,
+                subjectId: row.subject_id,
+                yearId: '1',
+                subjectTitle: row.subject_title,
+                yearTitle: 'السنة الأولى',
+                slug: row.slug || row.id,
+                lectureNumber: row.lecture_number,
+                title: row.title,
+                subtitle: `شرح وملخص معتمد لمادة ${row.subject_title}`,
+                isFree: true,
+                price: 0,
+                viewCount: 1,
+                readingMinutes: 10,
+                overview: row.overview || '',
+                concepts: [],
+                terminology: [],
+                interventions: [],
+                clinicalPearls: [],
+                flashcards: [],
+                quiz: [],
+                files: [
+                  {
+                    type: 'pdf',
+                    title: row.title,
+                    downloadUrl: row.pdf_url,
+                    fileSize: row.file_size || '3.5 MB',
+                    updatedAt: 'معتمد',
+                  },
+                ],
+                adminNote: row.admin_note || '',
+              } as Lecture;
+            });
+          }
+        } catch (err) {
+          console.warn('[Supabase] getAllLectures error, fallback to local store:', err);
+        }
+      }
+    }
+
+    // Check cloud sync store (guarantees cross-instance persistence on Vercel)
+    const cloudStore = await syncFromCloud();
+    if (cloudStore && Array.isArray(cloudStore.lectures)) {
+      const store = initMemoryStore();
+      store.lectures = cloudStore.lectures;
+      if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
+      if (cloudStore.announcement) store.announcement = cloudStore.announcement;
+      return store.lectures;
+    }
+
     const store = initMemoryStore();
     return store.lectures;
   },
@@ -151,8 +254,8 @@ export const CmsService = {
    * Returns only lectures that are live AND have active content/files
    */
   async getLiveLectures(): Promise<Lecture[]> {
-    const store = initMemoryStore();
-    return store.lectures.filter((lec) => {
+    const all = await this.getAllLectures();
+    return all.filter((lec) => {
       // Must have at least 1 downloadable file or flashcards
       const hasFiles = lec.files && lec.files.length > 0;
       const hasCards = lec.flashcards && lec.flashcards.length > 0;
@@ -163,19 +266,44 @@ export const CmsService = {
 
   /**
    * Returns live subjects that have at least 1 live lecture with content
-   * (الزائر العادي يرى فقط المواد والمحاضرات التي تحتوي على ملفات ومحتوى فعلي)
+   * (الزائر العادي يرى فقط المواد والمحاضرات التي تحتوي على ملفات ومحتوى فعلي تم رفعه)
    */
   async getLiveSubjects(): Promise<Subject[]> {
     const liveLectures = await this.getLiveLectures();
-    const activeSubjectIds = new Set(liveLectures.map((l) => l.subjectId));
+    if (!liveLectures || liveLectures.length === 0) {
+      return [];
+    }
 
-    return MOCK_SUBJECTS.filter((sub) => activeSubjectIds.has(sub.id)).map((sub) => {
-      const subjectLectures = liveLectures.filter((l) => l.subjectId === sub.id);
-      return {
-        ...sub,
-        totalLectures: subjectLectures.length,
-      };
-    });
+    const subjectsMap = new Map<string, Subject>();
+
+    for (const lec of liveLectures) {
+      const subId = lec.subjectId;
+      if (!subjectsMap.has(subId)) {
+        const mockMatch = MOCK_SUBJECTS.find((m) => m.id === subId);
+        const title = lec.subjectTitle || mockMatch?.title || subId;
+        const yearId = lec.yearId || mockMatch?.yearId || '1';
+        const yearName = lec.yearTitle || mockMatch?.yearName || (yearId === '1' ? 'السنة الأولى' : yearId === '2' ? 'السنة الثانية' : yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة');
+
+        subjectsMap.set(subId, {
+          id: subId,
+          yearId,
+          yearName,
+          slug: mockMatch?.slug || subId,
+          title,
+          englishTitle: mockMatch?.englishTitle || title,
+          code: mockMatch?.code || subId.toUpperCase().slice(0, 7),
+          description: mockMatch?.description || `مقرر ${title} - ملخصات ومحاضرات معتمدة`,
+          icon: mockMatch?.icon || 'Activity',
+          color: mockMatch?.color || 'teal',
+          totalLectures: 0,
+          totalQuizzes: 0,
+        });
+      }
+      const existing = subjectsMap.get(subId)!;
+      existing.totalLectures += 1;
+    }
+
+    return Array.from(subjectsMap.values());
   },
 
   async getLiveLecturesBySubject(subjectId: string): Promise<Lecture[]> {
@@ -184,8 +312,8 @@ export const CmsService = {
   },
 
   async getLectureById(id: string): Promise<Lecture | undefined> {
-    const store = initMemoryStore();
-    return store.lectures.find((lec) => lec.id === id || lec.slug === id);
+    const all = await this.getAllLectures();
+    return all.find((lec) => lec.id === id || lec.slug === id);
   },
 
   async addOrUpdateLecture(lecture: Lecture): Promise<Lecture> {
@@ -199,6 +327,34 @@ export const CmsService = {
     }
 
     persistStore(store);
+    await syncToCloud(store);
+
+    if (isSupabaseConfigured) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          const pdfUrl = lecture.files?.[0]?.downloadUrl || '';
+          const fileSize = lecture.files?.[0]?.fileSize || '';
+          await supabase.from('nursing_lectures').upsert({
+            id: lecture.id,
+            subject_id: lecture.subjectId,
+            subject_title: lecture.subjectTitle,
+            lecture_number: lecture.lectureNumber,
+            title: lecture.title,
+            slug: lecture.slug || lecture.id,
+            pdf_url: pdfUrl,
+            file_size: fileSize,
+            admin_note: lecture.adminNote || '',
+            overview: lecture.overview || '',
+            is_live: true,
+            raw_data: lecture,
+          });
+        } catch (sbErr) {
+          console.warn('[Supabase] addOrUpdateLecture error:', sbErr);
+        }
+      }
+    }
+
     return lecture;
   },
 
@@ -208,9 +364,21 @@ export const CmsService = {
     store.lectures = store.lectures.filter((l) => l.id !== id);
     if (store.lectures.length !== initialLen) {
       persistStore(store);
-      return true;
+      await syncToCloud(store);
     }
-    return false;
+
+    if (isSupabaseConfigured) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          await supabase.from('nursing_lectures').delete().eq('id', id);
+        } catch (sbErr) {
+          console.warn('[Supabase] deleteLecture error:', sbErr);
+        }
+      }
+    }
+
+    return true;
   },
 
   async toggleLectureLive(id: string, isLive: boolean): Promise<Lecture | undefined> {
@@ -395,32 +563,18 @@ export const CmsService = {
   },
 
   // --- SUBJECT QUIZZES (اسئلة الكويزات المجمعة) ---
-  async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile> {
-    const store = initMemoryStore();
-    if (!store.subjectQuizzes) {
-      store.subjectQuizzes = {};
+  async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile | null> {
+    const cloudStore = await syncFromCloud();
+    if (cloudStore && cloudStore.subjectQuizzes && cloudStore.subjectQuizzes[subjectId]) {
+      return cloudStore.subjectQuizzes[subjectId];
     }
 
-    if (store.subjectQuizzes[subjectId]) {
+    const store = initMemoryStore();
+    if (store.subjectQuizzes && store.subjectQuizzes[subjectId]) {
       return store.subjectQuizzes[subjectId];
     }
 
-    const subject = MOCK_SUBJECTS.find((s) => s.id === subjectId);
-    const subjectTitle = subject?.title || 'المقرر الأكاديمي';
-
-    // Default compiled quiz questions file for this subject
-    const defaultQuiz: SubjectQuizFile = {
-      subjectId,
-      subjectTitle,
-      title: `بنك أسئلة الكويزات المجمعة - ${subjectTitle}`,
-      description: `ملف PDF شامل يحتوي على جميع أسئلة الكويزات الدورية، امتحانات الميدتيرم، وأسئلة الاختيار من متعدد (MCQ) المحلولة لمقرر ${subjectTitle}.`,
-      fileSize: '4.2 MB',
-      downloadUrl: `/api/files/quizzes-${subjectId}.pdf`,
-      questionsCount: 150,
-      updatedAt: 'معتمد للعام الأكاديمي الحالي',
-    };
-
-    return defaultQuiz;
+    return null;
   },
 
   async saveSubjectQuizFile(quizFile: SubjectQuizFile): Promise<SubjectQuizFile> {
@@ -430,10 +584,15 @@ export const CmsService = {
     }
     store.subjectQuizzes[quizFile.subjectId] = quizFile;
     persistStore(store);
+    await syncToCloud(store);
     return quizFile;
   },
 
   async getAllSubjectQuizFiles(): Promise<Record<string, SubjectQuizFile>> {
+    const cloudStore = await syncFromCloud();
+    if (cloudStore && cloudStore.subjectQuizzes) {
+      return cloudStore.subjectQuizzes;
+    }
     const store = initMemoryStore();
     return store.subjectQuizzes || {};
   },

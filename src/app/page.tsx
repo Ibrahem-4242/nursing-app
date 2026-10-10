@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const liveSubjects = await CmsService.getLiveSubjects();
-  const year1Subjects = liveSubjects.length > 0 ? liveSubjects : DataService.getSubjectsByYear('1');
+  const year1Subjects = liveSubjects.filter((s) => s.yearId === '1');
 
   return (
     <div className="w-full pb-20">
@@ -128,50 +128,64 @@ export default async function HomePage() {
         </div>
 
         {/* Year 1 Subject Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {year1Subjects.map((sub) => (
-            <Link
-              key={sub.id}
-              href={`/subject/${sub.id}`}
-              className="group flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
-                    {sub.code}
-                  </span>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold text-teal-600 dark:text-teal-400">
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>{sub.totalLectures} محاضرات</span>
+        {year1Subjects.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-2">
+              <BookOpen className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              جارِ رفع وتجهيز المحاضرات المعتمدة 🩺
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              المقررات والمحاضرات تظهر هنا فور نشرها واعتمادها من لوحة التحكم السحابية مباشرة.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {year1Subjects.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/subject/${sub.id}`}
+                className="group flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
+                      {sub.code}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold text-teal-600 dark:text-teal-400">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>{sub.totalLectures} محاضرات</span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-2">
+                    {sub.title}
+                  </h3>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
+                    {sub.description}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-xl mb-4">
+                    <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>PDF • PPT • خرائط • فلاش كاردز + أسئلة كويزات 📝</span>
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-2">
-                  {sub.title}
-                </h3>
-
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
-                  {sub.description}
-                </p>
-
-                <div className="flex items-center gap-1.5 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-xl mb-4">
-                  <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>PDF • PPT • خرائط • فلاش كاردز + أسئلة كويزات 📝</span>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
+                    <span>فتح المحاضرات</span>
+                    <ArrowLeft className="w-4 h-4" />
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    المحاضرة 1 مجاناً 🎁
+                  </span>
                 </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
-                  <span>فتح المحاضرات</span>
-                  <ArrowLeft className="w-4 h-4" />
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  المحاضرة 1 مجاناً 🎁
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. Pedagogical 4-Resource Breakdown */}

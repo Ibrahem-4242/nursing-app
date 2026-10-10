@@ -23,7 +23,7 @@ export default async function YearPage({ params }: YearPageProps) {
   }
 
   const liveSubjects = await CmsService.getLiveSubjects();
-  const subjects = liveSubjects.length > 0 ? liveSubjects : DataService.getSubjectsByYear(year.id);
+  const subjects = liveSubjects.filter((s) => s.yearId === year.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -67,53 +67,67 @@ export default async function YearPage({ params }: YearPageProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((sub) => (
-            <Link
-              key={sub.id}
-              href={`/subject/${sub.id}`}
-              className="group flex flex-col justify-between p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
-                    {sub.code}
-                  </span>
-                  <div className="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-bold">
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>{sub.totalLectures} محاضرات</span>
+        {subjects.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-2">
+              <BookOpen className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              لا توجد مقررات بها محاضرات منشورة لهذه السنة حالياً 🩺
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              المقررات تظهر هنا تلقائياً بمجرد رفع محاضراتها من لوحة الأدمن.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {subjects.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/subject/${sub.id}`}
+                className="group flex flex-col justify-between p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
+                      {sub.code}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-bold">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>{sub.totalLectures} محاضرات</span>
+                    </div>
+                  </div>
+
+                  {/* Subject Arabic Title Only (Removed small englishTitle as requested) */}
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-3">
+                    {sub.title}
+                  </h3>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
+                    {sub.description}
+                  </p>
+
+                  {/* Materials Badge Indicator */}
+                  <div className="flex items-center gap-2 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/40 mb-4">
+                    <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز + أسئلة كويزات 📝</span>
                   </div>
                 </div>
 
-                {/* Subject Arabic Title Only (Removed small englishTitle as requested) */}
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-3">
-                  {sub.title}
-                </h3>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
+                    <span>فتح المحاضرات والملخصات</span>
+                    <ArrowLeft className="w-4 h-4" />
+                  </span>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
-                  {sub.description}
-                </p>
-
-                {/* Materials Badge Indicator */}
-                <div className="flex items-center gap-2 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/40 mb-4">
-                  <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز + أسئلة كويزات 📝</span>
+                  <span className="text-[11px] text-slate-400">
+                    المحاضرة 1 مجاناً 🎁
+                  </span>
                 </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
-                  <span>فتح المحاضرات والملخصات</span>
-                  <ArrowLeft className="w-4 h-4" />
-                </span>
-
-                <span className="text-[11px] text-slate-400">
-                  المحاضرة 1 مجاناً 🎁
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* High-yield Study Tips Section */}

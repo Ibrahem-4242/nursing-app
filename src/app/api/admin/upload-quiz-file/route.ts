@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Save File
-    const savedPdf = saveUploadedFile(processedBytes, file.name);
+    const savedPdf = await saveUploadedFile(processedBytes, file.name);
 
     // 4. Save to CMS
     const quizFile = await CmsService.saveSubjectQuizFile({

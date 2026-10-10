@@ -22,7 +22,7 @@ export interface Subject {
   yearName: string;
   slug: string;
   title: string;
-  englishTitle: string;
+  englishTitle?: string;
   code: string;
   description: string;
   icon: string;

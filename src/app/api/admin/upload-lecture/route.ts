@@ -32,16 +32,19 @@ export async function POST(req: NextRequest) {
     const pptFile = formData.get('pptFile') as File | null;
     const mindmapFile = formData.get('mindmapFile') as File | null;
 
+    const externalPdfUrl = ((formData.get('externalPdfUrl') as string) || '').trim();
+
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
+    const yearId = (formData.get('yearId') as string) || '1';
     const lectureTitle = (formData.get('lectureTitle') as string) || '';
     const lectureNumber = Number(formData.get('lectureNumber')) || 1;
     const adminNote = (formData.get('adminNote') as string) || '';
     const overview = (formData.get('overview') as string) || '';
     const shouldWatermark = formData.get('watermark') !== 'false';
 
-    if (!file || !lectureTitle.trim()) {
+    if ((!file && !externalPdfUrl) || !lectureTitle.trim()) {
       return NextResponse.json(
-        { success: false, message: 'يرجى اختيار ملف PDF وكتابة اسم المحاضرة' },
+        { success: false, message: 'يرجى اختيار ملف PDF أو إدخال رابط تحميل وكتابة اسم المحاضرة' },
         { status: 400 }
       );
     }
@@ -51,19 +54,23 @@ export async function POST(req: NextRequest) {
       title: 'مقرر تمريض',
     };
 
-    // 2. Process & Watermark Primary PDF
-    const originalBuffer = await file.arrayBuffer();
-    let processedBytes = new Uint8Array(originalBuffer);
+    // 2. Process & Watermark Primary PDF (or use direct external URL)
+    let savedPdf = { url: externalPdfUrl, sizeFormatted: 'رابط سحابي 🌐' };
 
-    if (shouldWatermark) {
-      try {
-        processedBytes = await applyWatermarkToPdf(originalBuffer);
-      } catch (watermarkErr) {
-        console.warn('[UploadLecture] Watermark fallback to original buffer:', watermarkErr);
+    if (file) {
+      const originalBuffer = await file.arrayBuffer();
+      let processedBytes = new Uint8Array(originalBuffer);
+
+      if (shouldWatermark) {
+        try {
+          processedBytes = await applyWatermarkToPdf(originalBuffer);
+        } catch (watermarkErr) {
+          console.warn('[UploadLecture] Watermark fallback to original buffer:', watermarkErr);
+        }
       }
-    }
 
-    const savedPdf = saveUploadedFile(processedBytes, file.name);
+      savedPdf = await saveUploadedFile(processedBytes, file.name);
+    }
 
     // 3. Process Flashcards (Anki .apkg extraction)
     let flashcards: Flashcard[] = [];
@@ -118,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     if (pptFile) {
       const pptBuffer = new Uint8Array(await pptFile.arrayBuffer());
-      const savedPpt = saveUploadedFile(pptBuffer, pptFile.name);
+      const savedPpt = await saveUploadedFile(pptBuffer, pptFile.name);
       filesList.push({
         type: 'ppt',
         title: `عروض بوربوينت - ${lectureTitle.trim()}`,
@@ -142,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     if (mindmapFile) {
       const mmBuffer = new Uint8Array(await mindmapFile.arrayBuffer());
-      const savedMm = saveUploadedFile(mmBuffer, mindmapFile.name);
+      const savedMm = await saveUploadedFile(mmBuffer, mindmapFile.name);
       filesList.push({
         type: 'mindmap',
         title: `الخريطة الذهنية الشاملة - ${lectureTitle.trim()}`,
@@ -169,9 +176,9 @@ export async function POST(req: NextRequest) {
     const newLecture: Lecture = {
       id: lectureId,
       subjectId,
-      yearId: '1',
+      yearId,
       subjectTitle: subjectObj.title,
-      yearTitle: 'السنة الأولى',
+      yearTitle: yearId === '1' ? 'السنة الأولى' : yearId === '2' ? 'السنة الثانية' : yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة',
       slug: lectureId,
       lectureNumber,
       title: lectureTitle.trim(),

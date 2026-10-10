@@ -30,15 +30,34 @@ interface SubjectPageProps {
 }
 
 export default async function SubjectPage({ params }: SubjectPageProps) {
-  const subject = DataService.getSubjectById(params.subId);
+  const liveSubjects = await CmsService.getLiveSubjects();
+  const liveLectures = await CmsService.getLiveLecturesBySubject(params.subId);
+
+  const subject =
+    liveSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
+    DataService.getSubjectById(params.subId) ||
+    (liveLectures.length > 0
+      ? {
+          id: params.subId,
+          yearId: liveLectures[0].yearId || '1',
+          yearName: liveLectures[0].yearTitle || 'السنة الأولى',
+          slug: params.subId,
+          title: liveLectures[0].subjectTitle || params.subId,
+          code: params.subId.toUpperCase().slice(0, 7),
+          description: `مقرر ${liveLectures[0].subjectTitle || params.subId} - ملخصات ومحاضرات معتمدة`,
+          icon: 'Activity',
+          color: 'teal',
+          totalLectures: liveLectures.length,
+          totalQuizzes: 0,
+        }
+      : undefined);
 
   if (!subject) {
     notFound();
   }
 
   const year = DataService.getAcademicYearById(subject.yearId);
-  const liveLectures = await CmsService.getLiveLecturesBySubject(subject.id);
-  const lectures = liveLectures.length > 0 ? liveLectures : DataService.getLecturesBySubject(subject.id);
+  const lectures = liveLectures;
   const quizFile = await CmsService.getSubjectQuizFile(subject.id);
 
   return (
@@ -87,9 +106,11 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
         {/* Main Column: Quizzes Bank & Lectures List */}
         <div className="lg:col-span-8 space-y-8">
           {/* 1. Dedicated Subject Quiz Questions File Box (أسئلة الكويزات) */}
-          <section>
-            <SubjectQuizFileBox quizFile={quizFile} />
-          </section>
+          {quizFile && (
+            <section>
+              <SubjectQuizFileBox quizFile={quizFile} />
+            </section>
+          )}
 
           {/* 2. Lectures Section */}
           <div className="space-y-6">
