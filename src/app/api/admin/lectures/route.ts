@@ -5,6 +5,7 @@ import { CmsService } from '@/lib/cms-db';
 import { saveUploadedFile } from '@/lib/file-storage';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import { getArabicFormattedDate } from '@/lib/telegram';
+import { Flashcard } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -131,6 +132,7 @@ export async function PUT(req: NextRequest) {
   let pptFile: File | null = null;
   let mindmapFile: File | null = null;
   let ankiFile: File | null = null;
+  let flashcardsJson: string | null = null;
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await req.formData();
@@ -149,6 +151,7 @@ export async function PUT(req: NextRequest) {
     pptFile = formData.get('pptFile') as File | null;
     mindmapFile = formData.get('mindmapFile') as File | null;
     ankiFile = formData.get('ankiFile') as File | null;
+    flashcardsJson = (formData.get('flashcardsJson') as string) || null;
   } else {
     const body = await req.json();
     id = body.id;
@@ -160,6 +163,9 @@ export async function PUT(req: NextRequest) {
     pdfUrl = body.pdfUrl;
     pptUrl = body.pptUrl;
     mindmapUrl = body.mindmapUrl;
+    if (body.flashcardsJson) {
+      flashcardsJson = typeof body.flashcardsJson === 'string' ? body.flashcardsJson : JSON.stringify(body.flashcardsJson);
+    }
   }
 
   if (!id) {
@@ -272,12 +278,30 @@ export async function PUT(req: NextRequest) {
   }
 
   // Update Anki Flashcards
-  if (ankiFile) {
-    const buf = await ankiFile.arrayBuffer();
-    const cards = await parseAnkiPackage(buf);
-    if (cards && cards.length > 0) {
-      existing.flashcards = cards;
+  let updatedCards: Flashcard[] | null = null;
+  if (flashcardsJson) {
+    try {
+      const parsed = JSON.parse(flashcardsJson);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        updatedCards = parsed;
+      }
+    } catch {}
+  }
+
+  if (!updatedCards && ankiFile) {
+    try {
+      const buf = await ankiFile.arrayBuffer();
+      const cards = await parseAnkiPackage(buf);
+      if (cards && cards.length > 0) {
+        updatedCards = cards;
+      }
+    } catch (e: any) {
+      console.warn('[Lectures PUT] Anki parsing error:', e.message);
     }
+  }
+
+  if (updatedCards && updatedCards.length > 0) {
+    existing.flashcards = updatedCards;
   }
 
   // Update Text Fields

@@ -35,6 +35,7 @@ import {
   Gift,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
+import { parseAnkiPackage } from '@/lib/anki-parser';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -77,6 +78,9 @@ export default function AdminDashboardPage() {
   const [pptFile, setPptFile] = useState<File | null>(null);
   const [mindmapFile, setMindmapFile] = useState<File | null>(null);
   const [isImportingAnki, setIsImportingAnki] = useState<string | null>(null);
+  const [parsedCardsJson, setParsedCardsJson] = useState<string | null>(null);
+  const [parsedCardsCount, setParsedCardsCount] = useState<number>(0);
+  const [isParsingAnki, setIsParsingAnki] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFeedback, setUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -106,6 +110,9 @@ export default function AdminDashboardPage() {
   const [editPptFile, setEditPptFile] = useState<File | null>(null);
   const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
   const [editAnkiFile, setEditAnkiFile] = useState<File | null>(null);
+  const [editParsedCardsJson, setEditParsedCardsJson] = useState<string | null>(null);
+  const [editParsedCardsCount, setEditParsedCardsCount] = useState<number>(0);
+  const [isEditParsingAnki, setIsEditParsingAnki] = useState(false);
 
   // Announcement state
   const [announcementText, setAnnouncementText] = useState('');
@@ -394,6 +401,7 @@ export default function AdminDashboardPage() {
       if (file) formData.append('file', file);
       if (externalPdfUrl.trim()) formData.append('externalPdfUrl', externalPdfUrl.trim());
       if (ankiFile) formData.append('ankiFile', ankiFile);
+      if (parsedCardsJson) formData.append('flashcardsJson', parsedCardsJson);
       if (pptFile) formData.append('pptFile', pptFile);
       if (mindmapFile) formData.append('mindmapFile', mindmapFile);
       formData.append('subjectId', subjectId);
@@ -713,6 +721,7 @@ export default function AdminDashboardPage() {
         if (editPptFile) formData.append('pptFile', editPptFile);
         if (editMindmapFile) formData.append('mindmapFile', editMindmapFile);
         if (editAnkiFile) formData.append('ankiFile', editAnkiFile);
+        if (editParsedCardsJson) formData.append('flashcardsJson', editParsedCardsJson);
 
         const res = await fetch('/api/admin/lectures', {
           method: 'PUT',
@@ -1353,9 +1362,25 @@ export default function AdminDashboardPage() {
                       id="anki-file-input"
                       accept=".apkg"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         if (e.target.files && e.target.files[0]) {
-                          setAnkiFile(e.target.files[0]);
+                          const chosen = e.target.files[0];
+                          setAnkiFile(chosen);
+                          setIsParsingAnki(true);
+                          setParsedCardsJson(null);
+                          setParsedCardsCount(0);
+                          try {
+                            const buf = await chosen.arrayBuffer();
+                            const cards = await parseAnkiPackage(buf);
+                            if (cards && cards.length > 0) {
+                              setParsedCardsCount(cards.length);
+                              setParsedCardsJson(JSON.stringify(cards));
+                            }
+                          } catch (err: any) {
+                            console.warn('Parsing anki file on client failed:', err);
+                          } finally {
+                            setIsParsingAnki(false);
+                          }
                         }
                       }}
                     />
@@ -1380,10 +1405,26 @@ export default function AdminDashboardPage() {
                         </>
                       )}
                     </button>
+                    {isParsingAnki && (
+                      <div className="p-2 text-[11px] text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5 font-bold">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>جاري فحص واستخراج البطاقات...</span>
+                      </div>
+                    )}
+                    {parsedCardsCount > 0 && (
+                      <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                        <span>تم استخراج {parsedCardsCount} كارت بنجاح! 🎉</span>
+                      </div>
+                    )}
                     {ankiFile && (
                       <button
                         type="button"
-                        onClick={() => setAnkiFile(null)}
+                        onClick={() => {
+                          setAnkiFile(null);
+                          setParsedCardsJson(null);
+                          setParsedCardsCount(0);
+                        }}
                         className="text-[10px] text-rose-500 hover:underline block text-center w-full"
                       >
                         إلغاء الملف
@@ -1969,11 +2010,41 @@ export default function AdminDashboardPage() {
                             type="file"
                             accept=".apkg"
                             className="hidden"
-                            onChange={(e) => {
-                              if (e.target.files?.[0]) setEditAnkiFile(e.target.files[0]);
+                            onChange={async (e) => {
+                              if (e.target.files?.[0]) {
+                                const chosen = e.target.files[0];
+                                setEditAnkiFile(chosen);
+                                setIsEditParsingAnki(true);
+                                setEditParsedCardsJson(null);
+                                setEditParsedCardsCount(0);
+                                try {
+                                  const buf = await chosen.arrayBuffer();
+                                  const cards = await parseAnkiPackage(buf);
+                                  if (cards && cards.length > 0) {
+                                    setEditParsedCardsCount(cards.length);
+                                    setEditParsedCardsJson(JSON.stringify(cards));
+                                  }
+                                } catch (err: any) {
+                                  console.warn('Parsing edit anki file on client failed:', err);
+                                } finally {
+                                  setIsEditParsingAnki(false);
+                                }
+                              }
                             }}
                           />
                         </label>
+                        {isEditParsingAnki && (
+                          <div className="p-2 text-[11px] text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5 font-bold">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>جاري استخراج البطاقات من الملف...</span>
+                          </div>
+                        )}
+                        {editParsedCardsCount > 0 && (
+                          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                            <span>تم استخراج {editParsedCardsCount} كارت بنجاح وتجهيزها للحفظ! 🎉</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 

@@ -84,7 +84,19 @@ export async function POST(req: NextRequest) {
 
     // 3. Process Flashcards (Anki .apkg / JSON / TXT extraction strictly from user file)
     let flashcards: Flashcard[] = [];
-    if (ankiFile) {
+    const flashcardsJson = formData.get('flashcardsJson') as string | null;
+    if (flashcardsJson) {
+      try {
+        const parsed = JSON.parse(flashcardsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          flashcards = parsed;
+        }
+      } catch (jsonErr) {
+        console.warn('[UploadLecture] Failed to parse flashcardsJson:', jsonErr);
+      }
+    }
+
+    if (flashcards.length === 0 && ankiFile) {
       try {
         const ankiBuffer = await ankiFile.arrayBuffer();
         flashcards = await parseAnkiPackage(ankiBuffer);
