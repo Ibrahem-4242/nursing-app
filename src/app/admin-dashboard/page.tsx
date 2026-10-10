@@ -72,6 +72,10 @@ export default function AdminDashboardPage() {
   const [isFree, setIsFree] = useState(true);
   const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
   const [externalPdfUrl, setExternalPdfUrl] = useState('');
+  const [pptUploadMode, setPptUploadMode] = useState<'file' | 'link'>('file');
+  const [externalPptUrl, setExternalPptUrl] = useState('');
+  const [mindmapUploadMode, setMindmapUploadMode] = useState<'file' | 'link'>('file');
+  const [externalMindmapUrl, setExternalMindmapUrl] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [ankiFile, setAnkiFile] = useState<File | null>(null);
@@ -402,8 +406,19 @@ export default function AdminDashboardPage() {
       if (externalPdfUrl.trim()) formData.append('externalPdfUrl', externalPdfUrl.trim());
       if (ankiFile) formData.append('ankiFile', ankiFile);
       if (parsedCardsJson) formData.append('flashcardsJson', parsedCardsJson);
-      if (pptFile) formData.append('pptFile', pptFile);
-      if (mindmapFile) formData.append('mindmapFile', mindmapFile);
+      
+      if (pptUploadMode === 'file' && pptFile) {
+        formData.append('pptFile', pptFile);
+      } else if (pptUploadMode === 'link' && externalPptUrl.trim()) {
+        formData.append('externalPptUrl', externalPptUrl.trim());
+      }
+
+      if (mindmapUploadMode === 'file' && mindmapFile) {
+        formData.append('mindmapFile', mindmapFile);
+      } else if (mindmapUploadMode === 'link' && externalMindmapUrl.trim()) {
+        formData.append('externalMindmapUrl', externalMindmapUrl.trim());
+      }
+
       formData.append('subjectId', subjectId);
       formData.append('yearId', yearId);
       formData.append('lectureTitle', lectureTitle.trim());
@@ -458,8 +473,14 @@ export default function AdminDashboardPage() {
         setIsFree(true);
         setFile(null);
         setAnkiFile(null);
+        setParsedCardsJson(null);
+        setParsedCardsCount(0);
         setPptFile(null);
+        setExternalPptUrl('');
+        setPptUploadMode('file');
         setMindmapFile(null);
+        setExternalMindmapUrl('');
+        setMindmapUploadMode('file');
         setExternalPdfUrl('');
         loadLectures();
         loadStats();
@@ -1433,64 +1454,102 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* 2. PowerPoint (.pptx, .ppt) */}
-                  <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
                         <FileText className="w-4 h-4" />
-                        <span>عرض بوربوينت (PPTX)</span>
+                        <span>عروض بوربوينت (PPTX)</span>
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                         تحميل مباشر 📊
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                      ملف الشرائح التقديمية الأصلية للمحاضرة متاح لتحميل الطلاب المباشر.
-                    </p>
-                    <input
-                      type="file"
-                      id="ppt-file-input"
-                      accept=".pptx,.ppt"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setPptFile(e.target.files[0]);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('ppt-file-input')?.click()}
-                      className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        pptFile
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-indigo-500'
-                      }`}
-                    >
-                      {pptFile ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[150px]">{pptFile.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <FileUp className="w-3.5 h-3.5" />
-                          <span>اختر ملف PPTX / PPT</span>
-                        </>
-                      )}
-                    </button>
-                    {pptFile && (
+
+                    {/* Mode Selector: File vs Drive Link */}
+                    <div className="flex rounded-xl bg-indigo-100/70 dark:bg-indigo-950 p-1 gap-1">
                       <button
                         type="button"
-                        onClick={() => setPptFile(null)}
-                        className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                        onClick={() => setPptUploadMode('file')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          pptUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
+                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
+                        }`}
                       >
-                        إلغاء الملف
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع ملف</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setPptUploadMode('link')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          pptUploadMode === 'link'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
+                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
+                        }`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>رابط درايف</span>
+                      </button>
+                    </div>
+
+                    {pptUploadMode === 'file' ? (
+                      <>
+                        <input
+                          type="file"
+                          id="ppt-file-input"
+                          accept=".pptx,.ppt"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setPptFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('ppt-file-input')?.click()}
+                          className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            pptFile
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-indigo-500'
+                          }`}
+                        >
+                          {pptFile ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[150px]">{pptFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileUp className="w-3.5 h-3.5" />
+                              <span>اختر ملف PPTX / PPT</span>
+                            </>
+                          )}
+                        </button>
+                        {pptFile && (
+                          <button
+                            type="button"
+                            onClick={() => setPptFile(null)}
+                            className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                          >
+                            إلغاء الملف
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="url"
+                        value={externalPptUrl}
+                        onChange={(e) => setExternalPptUrl(e.target.value)}
+                        placeholder="ضع رابط Google Drive لسلايدات PPT..."
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right dir-rtl"
+                      />
                     )}
                   </div>
 
                   {/* 3. Mindmap (.png, .jpg, .pdf) */}
-                  <div className="p-4 rounded-2xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4" />
@@ -1500,49 +1559,87 @@ export default function AdminDashboardPage() {
                         عرض وتحميل 🧠
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                      صورة عالية الدقة أو ملف PDF للخريطة التلخيصية للمحاضرة.
-                    </p>
-                    <input
-                      type="file"
-                      id="mindmap-file-input"
-                      accept=".png,.jpg,.jpeg,.webp,.pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setMindmapFile(e.target.files[0]);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('mindmap-file-input')?.click()}
-                      className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        mindmapFile
-                          ? 'bg-teal-600 text-white border-teal-600'
-                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-teal-500'
-                      }`}
-                    >
-                      {mindmapFile ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[150px]">{mindmapFile.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <FileUp className="w-3.5 h-3.5" />
-                          <span>اختر صورة أو PDF</span>
-                        </>
-                      )}
-                    </button>
-                    {mindmapFile && (
+
+                    {/* Mode Selector: File vs Drive Link */}
+                    <div className="flex rounded-xl bg-teal-100/70 dark:bg-teal-950 p-1 gap-1">
                       <button
                         type="button"
-                        onClick={() => setMindmapFile(null)}
-                        className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                        onClick={() => setMindmapUploadMode('file')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          mindmapUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-teal-900 dark:text-white shadow-sm'
+                            : 'text-teal-600 dark:text-teal-400 hover:text-teal-800'
+                        }`}
                       >
-                        إلغاء الملف
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع ملف</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setMindmapUploadMode('link')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          mindmapUploadMode === 'link'
+                            ? 'bg-white dark:bg-slate-800 text-teal-900 dark:text-white shadow-sm'
+                            : 'text-teal-600 dark:text-teal-400 hover:text-teal-800'
+                        }`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>رابط درايف</span>
+                      </button>
+                    </div>
+
+                    {mindmapUploadMode === 'file' ? (
+                      <>
+                        <input
+                          type="file"
+                          id="mindmap-file-input"
+                          accept=".png,.jpg,.jpeg,.webp,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setMindmapFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('mindmap-file-input')?.click()}
+                          className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            mindmapFile
+                              ? 'bg-teal-600 text-white border-teal-600'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-teal-500'
+                          }`}
+                        >
+                          {mindmapFile ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[150px]">{mindmapFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileUp className="w-3.5 h-3.5" />
+                              <span>اختر صورة أو PDF</span>
+                            </>
+                          )}
+                        </button>
+                        {mindmapFile && (
+                          <button
+                            type="button"
+                            onClick={() => setMindmapFile(null)}
+                            className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                          >
+                            إلغاء الملف
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="url"
+                        value={externalMindmapUrl}
+                        onChange={(e) => setExternalMindmapUrl(e.target.value)}
+                        placeholder="ضع رابط Google Drive للخريطة الذهنية..."
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 text-right dir-rtl"
+                      />
                     )}
                   </div>
                 </div>
@@ -1952,7 +2049,7 @@ export default function AdminDashboardPage() {
                             type="text"
                             value={editPptUrl}
                             onChange={(e) => setEditPptUrl(e.target.value)}
-                            placeholder="رابط بوربوينت..."
+                            placeholder="رابط مباشر / Google Drive لسلايدات PPT..."
                             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
                           />
                           <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">
@@ -1980,7 +2077,7 @@ export default function AdminDashboardPage() {
                             type="text"
                             value={editMindmapUrl}
                             onChange={(e) => setEditMindmapUrl(e.target.value)}
-                            placeholder="رابط الخريطة..."
+                            placeholder="رابط مباشر / Google Drive للخريطة الذهنية..."
                             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
                           />
                           <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">

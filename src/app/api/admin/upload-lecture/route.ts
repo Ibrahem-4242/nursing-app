@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       ((formData.get('githubToken') as string) || '').trim();
 
     const externalPdfUrl = ((formData.get('externalPdfUrl') as string) || '').trim();
+    const externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
+    const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const yearId = (formData.get('yearId') as string) || '1';
@@ -131,6 +133,16 @@ export async function POST(req: NextRequest) {
         updatedAt: getArabicFormattedDate(),
         customNote: 'عروض تقديمية وسلايدات الشرح الجامعي الرسمية',
       });
+    } else if (externalPptUrl) {
+      filesList.push({
+        type: 'ppt',
+        title: `عروض بوربوينت - ${lectureTitle.trim()}`,
+        fileSize: 'رابط درايف 🌐',
+        downloadUrl: externalPptUrl,
+        pageCount: 'سلايدات PowerPoint',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'عروض تقديمية وسلايدات الشرح الجامعي عبر رابط مباشر',
+      });
     } else {
       filesList.push({
         type: 'ppt',
@@ -154,6 +166,16 @@ export async function POST(req: NextRequest) {
         pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
         customNote: 'رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار',
+      });
+    } else if (externalMindmapUrl) {
+      filesList.push({
+        type: 'mindmap',
+        title: `الخريطة الذهنية الشاملة - ${lectureTitle.trim()}`,
+        fileSize: 'رابط درايف 🌐',
+        downloadUrl: externalMindmapUrl,
+        pageCount: 'خريطة ذهنية عالية الدقة',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر',
       });
     } else {
       filesList.push({
