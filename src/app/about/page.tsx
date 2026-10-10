@@ -45,7 +45,7 @@ export default function AboutPage() {
             </div>
             <h2 className="text-lg font-bold text-sky-950 dark:text-sky-200">رسالتنا للطلاب</h2>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              تيسير فهم المناهج التمريضية المعقدة (التشريح، علم الأدوية، الباطني والجراحي)، وتقديم ملخصات مركزة تدعم التحضير السريري الفعّال واجتياز الامتحانات بنجاح باهر.
+              تيسير فهم المناهج التمريضية المعقدة (التشريح، علم الأدوية، الباطني والجراحي)، وتقديم ملخصات مركزة تدعم الاستيعاب والتفوق الدراسي واجتياز الامتحانات بنجاح باهر.
             </p>
           </div>
         </section>
@@ -61,7 +61,7 @@ export default function AboutPage() {
             <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
               <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-slate-900 dark:text-white block mb-0.5">مجسمات سريرية ثلاثية الأبعاد بـ Three.js:</strong>
+                <strong className="text-slate-900 dark:text-white block mb-0.5">مجسمات تفاعلية ثلاثية الأبعاد بـ Three.js:</strong>
                 تسمح للطالب باستكشاف تشريح القلب والأعضاء الحيوية بزاوية 360 درجة، مما يربط بين النظرية المجردة والتطبيق الحقيقي.
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function AboutPage() {
               <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
               <div>
                 <strong className="text-slate-900 dark:text-white block mb-0.5">بنك أسئلة وكويزات مع الشرح النموذجي:</strong>
-                تدريب عملي على أسئلة الامتحانات المعتمدة مع توضيح أسباب الإجابات الصحيحة والخاطئة واللآلئ السريرية.
+                تدريب عملي على أسئلة الامتحانات المعتمدة مع توضيح أسباب الإجابات الصحيحة والخاطئة والنقاط الهامة للامتحان.
               </div>
             </div>
 

@@ -16,15 +16,12 @@ import {
   Presentation,
   GitFork,
   Layers,
-  Lock,
-  Clock,
   Award,
 } from 'lucide-react';
 
 export default function HomePage() {
   const year1 = DataService.getAcademicYearById('1');
   const year1Subjects = DataService.getSubjectsByYear('1');
-  const otherYears = DataService.getAcademicYears().filter((y) => y.id !== '1');
 
   return (
     <div className="w-full pb-20">
@@ -83,7 +80,7 @@ export default function HomePage() {
                 </div>
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
                   <span className="block text-xl font-black text-sky-600 dark:text-sky-400">100%</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">محتوى سريري مدقق</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">ملخصات شاملة للامتحانات</span>
                 </div>
               </div>
             </div>
@@ -173,42 +170,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. Upcoming Academic Years (السنوات القادمة محددة بوضوح "قريباً") */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200">
-              السنوات الدراسية القادمة (جارِ تجهيز المحتوى)
-            </h3>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              التركيز الحالي: السنة الأولى
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {otherYears.map((yr) => (
-              <div
-                key={yr.id}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 opacity-80"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-900 dark:text-white text-sm">
-                    {yr.title}
-                  </span>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    قريباً ⌛️
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {yr.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Pedagogical 4-Resource Breakdown */}
+      {/* 4. Pedagogical 4-Resource Breakdown */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-teal-900 via-slate-900 to-slate-950 text-white shadow-2xl border border-teal-800/30">
           <div className="max-w-3xl mb-8">

@@ -55,7 +55,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
             </h3>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            اختبر فهمك السريري لنقاط {lectureTitle} مع الشرح والتصحيح النموذجي الفوري
+            اختبر مدى استيعابك لنقاط {lectureTitle} مع الشرح والتصحيح النموذجي الفوري
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
             <div>
               <h4 className="text-base font-bold">
                 {percentage >= 90
-                  ? '🌟 ممتاز جداً! استيعاب سريري متكامل.'
+                  ? '🌟 ممتاز جداً! استيعاب متكامل وشامل للمحاضرة.'
                   : percentage >= 70
                   ? '👏 نتيجة جيدة جداً! مراجعة النقاط ستجعلك في المقدمة.'
                   : '💡 بحاجة لمراجعة بعض المفاهيم، راجع الشرح النموذجي بالأسفل.'}
@@ -199,7 +199,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-start gap-2 text-amber-800 dark:text-amber-300">
                       <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block mb-0.5">نصيحة سريرية للامتحان:</span>
+                        <span className="font-bold block mb-0.5">نصيحة ونقطة هامة للامتحان:</span>
                         <p className="leading-relaxed">{q.pearl}</p>
                       </div>
                     </div>

@@ -128,7 +128,7 @@ export default function LecturePage({ params }: LecturePageProps) {
         <div className="p-6 sm:p-8 rounded-3xl bg-teal-50/50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800 leading-relaxed shadow-sm">
           <h2 className="text-lg sm:text-xl font-bold text-teal-900 dark:text-teal-300 mb-3 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-teal-700 dark:text-teal-400" />
-            <span>المقدمة والنظرة السريرية الشاملة للمحاضرة</span>
+            <span>المقدمة والنظرة الشاملة للمحاضرة</span>
           </h2>
           <div className="text-sm sm:text-base text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
             {lecture.overview}
@@ -209,7 +209,7 @@ export default function LecturePage({ params }: LecturePageProps) {
                   </div>
 
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-teal-800 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/40 p-2 rounded-xl">
-                    <span className="font-bold">الأهمية السريرية: </span>
+                    <span className="font-bold">الأهمية التطبيقية للامتحان: </span>
                     {t.clinicalRelevance}
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function LecturePage({ params }: LecturePageProps) {
           <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800/80 shadow-sm space-y-3">
             <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
               <Lightbulb className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              <h3 className="text-lg font-bold">لآلئ سريرية ونقاط للامتحانات (Clinical Pearls)</h3>
+              <h3 className="text-lg font-bold">نقاط ذهبية وأسئلة هامة للامتحانات (Exam Pearls)</h3>
             </div>
             <ul className="space-y-2.5 mr-2">
               {lecture.clinicalPearls.map((pearl, pIdx) => (

@@ -130,7 +130,7 @@ export default function YearPage({ params }: YearPageProps) {
       <section className="my-12 p-8 rounded-3xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-          <span>نصائح دراسية وسريرية لتفوق طلاب {year.title}</span>
+          <span>نصائح وتوجيهات دراسية لتفوق طلاب {year.title}</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-4">
           <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700">

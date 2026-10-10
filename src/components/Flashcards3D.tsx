@@ -65,7 +65,7 @@ export default function Flashcards3D({ cards, subjectTitle = 'مقرر التم�
             </h3>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            اضغط على البطاقة لقلبها واختبار معلوماتك السريرية في {subjectTitle}
+            اضغط على البطاقة لقلبها واختبار استيعابك للمفاهيم في {subjectTitle}
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function Flashcards3D({ cards, subjectTitle = 'مقرر التم�
           <div className="absolute inset-0 w-full h-full backface-hidden rounded-3xl p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-br from-white via-teal-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-2 border-teal-200/80 dark:border-teal-800/80 shadow-xl group-hover:border-teal-400/80 dark:group-hover:border-teal-500 group-hover:shadow-2xl transition-all">
             <div className="flex items-center justify-between">
               <span className="px-3 py-1 rounded-full bg-teal-100/80 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-xs font-bold border border-teal-200 dark:border-teal-800">
-                {currentCard.category || 'مفهوم سريري'}
+                {currentCard.category || 'مفهوم تمريضي'}
               </span>
               <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                 <span>وجه البطاقة (السؤال)</span>
@@ -149,7 +149,7 @@ export default function Flashcards3D({ cards, subjectTitle = 'مقرر التم�
 
               {currentCard.clinicalPearl && (
                 <div className="mt-4 p-3 rounded-2xl bg-teal-800/40 border border-teal-500/30 text-xs text-teal-200">
-                  <span className="font-bold text-teal-300 block mb-0.5">💡 لؤلؤة سريرية (Clinical Pearl):</span>
+                  <span className="font-bold text-teal-300 block mb-0.5">💡 معلومة ونقطة هامة للامتحان:</span>
                   {currentCard.clinicalPearl}
                 </div>
               )}
