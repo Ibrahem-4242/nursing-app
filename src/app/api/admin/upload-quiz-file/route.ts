@@ -9,6 +9,9 @@ import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Verify Admin Authentication

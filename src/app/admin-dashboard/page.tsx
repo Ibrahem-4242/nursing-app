@@ -209,6 +209,22 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    // Validate total upload payload size before sending to prevent serverless 413 drop
+    const totalBytes =
+      (file?.size || 0) +
+      (ankiFile?.size || 0) +
+      (pptFile?.size || 0) +
+      (mindmapFile?.size || 0);
+    const totalMb = totalBytes / (1024 * 1024);
+
+    if (totalMb > 4.5) {
+      setUploadFeedback({
+        type: 'error',
+        message: `حجم الملفات الإجمالي (${totalMb.toFixed(1)} MB) يتجاوز الحد الأقصى المسموح به في الرفع المباشر (4.5 MB). يرجى تقليل حجم الـ PDF أو ضغطه لتفادي انقطاع الاتصال من السيرفر.`,
+      });
+      return;
+    }
+
     setIsUploading(true);
     setUploadFeedback(null);
 
@@ -230,9 +246,27 @@ export default function AdminDashboardPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          if (res.status === 413) {
+            throw new Error('حجم الملف كبير جداً وتجاوز الحد الأقصى المسموح به (4.5 MB). يرجى ضغط الـ PDF قبل رفعه.');
+          } else if (res.status === 401) {
+            throw new Error('انتهت صلاحية جلسة الأدمن. يرجى إعادة تسجيل الدخول عبر زر الفوتر السري.');
+          } else if (res.status === 504) {
+            throw new Error('استغرقت معالجة الملف وقتاً طويلاً وتجاوزت مهلة السيرفر. يرجى تجربة ملف أصغر حجماً.');
+          } else {
+            throw new Error(`خطأ من الخادم (${res.status}): ${text.slice(0, 100) || 'تعذر إتمام الرفع'}`);
+          }
+        }
+      } catch (readErr: any) {
+        throw readErr;
+      }
 
-      if (data.success) {
+      if (data && data.success) {
         setUploadFeedback({
           type: 'success',
           message: `تم رفع المحاضرة ووضع العلامة المائية ونشرها بنجاح! 🚀 ${
@@ -250,10 +284,13 @@ export default function AdminDashboardPage() {
         loadLectures();
         loadStats();
       } else {
-        setUploadFeedback({ type: 'error', message: data.message || 'فشل الرفع' });
+        setUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
       }
-    } catch (err) {
-      setUploadFeedback({ type: 'error', message: 'حدث خطأ في الاتصال أثناء الرفع' });
+    } catch (err: any) {
+      setUploadFeedback({
+        type: 'error',
+        message: err?.message || 'حدث خطأ في الاتصال أثناء الرفع. يرجى التأكد من اتصال الإنترنت وحجم الملف.',
+      });
     } finally {
       setIsUploading(false);
     }
@@ -261,6 +298,10 @@ export default function AdminDashboardPage() {
 
   // Direct Anki Import Handler for existing lecture
   const handleImportAnki = async (lectureId: string, apkgFile: File) => {
+    if (apkgFile.size > 4.5 * 1024 * 1024) {
+      alert(`حجم ملف Anki (${(apkgFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به (4.5 MB).`);
+      return;
+    }
     setIsImportingAnki(lectureId);
     try {
       const formData = new FormData();
@@ -271,15 +312,33 @@ export default function AdminDashboardPage() {
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
-      if (data.success) {
-        alert(`تم استخراج وتحديث ${data.flashcardsCount} بطاقة فلاش كاردز بنجاح! 🎴`);
+
+      let data: any = null;
+      try {
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          if (res.status === 413) {
+            throw new Error('حجم ملف Anki كبير جداً وتجاوز الحد الأقصى (4.5 MB).');
+          } else if (res.status === 401) {
+            throw new Error('انتهت صلاحية جلسة الأدمن.');
+          } else {
+            throw new Error(`خطأ من الخادم (${res.status}): ${text.slice(0, 100) || 'تعذر معالجة الملف'}`);
+          }
+        }
+      } catch (readErr: any) {
+        throw readErr;
+      }
+
+      if (data && data.success) {
+        alert(`تم استخراج وتحديث ${data.cardsCount || data.flashcardsCount} بطاقة فلاش كاردز بنجاح! 🎴`);
         loadLectures();
       } else {
-        alert(data.message || 'فشل استيراد حزمة Anki');
+        alert(data?.message || 'فشل استيراد حزمة Anki');
       }
-    } catch {
-      alert('حدث خطأ أثناء رفع واستخراج ملف Anki');
+    } catch (err: any) {
+      alert(err?.message || 'حدث خطأ أثناء رفع واستخراج ملف Anki');
     } finally {
       setIsImportingAnki(null);
     }
@@ -290,6 +349,15 @@ export default function AdminDashboardPage() {
     e.preventDefault();
     if (!quizFile) {
       setQuizUploadFeedback({ type: 'error', message: 'يرجى اختيار ملف PDF لأسئلة الكويزات أولاً' });
+      return;
+    }
+
+    const quizSizeMb = quizFile.size / (1024 * 1024);
+    if (quizSizeMb > 4.5) {
+      setQuizUploadFeedback({
+        type: 'error',
+        message: `حجم ملف الكويزات (${quizSizeMb.toFixed(1)} MB) يتجاوز الحد الأقصى المسموح به في الرفع المباشر (4.5 MB). يرجى ضغط الـ PDF لتفادي انقطاع الاتصال من السيرفر.`,
+      });
       return;
     }
 
@@ -308,17 +376,38 @@ export default function AdminDashboardPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          if (res.status === 413) {
+            throw new Error('حجم ملف الكويزات كبير جداً وتجاوز الحد الأقصى (4.5 MB). يرجى ضغط الـ PDF قبل رفعه.');
+          } else if (res.status === 401) {
+            throw new Error('انتهت صلاحية جلسة الأدمن. يرجى إعادة تسجيل الدخول عبر زر الفوتر السري.');
+          } else if (res.status === 504) {
+            throw new Error('استغرقت معالجة الملف وقتاً طويلاً وتجاوزت مهلة السيرفر.');
+          } else {
+            throw new Error(`خطأ من الخادم (${res.status}): ${text.slice(0, 100) || 'تعذر إتمام الرفع'}`);
+          }
+        }
+      } catch (readErr: any) {
+        throw readErr;
+      }
 
-      if (data.success) {
+      if (data && data.success) {
         setQuizUploadFeedback({ type: 'success', message: data.message });
         setQuizFile(null);
         loadSubjectQuizzes();
       } else {
-        setQuizUploadFeedback({ type: 'error', message: data.message || 'فشل الرفع' });
+        setQuizUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
       }
-    } catch {
-      setQuizUploadFeedback({ type: 'error', message: 'حدث خطأ في الاتصال أثناء رفع ملف الكويزات' });
+    } catch (err: any) {
+      setQuizUploadFeedback({
+        type: 'error',
+        message: err?.message || 'حدث خطأ في الاتصال أثناء رفع ملف الكويزات. يرجى التأكد من اتصال الإنترنت وحجم الملف.',
+      });
     } finally {
       setIsUploadingQuiz(false);
     }
@@ -726,7 +815,7 @@ export default function AdminDashboardPage() {
                           اضغط هنا لاختيار ملف PDF أو اسحبه وأفلته هنا
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          يدعم أي حجم PDF • سيتم تطبيق العلامة المائية تلقائياً
+                          الحد الأقصى للملف: 4.5 MB (لأفضل سرعة رفع وعرض) • تطبق العلامة المائية تلقائياً
                         </p>
                       </div>
                     </div>
@@ -1222,7 +1311,7 @@ export default function AdminDashboardPage() {
                             اضغط هنا لاختيار ملف PDF لأسئلة الكويزات أو اسحبه هنا
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            ملف مجمع للأسئلة والإجابات • يدعم العلامة المائية التلقائية
+                            ملف مجمع للأسئلة والإجابات • الحد الأقصى: 4.5 MB • تطبق العلامة المائية تلقائياً
                           </p>
                         </div>
                       </div>

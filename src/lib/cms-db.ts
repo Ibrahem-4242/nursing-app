@@ -35,7 +35,11 @@ const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
 let memoryStore: CmsStore | null = null;
 
 function getStoreFilePath(): string {
-  // Use /tmp in serverless (e.g. Vercel) if working directory is read-only, otherwise data/
+  // On Vercel or serverless environments, prioritize /tmp immediately
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join('/tmp', 'nursing-cms-store.json');
+  }
+
   const localDir = path.join(process.cwd(), 'data');
   try {
     if (!fs.existsSync(localDir)) {
@@ -83,12 +87,18 @@ function persistStore(store: CmsStore): void {
   try {
     const filePath = getStoreFilePath();
     const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    } catch {}
     fs.writeFileSync(filePath, JSON.stringify(store, null, 2), 'utf-8');
   } catch (err) {
-    console.warn('[CMS DB] Failed to persist store to disk:', err);
+    try {
+      fs.writeFileSync(path.join('/tmp', 'nursing-cms-store.json'), JSON.stringify(store, null, 2), 'utf-8');
+    } catch {
+      console.warn('[CMS DB] Persistence to disk skipped, kept in memory store.');
+    }
   }
 }
 

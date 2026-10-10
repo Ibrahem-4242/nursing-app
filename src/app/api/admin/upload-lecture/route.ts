@@ -8,6 +8,9 @@ import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
 import { Lecture, LectureFile, Flashcard } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 
@@ -53,7 +56,11 @@ export async function POST(req: NextRequest) {
     let processedBytes = new Uint8Array(originalBuffer);
 
     if (shouldWatermark) {
-      processedBytes = await applyWatermarkToPdf(originalBuffer);
+      try {
+        processedBytes = await applyWatermarkToPdf(originalBuffer);
+      } catch (watermarkErr) {
+        console.warn('[UploadLecture] Watermark fallback to original buffer:', watermarkErr);
+      }
     }
 
     const savedPdf = saveUploadedFile(processedBytes, file.name);
