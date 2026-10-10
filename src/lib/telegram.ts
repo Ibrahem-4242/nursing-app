@@ -36,6 +36,13 @@ export interface ComplaintInfo {
   time?: string;
 }
 
+export interface FlashcardSessionInfo {
+  lectureTitle: string;
+  subjectTitle: string;
+  cardsCount?: number;
+  time?: string;
+}
+
 export interface DailySummaryInfo {
   date: string;
   totalVisitors: number;
@@ -145,6 +152,21 @@ export async function notifyComplaint(info: ComplaintInfo): Promise<boolean> {
 ⏰ <b>التوقيت:</b> ${time}
 ━━━━━━━━━━━━━━━━━━━━
 <i>منصة ملخصات تمريض - خدمة الطلاب والشكاوى 🩺</i>`;
+
+  return sendTelegramMessage(text);
+}
+
+export async function notifyFlashcardSession(info: FlashcardSessionInfo): Promise<boolean> {
+  const time = info.time || getArabicFormattedDate();
+  const countText = info.cardsCount ? `\n🃏 <b>عدد البطاقات:</b> ${info.cardsCount} بطاقة` : '';
+
+  const text = `🧠 <b>طالب بدأ جلسة استذكار فلاش كاردز!</b>
+━━━━━━━━━━━━━━━━━━━━
+📖 <b>المحاضرة:</b> ${info.lectureTitle}
+📚 <b>المادة:</b> ${info.subjectTitle}${countText}
+⏰ <b>التوقيت:</b> ${time}
+━━━━━━━━━━━━━━━━━━━━
+<i>تفاعل مباشر مع نظام الفلاش كاردز ثلاثي الأبعاد 🩺</i>`;
 
   return sendTelegramMessage(text);
 }

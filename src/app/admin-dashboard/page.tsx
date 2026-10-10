@@ -52,6 +52,10 @@ export default function AdminDashboardPage() {
   const [overview, setOverview] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
+  const [ankiFile, setAnkiFile] = useState<File | null>(null);
+  const [pptFile, setPptFile] = useState<File | null>(null);
+  const [mindmapFile, setMindmapFile] = useState<File | null>(null);
+  const [isImportingAnki, setIsImportingAnki] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFeedback, setUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -184,6 +188,9 @@ export default function AdminDashboardPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (ankiFile) formData.append('ankiFile', ankiFile);
+      if (pptFile) formData.append('pptFile', pptFile);
+      if (mindmapFile) formData.append('mindmapFile', mindmapFile);
       formData.append('subjectId', subjectId);
       formData.append('lectureTitle', lectureTitle.trim());
       formData.append('lectureNumber', String(lectureNumber));
@@ -201,13 +208,18 @@ export default function AdminDashboardPage() {
       if (data.success) {
         setUploadFeedback({
           type: 'success',
-          message: 'تم رفع المحاضرة ووضع العلامة المائية ونشرها بنجاح! 🚀 تم إرسال إشعار تيليجرام.',
+          message: `تم رفع المحاضرة ووضع العلامة المائية ونشرها بنجاح! 🚀 ${
+            data.flashcardsCount ? `(تم استخراج ${data.flashcardsCount} بطاقة فلاش كاردز 🎴)` : ''
+          }`,
         });
         setLectureTitle('');
         setLectureNumber((prev) => prev + 1);
         setAdminNote('');
         setOverview('');
         setFile(null);
+        setAnkiFile(null);
+        setPptFile(null);
+        setMindmapFile(null);
         loadLectures();
         loadStats();
       } else {
@@ -217,6 +229,32 @@ export default function AdminDashboardPage() {
       setUploadFeedback({ type: 'error', message: 'حدث خطأ في الاتصال أثناء الرفع' });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Direct Anki Import Handler for existing lecture
+  const handleImportAnki = async (lectureId: string, apkgFile: File) => {
+    setIsImportingAnki(lectureId);
+    try {
+      const formData = new FormData();
+      formData.append('lectureId', lectureId);
+      formData.append('ankiFile', apkgFile);
+
+      const res = await fetch('/api/admin/import-anki', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`تم استخراج وتحديث ${data.flashcardsCount} بطاقة فلاش كاردز بنجاح! 🎴`);
+        loadLectures();
+      } else {
+        alert(data.message || 'فشل استيراد حزمة Anki');
+      }
+    } catch {
+      alert('حدث خطأ أثناء رفع واستخراج ملف Anki');
+    } finally {
+      setIsImportingAnki(null);
     }
   };
 
@@ -632,6 +670,194 @@ export default function AdminDashboardPage() {
                 </label>
               </div>
 
+              {/* Additional Study Materials (Anki .apkg, PowerPoint, Mindmap) */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>الملفات الإضافية والمواد التفاعلية (اختياري)</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      يمكنك إرفاق حزمة Anki، وسلايدات بوربوينت، وخريطة ذهنية لتوفير تجربة تعليمية متكاملة للطلاب.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* 1. Anki Package (.apkg) */}
+                  <div className="p-4 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                        <Layers className="w-4 h-4" />
+                        <span>حزمة كروت Anki (.apkg)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                        للعارض الداخلي فقط 🎴
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      يتم استخراج البطاقات تلقائياً وتفعيل عارض الفلاش كاردز 3D الداخلي (ممنوع التحميل للطلاب).
+                    </p>
+                    <input
+                      type="file"
+                      id="anki-file-input"
+                      accept=".apkg"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setAnkiFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('anki-file-input')?.click()}
+                      className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        ankiFile
+                          ? 'bg-amber-600 text-white border-amber-600'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-amber-500'
+                      }`}
+                    >
+                      {ankiFile ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="truncate max-w-[150px]">{ankiFile.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="w-3.5 h-3.5" />
+                          <span>اختر ملف .apkg</span>
+                        </>
+                      )}
+                    </button>
+                    {ankiFile && (
+                      <button
+                        type="button"
+                        onClick={() => setAnkiFile(null)}
+                        className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                      >
+                        إلغاء الملف
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 2. PowerPoint (.pptx, .ppt) */}
+                  <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4" />
+                        <span>عرض بوربوينت (PPTX)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                        تحميل مباشر 📊
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      ملف الشرائح التقديمية الأصلية للمحاضرة متاح لتحميل الطلاب المباشر.
+                    </p>
+                    <input
+                      type="file"
+                      id="ppt-file-input"
+                      accept=".pptx,.ppt"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setPptFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('ppt-file-input')?.click()}
+                      className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        pptFile
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-indigo-500'
+                      }`}
+                    >
+                      {pptFile ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="truncate max-w-[150px]">{pptFile.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="w-3.5 h-3.5" />
+                          <span>اختر ملف PPTX / PPT</span>
+                        </>
+                      )}
+                    </button>
+                    {pptFile && (
+                      <button
+                        type="button"
+                        onClick={() => setPptFile(null)}
+                        className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                      >
+                        إلغاء الملف
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 3. Mindmap (.png, .jpg, .pdf) */}
+                  <div className="p-4 rounded-2xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4" />
+                        <span>خريطة ذهنية (Mindmap)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300">
+                        عرض وتحميل 🧠
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      صورة عالية الدقة أو ملف PDF للخريطة التلخيصية للمحاضرة.
+                    </p>
+                    <input
+                      type="file"
+                      id="mindmap-file-input"
+                      accept=".png,.jpg,.jpeg,.webp,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setMindmapFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('mindmap-file-input')?.click()}
+                      className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        mindmapFile
+                          ? 'bg-teal-600 text-white border-teal-600'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-teal-500'
+                      }`}
+                    >
+                      {mindmapFile ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="truncate max-w-[150px]">{mindmapFile.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="w-3.5 h-3.5" />
+                          <span>اختر صورة أو PDF</span>
+                        </>
+                      )}
+                    </button>
+                    {mindmapFile && (
+                      <button
+                        type="button"
+                        onClick={() => setMindmapFile(null)}
+                        className="text-[10px] text-rose-500 hover:underline block text-center w-full"
+                      >
+                        إلغاء الملف
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Optional Admin Note */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -736,13 +962,57 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3.5 px-4 text-slate-500">{lec.subjectTitle}</td>
                         <td className="py-3.5 px-4">
-                          <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold">
-                            {lec.files?.length || 1} ملفات (PDF)
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px]">
+                              PDF 📄
+                            </span>
+                            {lec.files?.some((f: any) => f.fileType === 'powerpoint') && (
+                              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]">
+                                PPT 📊
+                              </span>
+                            )}
+                            {lec.files?.some((f: any) => f.fileType === 'mindmap') && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+                                Mindmap 🧠
+                              </span>
+                            )}
+                            {lec.flashcards?.length > 0 ? (
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
+                                {lec.flashcards.length} كارت 🎴
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 font-normal text-[10px]">
+                                بدون كروت
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-slate-400">{lec.files?.[0]?.updatedAt || 'معتمد'}</td>
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            {/* Anki import button */}
+                            <label
+                              className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer transition flex items-center"
+                              title="استيراد كروت Anki (.apkg) لهذه المحاضرة"
+                            >
+                              <input
+                                type="file"
+                                accept=".apkg"
+                                className="hidden"
+                                disabled={isImportingAnki === lec.id}
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    handleImportAnki(lec.id, e.target.files[0]);
+                                  }
+                                }}
+                              />
+                              {isImportingAnki === lec.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                              ) : (
+                                <Layers className="w-4 h-4" />
+                              )}
+                            </label>
+
                             <Link
                               href={`/lecture/${lec.id}`}
                               target="_blank"

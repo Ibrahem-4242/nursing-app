@@ -53,6 +53,32 @@ export default function LectureContentTabs({
     }
   };
 
+  const hasTrackedFlashcards = React.useRef(false);
+
+  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'flashcards') => {
+    setActiveTab(tab);
+    if (tab === 'flashcards' && !hasTrackedFlashcards.current) {
+      hasTrackedFlashcards.current = true;
+      fetch('/api/track-flashcards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lectureTitle: pdfFile?.title || subjectTitle,
+          subjectTitle,
+          cardsCount: flashcards?.length || 0,
+        }),
+      }).catch((e) => console.warn('Flashcard tracking error:', e));
+    }
+  };
+
+  const getExtension = (file: LectureFile) => {
+    if (file.type === 'pdf') return 'pdf';
+    if (file.type === 'ppt') return 'pptx';
+    if (file.downloadUrl?.endsWith('.png')) return 'png';
+    if (file.downloadUrl?.endsWith('.jpg') || file.downloadUrl?.endsWith('.jpeg')) return 'jpg';
+    return 'pdf';
+  };
+
   const handleDownloadNow = async (file: LectureFile) => {
     try {
       // 1. Send Download Tracking Event to Telegram & CMS Analytics
@@ -67,6 +93,9 @@ export default function LectureContentTabs({
         }),
       }).catch((e) => console.warn('Tracking download non-blocking notice:', e));
 
+      const extension = getExtension(file);
+      const safeFilename = `${file.title.replace(/[\/\\]/g, '-')}.${extension}`;
+
       // 2. Perform File Download
       if (file.downloadUrl && file.downloadUrl.startsWith('http')) {
         // Direct remote or cloud link
@@ -74,14 +103,14 @@ export default function LectureContentTabs({
         a.href = file.downloadUrl;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        a.download = `${file.title}.pdf`;
+        a.download = safeFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       } else if (file.downloadUrl && file.downloadUrl.startsWith('/api/files/')) {
         const a = document.createElement('a');
         a.href = file.downloadUrl;
-        a.download = `${file.title}.pdf`;
+        a.download = safeFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -92,8 +121,7 @@ export default function LectureContentTabs({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const extension = file.type === 'pdf' ? 'pdf' : file.type === 'ppt' ? 'pptx' : 'png';
-        a.download = `${file.title.replace(/[\/\\]/g, '-')}.${extension}`;
+        a.download = safeFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -121,7 +149,7 @@ export default function LectureContentTabs({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Tab 1: PDF */}
           <button
-            onClick={() => setActiveTab('pdf')}
+            onClick={() => handleSelectTab('pdf')}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
               activeTab === 'pdf'
                 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 scale-[1.02]'
@@ -134,7 +162,7 @@ export default function LectureContentTabs({
 
           {/* Tab 2: PowerPoint */}
           <button
-            onClick={() => setActiveTab('ppt')}
+            onClick={() => handleSelectTab('ppt')}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
               activeTab === 'ppt'
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 scale-[1.02]'
@@ -147,7 +175,7 @@ export default function LectureContentTabs({
 
           {/* Tab 3: Mind Map */}
           <button
-            onClick={() => setActiveTab('mindmap')}
+            onClick={() => handleSelectTab('mindmap')}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
               activeTab === 'mindmap'
                 ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 scale-[1.02]'
@@ -160,7 +188,7 @@ export default function LectureContentTabs({
 
           {/* Tab 4: Flashcards */}
           <button
-            onClick={() => setActiveTab('flashcards')}
+            onClick={() => handleSelectTab('flashcards')}
             className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
               activeTab === 'flashcards'
                 ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 scale-[1.02]'

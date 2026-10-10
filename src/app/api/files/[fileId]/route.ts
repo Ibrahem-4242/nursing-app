@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const headers = new Headers();
-    headers.set('Content-Type', 'application/pdf');
+    headers.set('Content-Type', file.contentType || 'application/octet-stream');
     headers.set('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`);
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 

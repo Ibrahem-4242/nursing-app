@@ -17,7 +17,7 @@ function getUploadsDirectory(): string {
   }
 }
 
-export function saveUploadedPdf(
+export function saveUploadedFile(
   bytes: Uint8Array,
   filename: string
 ): { fileId: string; url: string; sizeFormatted: string } {
@@ -39,28 +39,44 @@ export function saveUploadedPdf(
   };
 }
 
-export function getUploadedPdf(fileId: string): { buffer: Buffer; filename: string } | null {
+// Backward compatibility alias
+export const saveUploadedPdf = saveUploadedFile;
+
+export function getUploadedFile(fileId: string): { buffer: Buffer; filename: string; contentType: string } | null {
   const dir = getUploadsDirectory();
   const safeName = path.basename(fileId);
   const filePath = path.join(dir, safeName);
 
+  let buffer: Buffer | null = null;
   if (fs.existsSync(filePath)) {
-    const buffer = fs.readFileSync(filePath);
-    return {
-      buffer,
-      filename: safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'lecture.pdf',
-    };
+    buffer = fs.readFileSync(filePath);
+  } else {
+    const tmpPath = path.join('/tmp', 'nursing-uploads', safeName);
+    if (fs.existsSync(tmpPath)) {
+      buffer = fs.readFileSync(tmpPath);
+    }
   }
 
-  // Fallback check in /tmp as well
-  const tmpPath = path.join('/tmp', 'nursing-uploads', safeName);
-  if (fs.existsSync(tmpPath)) {
-    const buffer = fs.readFileSync(tmpPath);
-    return {
-      buffer,
-      filename: safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'lecture.pdf',
-    };
-  }
+  if (!buffer) return null;
 
-  return null;
+  const originalName = safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'file';
+  const ext = path.extname(originalName).toLowerCase();
+
+  let contentType = 'application/octet-stream';
+  if (ext === '.pdf') contentType = 'application/pdf';
+  else if (ext === '.pptx') contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  else if (ext === '.ppt') contentType = 'application/vnd.ms-powerpoint';
+  else if (ext === '.png') contentType = 'image/png';
+  else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+  else if (ext === '.webp') contentType = 'image/webp';
+  else if (ext === '.svg') contentType = 'image/svg+xml';
+
+  return {
+    buffer,
+    filename: originalName,
+    contentType,
+  };
 }
+
+// Backward compatibility alias
+export const getUploadedPdf = getUploadedFile;
