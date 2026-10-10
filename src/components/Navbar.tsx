@@ -22,27 +22,21 @@ export default function Navbar() {
               ملخصات تمريض
             </span>
             <span className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mt-0.5">
-              المكتبة التمريضية الشاملة
+              مقررات وملخصات السنة الأولى
             </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
+        {/* Desktop Navigation Links - Focused on Year 1 */}
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
           <Link href="/" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
             الرئيسية
           </Link>
-          <Link href="/year/1" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
-            السنة الأولى
-          </Link>
-          <Link href="/year/2" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
-            السنة الثانية
-          </Link>
-          <Link href="/year/3" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
-            السنة الثالثة
-          </Link>
-          <Link href="/year/4" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
-            السنة الرابعة
+          <Link
+            href="/year/1"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-bold hover:bg-teal-600 hover:text-white transition"
+          >
+            <span>🩺 مواد السنة الأولى</span>
           </Link>
           <Link href="/about" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
             عن المنصة
@@ -93,30 +87,9 @@ export default function Navbar() {
           <Link
             href="/year/1"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2.5 px-3 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200"
+            className="block py-2.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-950 text-sm font-bold text-teal-700 dark:text-teal-300"
           >
-            🩺 السنة الأولى
-          </Link>
-          <Link
-            href="/year/2"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2.5 px-3 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200"
-          >
-            🧪 السنة الثانية
-          </Link>
-          <Link
-            href="/year/3"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2.5 px-3 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200"
-          >
-            💉 السنة الثالثة
-          </Link>
-          <Link
-            href="/year/4"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2.5 px-3 rounded-xl hover:bg-teal-50 dark:hover:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200"
-          >
-            🏥 السنة الرابعة
+            🩺 مواد السنة الأولى (الفرقة الأولى)
           </Link>
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
             <Link
