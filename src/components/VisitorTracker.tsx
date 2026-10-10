@@ -7,12 +7,16 @@ export default function VisitorTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Only track once per browser session to prevent Telegram notification flooding
-    const alreadyTracked = sessionStorage.getItem('visitor_session_logged');
-    if (alreadyTracked) return;
+    // Only track once per browser session to prevent unnecessary duplicate requests
+    const alreadyTrackedInSession = sessionStorage.getItem('visitor_session_logged');
+    if (alreadyTrackedInSession) return;
 
-    // Skip admin dashboard visits from general visitor counter if logged in as admin
+    // Skip admin dashboard visits
     if (pathname.startsWith('/admin-dashboard')) return;
+
+    // Check if this student has visited the website before (persisted in localStorage)
+    const hasVisitedBefore = !!localStorage.getItem('nursing_has_visited_before');
+    const isNewStudent = !hasVisitedBefore;
 
     let deviceType = 'كمبيوتر / لابتوب (Desktop)';
     const ua = navigator.userAgent;
@@ -32,10 +36,16 @@ export default function VisitorTracker() {
         deviceType,
         page: pathname || '/',
         userAgent: ua,
+        isNewStudent,
       }),
     })
       .then(() => {
         sessionStorage.setItem('visitor_session_logged', 'true');
+        // Once recorded, mark student permanently in localStorage as having visited
+        if (isNewStudent) {
+          localStorage.setItem('nursing_has_visited_before', 'true');
+          localStorage.setItem('nursing_first_visit_at', new Date().toISOString());
+        }
       })
       .catch((err) => {
         console.warn('[VisitorTracker] Non-blocking tracking notice:', err);

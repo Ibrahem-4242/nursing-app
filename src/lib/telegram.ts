@@ -8,6 +8,7 @@ export interface VisitorInfo {
   page?: string;
   ip?: string;
   time?: string;
+  isFirstTime?: boolean;
 }
 
 export interface DownloadInfo {
@@ -99,10 +100,10 @@ export async function notifyNewVisitor(info: VisitorInfo): Promise<boolean> {
   const device = info.deviceType || 'غير محدد';
   const page = info.page || '/';
 
-  const text = `👀 <b>زائر جديد في منصة ملخصات تمريض!</b>
+  const text = `🎓 <b>طالب جديد دخل المنصة لأول مرة!</b>
 ━━━━━━━━━━━━━━━━━━━━
 📱 <b>نوع الجهاز:</b> ${device}
-🌐 <b>الصفحة:</b> <code>${page}</code>
+🌐 <b>صفحة البداية:</b> <code>${page}</code>
 ⏰ <b>التوقيت:</b> ${time}
 💻 <b>المتصفح:</b> <i>${(info.userAgent || '').slice(0, 120)}</i>`;
 
