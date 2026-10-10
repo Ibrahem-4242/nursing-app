@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataService } from '@/lib/data-service';
+import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import {
@@ -11,7 +12,6 @@ import {
   Gift,
   Lock,
   ArrowLeft,
-  Award,
   Sparkles,
   Download,
   Presentation,
@@ -19,24 +19,15 @@ import {
   Layers,
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface SubjectPageProps {
   params: {
     subId: string;
   };
 }
 
-export function generateStaticParams() {
-  const subjects = DataService.getSubjectsByYear('1').concat(
-    DataService.getSubjectsByYear('2'),
-    DataService.getSubjectsByYear('3'),
-    DataService.getSubjectsByYear('4')
-  );
-  return subjects.map((s) => ({
-    subId: s.id,
-  }));
-}
-
-export default function SubjectPage({ params }: SubjectPageProps) {
+export default async function SubjectPage({ params }: SubjectPageProps) {
   const subject = DataService.getSubjectById(params.subId);
 
   if (!subject) {
@@ -44,8 +35,8 @@ export default function SubjectPage({ params }: SubjectPageProps) {
   }
 
   const year = DataService.getAcademicYearById(subject.yearId);
-  const lectures = DataService.getLecturesBySubject(subject.id);
-  const quizzes = DataService.getQuizzesBySubject(subject.id);
+  const liveLectures = await CmsService.getLiveLecturesBySubject(subject.id);
+  const lectures = liveLectures.length > 0 ? liveLectures : DataService.getLecturesBySubject(subject.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -200,77 +191,6 @@ export default function SubjectPage({ params }: SubjectPageProps) {
           {/* AdSense In-Content between lectures and quizzes */}
           <AdSenseBanner position="in-content" slotId="5432167890" label="إعلان ممول - المحاضرات الأكاديمية" />
 
-          {/* Section 2: Quizzes Department (قسم أسئلة الكويزات) */}
-          <div className="pt-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-6">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Award className="w-6 h-6 text-amber-500" />
-                  <span>قسم أسئلة الكويزات والنماذج</span>
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">اختبارات تدريبية مع نماذج الإجابة للامتحانات النهائية</p>
-              </div>
-              <span className="text-xs font-bold px-3 py-1 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded-full border border-amber-200 dark:border-amber-800">
-                {quizzes.length} كويزات
-              </span>
-            </div>
-
-            {quizzes.length === 0 ? (
-              <div className="p-6 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">
-                سيتم إضافة نماذج الكويزات الخاصة بمادة {subject.title} قريباً ⌛️
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quizzes.map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-lg transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
-                          كويز {quiz.quizNumber}
-                        </span>
-                        {quiz.isFree ? (
-                          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full">
-                            مجاني 🎁
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                            10 ج 🔒
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 mb-2 leading-snug">
-                        {quiz.title}
-                      </h4>
-
-                      <div className="flex items-center gap-3 text-xs text-slate-400 mb-3">
-                        <span>{quiz.questionsCount} سؤال</span>
-                        <span>•</span>
-                        <span>{quiz.durationMinutes} دقيقة</span>
-                      </div>
-
-                      {quiz.customNote && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl mb-3 leading-relaxed">
-                          {quiz.customNote}
-                        </p>
-                      )}
-                    </div>
-
-                    <a
-                      href={quiz.fileUrl}
-                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>تحميل ملف الكويز (PDF)</span>
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Sidebar Column: Study Guide & AdSense */}

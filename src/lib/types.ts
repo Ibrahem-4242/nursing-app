@@ -117,3 +117,43 @@ export interface QuizItem {
   fileUrl: string;
   customNote?: string;
 }
+
+export interface AnnouncementConfig {
+  id: string;
+  text: string;
+  isActive: boolean;
+  linkText?: string;
+  linkUrl?: string;
+  updatedAt: string;
+}
+
+export interface BrokenLinkReport {
+  id: string;
+  lectureId?: string;
+  lectureTitle: string;
+  subjectTitle: string;
+  linkUrl: string;
+  userNote?: string;
+  createdAt: string;
+  status: 'pending' | 'resolved';
+}
+
+export interface VisitorEvent {
+  id: string;
+  timestamp: string;
+  dateStr: string;
+  deviceType: string;
+  page: string;
+  userAgent?: string;
+}
+
+export interface DownloadEvent {
+  id: string;
+  timestamp: string;
+  dateStr: string;
+  lectureTitle: string;
+  subjectTitle: string;
+  fileType: string;
+  fileName?: string;
+}
+

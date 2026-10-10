@@ -1,10 +1,10 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { DataService } from '@/lib/data-service';
+import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import LectureContentTabs from '@/components/LectureContentTabs';
-import InteractiveQuiz from '@/components/InteractiveQuiz';
 import {
   Clock,
   Eye,
@@ -18,24 +18,16 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface LecturePageProps {
   params: {
     lecId: string;
   };
 }
 
-export function generateStaticParams() {
-  const lectures = DataService.getLecturesBySubject('anatomy').concat(
-    DataService.getLecturesBySubject('fundamentals'),
-    DataService.getLecturesBySubject('pharmacology')
-  );
-  return lectures.map((l) => ({
-    lecId: l.id,
-  }));
-}
-
-export default function LecturePage({ params }: LecturePageProps) {
-  const lecture = DataService.getLectureById(params.lecId);
+export default async function LecturePage({ params }: LecturePageProps) {
+  const lecture = (await CmsService.getLectureById(params.lecId)) || DataService.getLectureById(params.lecId);
 
   if (!lecture) {
     notFound();
@@ -119,6 +111,7 @@ export default function LecturePage({ params }: LecturePageProps) {
           flashcards={lecture.flashcards}
           subjectTitle={lecture.subjectTitle}
           adminNote={lecture.adminNote}
+          lectureId={lecture.id}
         />
       </section>
 
@@ -271,13 +264,7 @@ export default function LecturePage({ params }: LecturePageProps) {
         )}
       </section>
 
-      {/* 6. Interactive Nursing Quiz Section */}
-      <InteractiveQuiz
-        questions={lecture.quiz}
-        lectureTitle={lecture.title}
-      />
-
-      {/* 7. Bottom AdSense Banner */}
+      {/* 6. Bottom AdSense Banner */}
       <AdSenseBanner
         position="footer"
         slotId="4455667788"

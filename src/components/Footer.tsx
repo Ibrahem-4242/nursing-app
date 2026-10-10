@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Stethoscope, MessageCircle, Heart } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
+import SecretAdminTrigger from './SecretAdminTrigger';
 
 export default function Footer() {
   return (
@@ -120,7 +121,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} ملخصات تمريض. جميع الحقوق محفوظة.</p>
+          <div className="flex items-center gap-3">
+            <p>© {new Date().getFullYear()} ملخصات تمريض. جميع الحقوق محفوظة.</p>
+            <SecretAdminTrigger />
+          </div>
           <div className="flex items-center gap-2 text-[11px]">
             <span>صُممت بكل</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />

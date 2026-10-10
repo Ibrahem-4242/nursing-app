@@ -19,9 +19,13 @@ import {
   Award,
 } from 'lucide-react';
 
-export default function HomePage() {
-  const year1 = DataService.getAcademicYearById('1');
-  const year1Subjects = DataService.getSubjectsByYear('1');
+import { CmsService } from '@/lib/cms-db';
+
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const liveSubjects = await CmsService.getLiveSubjects();
+  const year1Subjects = liveSubjects.length > 0 ? liveSubjects : DataService.getSubjectsByYear('1');
 
   return (
     <div className="w-full pb-20">
@@ -37,7 +41,7 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight">
-                ملخصات، كويزات، ومواد تمريض{' '}
+                ملخصات، مذكرات، ومواد تمريض{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-600 to-emerald-500">
                   السنة الأولى 🩺
                 </span>
@@ -110,7 +114,7 @@ export default function HomePage() {
               مواد السنة الأولى (العلوم الطبية والتمريضية)
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              اختر المادة لتصفح المحاضرات، الكويزات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز
+              اختر المادة لتصفح المحاضرات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز
             </p>
           </div>
 

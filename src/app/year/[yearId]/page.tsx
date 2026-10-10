@@ -2,9 +2,12 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataService } from '@/lib/data-service';
+import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import { BookOpen, FileText, Award, ArrowLeft, Sparkles, CheckCircle2, Layers } from 'lucide-react';
+import { BookOpen, FileText, ArrowLeft, Sparkles, CheckCircle2, Layers } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 interface YearPageProps {
   params: {
@@ -12,21 +15,15 @@ interface YearPageProps {
   };
 }
 
-export function generateStaticParams() {
-  const years = DataService.getAcademicYears();
-  return years.map((y) => ({
-    yearId: y.id,
-  }));
-}
-
-export default function YearPage({ params }: YearPageProps) {
+export default async function YearPage({ params }: YearPageProps) {
   const year = DataService.getAcademicYearById(params.yearId);
 
   if (!year) {
     notFound();
   }
 
-  const subjects = DataService.getSubjectsByYear(year.id);
+  const liveSubjects = await CmsService.getLiveSubjects();
+  const subjects = liveSubjects.length > 0 ? liveSubjects : DataService.getSubjectsByYear(year.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -82,16 +79,9 @@ export default function YearPage({ params }: YearPageProps) {
                   <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
                     {sub.code}
                   </span>
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <span className="flex items-center gap-1 font-bold text-teal-600 dark:text-teal-400">
-                      <FileText className="w-3.5 h-3.5" />
-                      {sub.totalLectures} محاضرات
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-amber-500" />
-                      {sub.totalQuizzes} كويزات
-                    </span>
+                  <div className="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-bold">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>{sub.totalLectures} محاضرات</span>
                   </div>
                 </div>
 

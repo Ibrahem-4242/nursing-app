@@ -3,16 +3,17 @@
 import React, { useState } from 'react';
 import { LectureFile, Flashcard } from '@/lib/types';
 import Flashcards3D from '@/components/Flashcards3D';
+import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
+import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
 import {
   FileText,
   Presentation,
   GitFork,
   Layers,
-  Download,
   CheckCircle2,
   Info,
-  Sparkles,
   ArrowDownCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 interface LectureContentTabsProps {
@@ -20,6 +21,7 @@ interface LectureContentTabsProps {
   flashcards: Flashcard[];
   subjectTitle: string;
   adminNote?: string;
+  lectureId?: string;
 }
 
 export default function LectureContentTabs({
@@ -27,9 +29,12 @@ export default function LectureContentTabs({
   flashcards,
   subjectTitle,
   adminNote,
+  lectureId,
 }: LectureContentTabsProps) {
   const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'flashcards'>('pdf');
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const pdfFile = files.find((f) => f.type === 'pdf') || files[0];
   const pptFile = files.find((f) => f.type === 'ppt') || files[1] || files[0];
@@ -48,23 +53,60 @@ export default function LectureContentTabs({
     }
   };
 
-  const handleDownloadNow = (file: LectureFile) => {
+  const handleDownloadNow = async (file: LectureFile) => {
     try {
-      // Safe, bulletproof client-side file download that never crashes or whitescreens
-      const content = `ملخصات تمريض - ${file.title}\nالمادة: ${subjectTitle}\nتم التحميل من منصة ملخصات تمريض بنجاح.\nالمحتوى معتمد لطلاب كليات ومعاهد التمريض.`;
-      const blob = new Blob([content], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const extension = file.type === 'pdf' ? 'pdf' : file.type === 'ppt' ? 'pptx' : 'png';
-      a.download = `${file.title.replace(/[\/\\]/g, '-')}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // 1. Send Download Tracking Event to Telegram & CMS Analytics
+      fetch('/api/track-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lectureTitle: file.title,
+          subjectTitle,
+          fileType: file.type === 'pdf' ? 'ملخص PDF' : file.type === 'ppt' ? 'عرض بوربوينت PPT' : 'خريطة ذهنية',
+          fileName: file.title,
+        }),
+      }).catch((e) => console.warn('Tracking download non-blocking notice:', e));
+
+      // 2. Perform File Download
+      if (file.downloadUrl && file.downloadUrl.startsWith('http')) {
+        // Direct remote or cloud link
+        const a = document.createElement('a');
+        a.href = file.downloadUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.download = `${file.title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (file.downloadUrl && file.downloadUrl.startsWith('/api/files/')) {
+        const a = document.createElement('a');
+        a.href = file.downloadUrl;
+        a.download = `${file.title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        // Safe formatted downloadable content
+        const content = `%PDF-1.4\n% منصة ملخصات تمريض - ${file.title}\nالمادة: ${subjectTitle}\nتم التحميل بنجاح من منصة ملخصات تمريض.\nالمحتوى مخصص للمذاكرة الأكاديمية والامتحانات.`;
+        const blob = new Blob([content], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const extension = file.type === 'pdf' ? 'pdf' : file.type === 'ppt' ? 'pptx' : 'png';
+        a.download = `${file.title.replace(/[\/\\]/g, '-')}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
 
       setDownloadSuccess(file.type);
       setTimeout(() => setDownloadSuccess(null), 4000);
+
+      // 3. Trigger WhatsApp Join Modal after 1.2s to encourage community join
+      setTimeout(() => {
+        setIsWhatsAppModalOpen(true);
+      }, 1200);
     } catch (e) {
       console.error('Download error:', e);
     }
@@ -152,7 +194,7 @@ export default function LectureContentTabs({
 
               <div>
                 <span className="text-xs font-bold text-teal-600 dark:text-teal-400 block mb-1">
-                  {activeTab === 'pdf' && 'ملخص المحاضرة الرسمي (PDF)'}
+                  {activeTab === 'pdf' && 'ملخص المحاضرة المعتمد (PDF)'}
                   {activeTab === 'ppt' && 'سلايدات الشرح الجامعي (PowerPoint)'}
                   {activeTab === 'mindmap' && 'الخريطة الذهنية التفاعلية الشاملة'}
                 </span>
@@ -192,7 +234,7 @@ export default function LectureContentTabs({
           )}
 
           {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-3">
             <button
               onClick={() => handleDownloadNow(activeFile)}
               className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
@@ -202,11 +244,23 @@ export default function LectureContentTabs({
             </button>
 
             {downloadSuccess === activeFile.type && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span>بدأ تحميل الملف بنجاح! تفقد مجلد التنزيلات (Downloads) في جهازك.</span>
               </div>
             )}
+
+            {/* Report Broken Link Button */}
+            <div className="flex justify-center pt-1">
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(true)}
+                className="text-xs text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 inline-flex items-center gap-1.5 transition-colors py-1 px-3 rounded-full hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-transparent hover:border-amber-200/50"
+              >
+                <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                <span>هل الرابط لا يعمل؟ أبلغنا فوراً لنصلحه ⚠️</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -217,6 +271,23 @@ export default function LectureContentTabs({
           <Flashcards3D cards={flashcards} subjectTitle={subjectTitle} />
         </div>
       )}
+
+      {/* WhatsApp Modal after Download */}
+      <WhatsAppJoinModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        lectureTitle={activeFile?.title}
+      />
+
+      {/* Report Broken Link Modal */}
+      <ReportBrokenLinkModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        lectureTitle={activeFile?.title || ''}
+        subjectTitle={subjectTitle}
+        linkUrl={activeFile?.downloadUrl || ''}
+        lectureId={lectureId}
+      />
     </div>
   );
 }

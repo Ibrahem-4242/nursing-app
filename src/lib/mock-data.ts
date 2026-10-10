@@ -929,3 +929,6 @@ export const BOT_CONFIG = {
   whatsappGroupLink: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
   appsScriptWebhookUrl: 'https://script.google.com/macros/s/AKfycby4vIPoD5IRIwfCg6HN23uerHzBPP--_C85vcKrX7PAAS0GV6PGuSbHTe6_h0BwZvhSUA/exec'
 };
+
+export const MOCK_SUBJECTS = SUBJECTS;
+export const MOCK_LECTURES = LECTURES;
