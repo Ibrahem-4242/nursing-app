@@ -16,7 +16,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
   if (!questions || questions.length === 0) return null;
 
   const handleSelectOption = (questionId: number, optionIndex: number) => {
-    if (showResults) return; // Locked once submitted
+    if (showResults) return;
     setSelectedAnswers((prev) => ({
       ...prev,
       [questionId]: optionIndex,
@@ -42,31 +42,31 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
   };
 
   return (
-    <div className="w-full my-12 bg-white rounded-3xl p-6 sm:p-8 md:p-10 border border-slate-200/90 shadow-xl" dir="rtl">
+    <div className="w-full my-12 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 border border-slate-200/90 dark:border-slate-800 shadow-xl transition-colors duration-200" dir="rtl">
       {/* Quiz Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-teal-100 text-teal-800">
+            <span className="p-2 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300">
               <Award className="w-6 h-6" />
             </span>
-            <h3 className="text-xl md:text-2xl font-bold text-slate-900">
+            <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
               الكويز التجريبي التفاعلي (Interactive Nursing Quiz)
             </h3>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             اختبر فهمك السريري لنقاط {lectureTitle} مع الشرح والتصحيح النموذجي الفوري
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">
+          <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700">
             عدد الأسئلة: {questions.length}
           </span>
           {showResults && (
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 text-xs font-bold transition border border-teal-200 dark:border-teal-800"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>إعادة الاختبار</span>
@@ -80,8 +80,8 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
         <div
           className={`my-6 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border ${
             percentage >= 70
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-              : 'bg-amber-50 border-amber-200 text-amber-900'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+              : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'
           }`}
         >
           <div className="flex items-center gap-4 text-center sm:text-right">
@@ -100,7 +100,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                   ? '👏 نتيجة جيدة جداً! مراجعة النقاط ستجعلك في المقدمة.'
                   : '💡 بحاجة لمراجعة بعض المفاهيم، راجع الشرح النموذجي بالأسفل.'}
               </h4>
-              <p className="text-xs text-slate-600 mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                 حصلت على {score} إجابات صحيحة من إجمالي {questions.length} أسئلة
               </p>
             </div>
@@ -108,7 +108,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
 
           <button
             onClick={handleReset}
-            className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-bold text-xs hover:bg-slate-50 transition shadow-sm"
+            className="px-5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm"
           >
             إعادة المحاولة من البداية
           </button>
@@ -119,19 +119,18 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
       <div className="space-y-8 mt-6">
         {questions.map((q, qIndex) => {
           const userAnswer = selectedAnswers[q.id];
-          const isAnswered = userAnswer !== undefined;
           const isCorrect = userAnswer === q.correctIndex;
 
           return (
             <div
               key={q.id}
-              className="p-5 sm:p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 transition-all hover:border-slate-300"
+              className="p-5 sm:p-6 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 transition-all hover:border-slate-300 dark:hover:border-slate-700"
             >
               <div className="flex items-start gap-3 mb-4">
                 <span className="flex-shrink-0 w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   {qIndex + 1}
                 </span>
-                <h4 className="text-base font-bold text-slate-900 leading-relaxed pt-0.5">{q.question}</h4>
+                <h4 className="text-base font-bold text-slate-900 dark:text-white leading-relaxed pt-0.5">{q.question}</h4>
               </div>
 
               {/* Options */}
@@ -140,18 +139,18 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                   const isSelected = userAnswer === optIndex;
                   const isThisCorrect = optIndex === q.correctIndex;
 
-                  let optionStyle = 'bg-white border-slate-200 text-slate-700 hover:border-teal-400 hover:bg-teal-50/30';
+                  let optionStyle = 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50/30';
 
                   if (showResults) {
                     if (isThisCorrect) {
-                      optionStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold';
+                      optionStyle = 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold';
                     } else if (isSelected && !isThisCorrect) {
-                      optionStyle = 'bg-rose-50 border-rose-400 text-rose-950 line-through';
+                      optionStyle = 'bg-rose-50 dark:bg-rose-950/60 border-rose-400 text-rose-950 dark:text-rose-200 line-through';
                     } else {
-                      optionStyle = 'bg-white/60 border-slate-150 text-slate-400';
+                      optionStyle = 'bg-white/60 dark:bg-slate-900/40 border-slate-150 dark:border-slate-800 text-slate-400 dark:text-slate-600';
                     }
                   } else if (isSelected) {
-                    optionStyle = 'bg-teal-50 border-teal-600 text-teal-900 font-bold shadow-sm';
+                    optionStyle = 'bg-teal-50 dark:bg-teal-950 border-teal-600 dark:border-teal-500 text-teal-900 dark:text-teal-200 font-bold shadow-sm';
                   }
 
                   return (
@@ -166,7 +165,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                           className={`w-6 h-6 rounded-lg text-xs font-semibold flex items-center justify-center ${
                             isSelected
                               ? 'bg-teal-600 text-white'
-                              : 'bg-slate-100 text-slate-600'
+                              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                           }`}
                         >
                           {String.fromCharCode(65 + optIndex)}
@@ -175,30 +174,30 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                       </span>
 
                       {showResults && isThisCorrect && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mr-2" />
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mr-2" />
                       )}
                       {showResults && isSelected && !isThisCorrect && (
-                        <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mr-2" />
+                        <XCircle className="w-5 h-5 text-rose-500 dark:text-rose-400 flex-shrink-0 mr-2" />
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* In-depth pedagogical explanation & pearl when results shown */}
+              {/* In-depth pedagogical explanation */}
               {showResults && (
-                <div className="mt-4 mr-0 sm:mr-10 p-4 rounded-xl bg-white border border-teal-100 shadow-sm text-xs text-slate-700 space-y-2">
+                <div className="mt-4 mr-0 sm:mr-10 p-4 rounded-xl bg-white dark:bg-slate-800 border border-teal-100 dark:border-teal-900 shadow-sm text-xs text-slate-700 dark:text-slate-300 space-y-2">
                   <div className="flex items-start gap-2">
-                    <HelpCircle className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                    <HelpCircle className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold text-teal-900 block mb-0.5">التصحيح والتعليل الطبي:</span>
-                      <p className="leading-relaxed text-slate-600">{q.explanation}</p>
+                      <span className="font-bold text-teal-900 dark:text-teal-300 block mb-0.5">التصحيح والتعليل الطبي:</span>
+                      <p className="leading-relaxed text-slate-600 dark:text-slate-300">{q.explanation}</p>
                     </div>
                   </div>
 
                   {q.pearl && (
-                    <div className="pt-2 border-t border-slate-100 flex items-start gap-2 text-amber-800">
-                      <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                      <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <span className="font-bold block mb-0.5">نصيحة سريرية للامتحان:</span>
                         <p className="leading-relaxed">{q.pearl}</p>
@@ -214,8 +213,8 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
 
       {/* Action Submit button */}
       {!showResults && (
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             أجبت على {Object.keys(selectedAnswers).length} من {questions.length} أسئلة
           </p>
 
@@ -225,7 +224,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
             className={`w-full sm:w-auto px-8 py-3 rounded-2xl font-bold text-sm shadow-md transition-all ${
               Object.keys(selectedAnswers).length > 0
                 ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/20 active:scale-95'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
             }`}
           >
             تصحيح الكويز وإظهار النتيجة 🚀

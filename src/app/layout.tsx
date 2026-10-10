@@ -21,8 +21,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'نيرسنج هَب | ملخصات وكويزات ومواد التمريض التفاعلية ثلاثية الأبعاد',
-    template: '%s | نيرسنج هَب (NursingHub)',
+    default: 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية',
+    template: '%s | ملخصات تمريض',
   },
   description:
     'المنصة الأكاديمية الشاملة لطلاب كليات ومعاهد التمريض: ملخصات PDF، عروض بوربوينت PPT، خرائط ذهنية، فلاش كاردز ثلاثية الأبعاد تفاعلية، وكويزات تجريبية معتمدة لجميع السنوات الدراسية.',
@@ -38,11 +38,11 @@ export const metadata: Metadata = {
     'فلاش كاردز طبية',
     'خرائط ذهنية تمريض',
   ],
-  authors: [{ name: 'فريق نيرسنج هَب الأكاديمي' }],
-  creator: 'Nursing Study Hub',
-  metadataBase: new URL('https://nursing-hub.example.com'),
+  authors: [{ name: 'فريق ملخصات تمريض الأكاديمي' }],
+  creator: 'ملخصات تمريض',
+  metadataBase: new URL('https://nursing-app.vercel.app'),
   openGraph: {
-    title: 'نيرسنج هَب | بنك ملخصات وكويزات التمريض التفاعلي',
+    title: 'ملخصات تمريض | بنك ملخصات وكويزات التمريض التفاعلي',
     description: 'استكشف ملخصات مواد التمريض التفاعلية ثلاثية الأبعاد والخرائط الذهنية وبنك الأسئلة.',
     type: 'website',
     locale: 'ar_EG',
@@ -57,7 +57,7 @@ export default function RootLayout({
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || 'ca-pub-0000000000000000';
 
   return (
-    <html lang="ar" dir="rtl" className={cairo.variable}>
+    <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
       <head>
         {/* Google AdSense Head Script */}
         <Script
@@ -67,8 +67,22 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+        {/* Script to avoid theme flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
       </head>
-      <body className="font-cairo min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased selection:bg-teal-600 selection:text-white">
+      <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

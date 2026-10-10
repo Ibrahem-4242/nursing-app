@@ -1,13 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
-import { Stethoscope, Send, Phone, Clock, ShieldCheck, Heart } from 'lucide-react';
+import { Stethoscope, Send, Heart } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800" dir="rtl">
+    <footer className="w-full bg-slate-900 dark:bg-slate-950 text-slate-300 dark:text-slate-400 pt-16 pb-12 border-t border-slate-800 dark:border-slate-900" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-slate-800 dark:border-slate-800/80">
           {/* Col 1: Platform Overview */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -15,8 +15,8 @@ export default function Footer() {
                 <Stethoscope className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-lg font-black text-white">نيرسنج هَب</span>
-                <span className="text-[10px] block text-teal-400 font-bold">Nursing Study Hub</span>
+                <span className="text-lg font-black text-white">ملخصات تمريض</span>
+                <span className="text-[10px] block text-teal-400 font-bold">Nursing Study Notes</span>
               </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
@@ -89,43 +89,38 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/contact" className="hover:text-teal-400 transition">
-                  اتصل بنا والدعم الفني (Contact)
+                  اتصل بنا والدعم (Contact)
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 4: Support & Payment System */}
+          {/* Col 4: Vision & Help */}
           <div>
             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              الدعم والاشتراكات
+              المحتوى والتطوير
             </h4>
             <div className="space-y-3 text-xs text-slate-400">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <span>مواعيد خدمة الطلاب: {BOT_CONFIG.workHours}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <span>طريقة الدفع: {BOT_CONFIG.paymentMethod}</span>
-              </div>
-              <p className="text-[11px] text-slate-500 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60 leading-relaxed">
-                رقم كاش للمحتوى المدفوع: <span className="text-teal-300 font-mono font-bold">{BOT_CONFIG.adminContactPhone}</span> (المحاضرة الأولى مجانية دائماً لجميع المواد).
+              <p className="leading-relaxed">
+                يتم تحديث وإضافة ملخصات وكويزات جديدة بشكل أسبوعي تغطي جميع الفصول الدراسية وفق المعايير الأكاديمية الرسمية.
               </p>
+              <div className="p-3 bg-slate-800/60 dark:bg-slate-900 rounded-xl border border-slate-700/60 text-[11px] text-teal-300">
+                ✨ المحاضرة الأولى في كل مادة مجانية دائماً لجميع الطلاب لتجربة جودة المحتوى والمجسمات ثلاثية الأبعاد.
+              </div>
             </div>
           </div>
         </div>
 
         {/* Medical Disclaimer Banner */}
-        <div className="py-6 border-b border-slate-800/80 text-[11px] text-slate-400 leading-relaxed text-center sm:text-right">
+        <div className="py-6 border-b border-slate-800/80 dark:border-slate-800/60 text-[11px] text-slate-400 leading-relaxed text-center sm:text-right">
           <span className="text-amber-400 font-bold">⚠️ إخلاء مسؤولية أكاديمية: </span>
-          المحتوى التعليمي والملخصات والخرائط الذهنية المتوفرة على منصة NursingHub مخصصة لأغراض المذاكرة الأكاديمية والتدريب السريري لطلاب التمريض. لا يُعتبر المحتوى بديلاً عن المراجع الطبية المعتمدة أو التوجيهات الطبية الرسمية المعمول بها في المنشآت الصحية.
+          المحتوى التعليمي والملخصات والخرائط الذهنية المتوفرة على منصة ملخصات تمريض مخصصة لأغراض المذاكرة الأكاديمية والتدريب السريري لطلاب التمريض. لا يُعتبر المحتوى بديلاً عن المراجع الطبية المعتمدة أو التوجيهات الطبية الرسمية المعمول بها في المنشآت الصحية.
         </div>
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} نيرسنج هَب (NursingHub). جميع الحقوق محفوظة.</p>
+          <p>© {new Date().getFullYear()} ملخصات تمريض. جميع الحقوق محفوظة.</p>
           <div className="flex items-center gap-2 text-[11px]">
             <span>صُممت بكل</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
