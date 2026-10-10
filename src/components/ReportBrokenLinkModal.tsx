@@ -21,6 +21,7 @@ export default function ReportBrokenLinkModal({
   lectureId,
 }: ReportBrokenLinkModalProps) {
   const [note, setNote] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -40,6 +41,7 @@ export default function ReportBrokenLinkModal({
           subjectTitle,
           linkUrl,
           userNote: note.trim(),
+          userPhone: phone.trim(),
         }),
       });
 
@@ -49,6 +51,7 @@ export default function ReportBrokenLinkModal({
         setTimeout(() => {
           setIsSuccess(false);
           setNote('');
+          setPhone('');
           onClose();
         }, 2200);
       }
@@ -119,6 +122,21 @@ export default function ReportBrokenLinkModal({
                   placeholder="مثال: الملف لا يحمل، أو الرابط يفتح صفحة بيضاء..."
                   rows={3}
                   className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>رقم هاتفك / الواتساب (اختياري):</span>
+                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-normal">لإعلامك فور حل الرابط</span>
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="مثال: 011xxxxxxxx"
+                  dir="ltr"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-right"
                 />
               </div>
 

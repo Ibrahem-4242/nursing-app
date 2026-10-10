@@ -17,7 +17,8 @@ export async function GET() {
   }
 
   const reports = await CmsService.getBrokenLinkReports();
-  return NextResponse.json({ success: true, reports });
+  const complaints = await CmsService.getComplaints();
+  return NextResponse.json({ success: true, reports, complaints });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -26,12 +27,23 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { id } = body;
+  const { id, type } = body;
 
   if (!id) {
-    return NextResponse.json({ success: false, message: 'معرف البلاغ مطلوب' }, { status: 400 });
+    return NextResponse.json({ success: false, message: 'معرف الطلب مطلوب' }, { status: 400 });
+  }
+
+  if (type === 'complaint') {
+    const resolved = await CmsService.resolveComplaint(id);
+    return NextResponse.json({
+      success: resolved,
+      message: resolved ? 'تم تحديد الشكوى كمحلولة' : 'لم يتم العثور على الشكوى',
+    });
   }
 
   const resolved = await CmsService.resolveBrokenLinkReport(id);
-  return NextResponse.json({ success: resolved, message: resolved ? 'تم تحديد البلاغ كمكتمل ومصلح' : 'لم يتم العثور على البلاغ' });
+  return NextResponse.json({
+    success: resolved,
+    message: resolved ? 'تم تحديد البلاغ كمكتمل ومصلح' : 'لم يتم العثور على البلاغ',
+  });
 }

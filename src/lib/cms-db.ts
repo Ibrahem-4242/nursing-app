@@ -5,6 +5,7 @@ import {
   Subject,
   AnnouncementConfig,
   BrokenLinkReport,
+  ComplaintRecord,
   VisitorEvent,
   DownloadEvent,
 } from './types';
@@ -14,6 +15,7 @@ interface CmsStore {
   announcement: AnnouncementConfig;
   lectures: Lecture[];
   brokenLinks: BrokenLinkReport[];
+  complaints: ComplaintRecord[];
   visitors: VisitorEvent[];
   downloads: DownloadEvent[];
 }
@@ -65,6 +67,7 @@ function initMemoryStore(): CmsStore {
     announcement: DEFAULT_ANNOUNCEMENT,
     lectures: [...MOCK_LECTURES],
     brokenLinks: [],
+    complaints: [],
     visitors: [],
     downloads: [],
   };
@@ -232,7 +235,49 @@ export const CmsService = {
 
   async resolveBrokenLinkReport(id: string): Promise<boolean> {
     const store = initMemoryStore();
-    const item = store.brokenLinks.find((r) => r.id === id);
+    const item = store.brokenLinks?.find((r) => r.id === id);
+    if (item) {
+      item.status = 'resolved';
+      persistStore(store);
+      return true;
+    }
+    return false;
+  },
+
+  // --- COMPLAINTS & STUDENT MESSAGES ---
+  async getComplaints(): Promise<ComplaintRecord[]> {
+    const store = initMemoryStore();
+    return store.complaints || [];
+  },
+
+  async addComplaint(data: {
+    name: string;
+    phone: string;
+    year?: string;
+    type?: string;
+    message: string;
+  }): Promise<ComplaintRecord> {
+    const store = initMemoryStore();
+    const newComplaint: ComplaintRecord = {
+      id: `comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: data.name,
+      phone: data.phone,
+      year: data.year,
+      type: data.type,
+      message: data.message,
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    if (!store.complaints) store.complaints = [];
+    store.complaints.unshift(newComplaint);
+    persistStore(store);
+    return newComplaint;
+  },
+
+  async resolveComplaint(id: string): Promise<boolean> {
+    const store = initMemoryStore();
+    if (!store.complaints) return false;
+    const item = store.complaints.find((c) => c.id === id);
     if (item) {
       item.status = 'resolved';
       persistStore(store);

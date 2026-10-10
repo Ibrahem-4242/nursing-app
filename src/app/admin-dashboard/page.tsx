@@ -69,6 +69,7 @@ export default function AdminDashboardPage() {
 
   // Reports state
   const [reports, setReports] = useState<any[]>([]);
+  const [complaints, setComplaints] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(false);
 
   // Telegram test state
@@ -149,8 +150,9 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/reports');
       const data = await res.json();
-      if (data.success && data.reports) {
-        setReports(data.reports);
+      if (data.success) {
+        if (data.reports) setReports(data.reports);
+        if (data.complaints) setComplaints(data.complaints);
       }
     } catch (e) {
       console.warn('Failed to load reports:', e);
@@ -279,8 +281,25 @@ export default function AdminDashboardPage() {
         loadReports();
         loadStats();
       }
-    } catch (e) {
+    } catch {
       alert('فشل تحديث حالة البلاغ');
+    }
+  };
+
+  // Resolve complaint
+  const handleResolveComplaint = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/reports', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type: 'complaint' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadReports();
+      }
+    } catch {
+      alert('فشل تحديث حالة الشكوى');
     }
   };
 
@@ -458,7 +477,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>البلاغات ({reports.filter((r) => r.status === 'pending').length})</span>
+            <span>البلاغات والشكاوى ({reports.filter((r) => r.status === 'pending').length + complaints.filter((c) => c.status === 'pending').length})</span>
           </button>
 
           <button
@@ -931,6 +950,29 @@ export default function AdminDashboardPage() {
                         </p>
                       )}
 
+                      {rep.userPhone && (
+                        <div className="flex items-center gap-2 pt-1 text-xs">
+                          <span className="text-slate-500 text-[11px]">رقم هاتف الطالب:</span>
+                          <span className="font-bold text-teal-700 dark:text-teal-400 font-mono" dir="ltr">
+                            {rep.userPhone}
+                          </span>
+                          <a
+                            href={`https://wa.me/2${rep.userPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold"
+                          >
+                            واتساب 💬
+                          </a>
+                          <a
+                            href={`tel:${rep.userPhone}`}
+                            className="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-[10px] font-bold"
+                          >
+                            اتصال 📞
+                          </a>
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-slate-400">التوقيت: {rep.createdAt}</p>
                     </div>
 
@@ -947,6 +989,99 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             )}
+
+            {/* Section 2: Student Complaints & Messages */}
+            <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-4">
+              <div>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-teal-600" />
+                  <span>شكاوى ورسائل الطلاب الواردة بالرقم ({complaints.length})</span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  جميع الشكاوى والاستفسارات المرسلة من الطلاب مع أرقام هواتفهم للتواصل والمتابعة المباشرة.
+                </p>
+              </div>
+
+              {complaints.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <CheckCircle2 className="w-8 h-8 text-teal-500 mx-auto" />
+                  <p className="font-bold text-xs text-slate-700 dark:text-slate-300">لا توجد شكاوى جديدة حتى الآن</p>
+                  <p className="text-[11px]">أي شكوى يرسلها طالب ستظهر هنا وتصلك فوراً على بوت التيليجرام.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {complaints.map((comp) => (
+                    <div
+                      key={comp.id}
+                      className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ${
+                        comp.status === 'resolved'
+                          ? 'bg-slate-50 dark:bg-slate-850/40 border-slate-200 dark:border-slate-800 opacity-60'
+                          : 'bg-teal-50/40 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800/60'
+                      }`}
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">
+                            {comp.name}
+                          </span>
+                          <span className="text-xs text-slate-500">({comp.year})</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {comp.type}
+                          </span>
+                          {comp.status === 'resolved' ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                              تم الرد والحل ✅
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                              جديدة وغير محلولة 🔔
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium bg-white/60 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                          💬 {comp.message}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 text-[11px]">رقم الطالب:</span>
+                            <span className="font-bold text-teal-700 dark:text-teal-400 font-mono" dir="ltr">
+                              {comp.phone}
+                            </span>
+                          </div>
+                          <a
+                            href={`https://wa.me/2${comp.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                          >
+                            <span>واتساب 💬</span>
+                          </a>
+                          <a
+                            href={`tel:${comp.phone}`}
+                            className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                          >
+                            <span>اتصال 📞</span>
+                          </a>
+                          <span className="text-[10px] text-slate-400 mr-auto">{comp.createdAt}</span>
+                        </div>
+                      </div>
+
+                      {comp.status !== 'resolved' && (
+                        <button
+                          onClick={() => handleResolveComplaint(comp.id)}
+                          className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 flex-shrink-0"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>تم الحل والتواصل ✅</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

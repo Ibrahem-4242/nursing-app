@@ -134,6 +134,18 @@ export interface BrokenLinkReport {
   subjectTitle: string;
   linkUrl: string;
   userNote?: string;
+  userPhone?: string;
+  createdAt: string;
+  status: 'pending' | 'resolved';
+}
+
+export interface ComplaintRecord {
+  id: string;
+  name: string;
+  phone: string;
+  year?: string;
+  type?: string;
+  message: string;
   createdAt: string;
   status: 'pending' | 'resolved';
 }

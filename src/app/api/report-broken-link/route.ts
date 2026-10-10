@@ -5,7 +5,7 @@ import { CmsService } from '@/lib/cms-db';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { lectureTitle, subjectTitle, linkUrl, userNote, lectureId } = body;
+    const { lectureTitle, subjectTitle, linkUrl, userNote, userPhone, lectureId } = body;
 
     const time = getArabicFormattedDate();
 
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       subjectTitle: subjectTitle || 'مادة غير محددة',
       linkUrl: linkUrl || '#',
       userNote: userNote || '',
+      userPhone: userPhone || '',
     });
 
     // 2. Send Realtime Telegram Alert
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       subjectTitle: subjectTitle || 'مادة غير محددة',
       linkUrl: linkUrl || '#',
       userNote: userNote || '',
+      userPhone: userPhone || '',
       time,
     });
 

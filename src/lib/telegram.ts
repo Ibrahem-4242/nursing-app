@@ -23,6 +23,16 @@ export interface BrokenLinkInfo {
   subjectTitle: string;
   linkUrl: string;
   userNote?: string;
+  userPhone?: string;
+  time?: string;
+}
+
+export interface ComplaintInfo {
+  name: string;
+  phone: string;
+  year?: string;
+  type?: string;
+  message: string;
   time?: string;
 }
 
@@ -107,14 +117,34 @@ export async function notifyDownload(info: DownloadInfo): Promise<boolean> {
 
 export async function notifyBrokenLink(info: BrokenLinkInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
+  const phoneLine = info.userPhone ? `\n📞 <b>رقم هاتف الطالب:</b> <code>${info.userPhone}</code>` : '';
 
   const text = `⚠️ <b>بلاغ: طالب أبلغ عن عطل في رابط: [${info.lectureTitle}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 📖 <b>المحاضرة:</b> ${info.lectureTitle}
 📚 <b>المادة:</b> ${info.subjectTitle}
-🔗 <b>الرابط المتأثر:</b> <code>${info.linkUrl}</code>
+🔗 <b>الرابط المتأثر:</b> <code>${info.linkUrl}</code>${phoneLine}
 📝 <b>ملاحظة الطالب:</b> ${info.userNote ? `<i>${info.userNote}</i>` : 'لم يتم تقديم ملاحظة'}
 ⏰ <b>التوقيت:</b> ${time}`;
+
+  return sendTelegramMessage(text);
+}
+
+export async function notifyComplaint(info: ComplaintInfo): Promise<boolean> {
+  const time = info.time || getArabicFormattedDate();
+  const typeTag = info.type || 'شكوى أو استفسار';
+
+  const text = `🚨 <b>وصلتك شكوى جديدة من طالب عبر الموقع!</b>
+━━━━━━━━━━━━━━━━━━━━
+👤 <b>اسم الطالب:</b> ${info.name || 'طالب تمريض'}
+📞 <b>رقم الهاتف / الواتساب:</b> <code>${info.phone}</code>
+🎓 <b>السنة الدراسية:</b> ${info.year || 'السنة الأولى'}
+🏷️ <b>التصنيف:</b> ${typeTag}
+📝 <b>نص الشكوى / الرسالة:</b>
+<i>${info.message}</i>
+⏰ <b>التوقيت:</b> ${time}
+━━━━━━━━━━━━━━━━━━━━
+<i>منصة ملخصات تمريض - خدمة الطلاب والشكاوى 🩺</i>`;
 
   return sendTelegramMessage(text);
 }
