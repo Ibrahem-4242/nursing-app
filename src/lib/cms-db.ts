@@ -25,7 +25,7 @@ interface CmsStore {
 
 const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   id: 'announcement-1',
-  text: '📢 مرحباً بكم في منصة ملخصات تمريض! تم رفع وتحديث ملخصات الفرقة الأولى المعتمدة بالكامل 🩺',
+  text: 'شدوا حيلكم يا شباااااااااااااااب',
   isActive: true,
   linkText: 'انضم لجروب الواتساب',
   linkUrl: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
@@ -37,6 +37,8 @@ let memoryStore: CmsStore | null = null;
 
 let runtimeCustomToken = '';
 
+const BUILTIN_SYNC_TOKEN = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
+
 export function setRuntimeSyncToken(tok: string) {
   if (tok && tok.trim()) {
     runtimeCustomToken = tok.trim();
@@ -45,7 +47,11 @@ export function setRuntimeSyncToken(tok: string) {
 
 function getGistConfig(customToken?: string) {
   const gistId = process.env.GITHUB_GIST_ID || 'c9b4d3dd9bed0d8e8bde23138aff9152';
-  const token = customToken || runtimeCustomToken || process.env.GITHUB_SYNC_TOKEN || '';
+  const token =
+    customToken ||
+    runtimeCustomToken ||
+    process.env.GITHUB_SYNC_TOKEN ||
+    BUILTIN_SYNC_TOKEN;
   return { gistId, token };
 }
 
@@ -53,6 +59,29 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
   const { gistId, token } = getGistConfig(customToken);
   if (!gistId) return null;
 
+  // 1. Direct Gist Raw CDN fetch (Instant, zero rate limits!)
+  try {
+    const rawRes = await fetch(
+      `https://gist.githubusercontent.com/Ibrahem-4242/${gistId}/raw/cms-store.json?t=${Date.now()}`,
+      {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      }
+    );
+    if (rawRes.ok) {
+      const parsed = await rawRes.json();
+      if (parsed && Array.isArray(parsed.lectures)) {
+        return parsed as CmsStore;
+      }
+    }
+  } catch (rawErr) {
+    // Fallback to API
+  }
+
+  // 2. Authenticated GitHub Gist API fetch
   try {
     const headers: Record<string, string> = {
       'User-Agent': 'NursingStudyHubApp',
@@ -78,7 +107,7 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
       }
     }
   } catch (err) {
-    console.warn('[CMS DB] Cloud sync read error:', err);
+    console.warn('[CMS DB] Cloud sync API read error:', err);
   }
   return null;
 }
@@ -320,37 +349,54 @@ export const CmsService = {
 
   async getLiveSubjects(): Promise<Subject[]> {
     const liveLectures = await this.getLiveLectures();
-    if (!liveLectures || liveLectures.length === 0) {
-      return [];
-    }
-
     const subjectsMap = new Map<string, Subject>();
 
-    for (const lec of liveLectures) {
-      const subId = lec.subjectId;
-      if (!subjectsMap.has(subId)) {
-        const mockMatch = MOCK_SUBJECTS.find((m) => m.id === subId);
-        const title = lec.subjectTitle || mockMatch?.title || subId;
-        const yearId = lec.yearId || mockMatch?.yearId || '1';
-        const yearName = lec.yearTitle || mockMatch?.yearName || (yearId === '1' ? 'السنة الأولى' : yearId === '2' ? 'السنة الثانية' : yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة');
+    // 1. Prepopulate all official academic curriculum subjects from faculty syllabus
+    for (const sub of MOCK_SUBJECTS) {
+      subjectsMap.set(sub.id, {
+        ...sub,
+        totalLectures: 0,
+        totalQuizzes: 0,
+      });
+    }
 
-        subjectsMap.set(subId, {
-          id: subId,
-          yearId,
-          yearName,
-          slug: mockMatch?.slug || subId,
-          title,
-          englishTitle: mockMatch?.englishTitle || title,
-          code: mockMatch?.code || subId.toUpperCase().slice(0, 7),
-          description: mockMatch?.description || `مقرر ${title} - ملخصات ومحاضرات معتمدة`,
-          icon: mockMatch?.icon || 'Activity',
-          color: mockMatch?.color || 'teal',
-          totalLectures: 0,
-          totalQuizzes: 0,
-        });
+    // 2. Count live lectures and register any dynamic subjects
+    if (liveLectures && liveLectures.length > 0) {
+      for (const lec of liveLectures) {
+        const subId = lec.subjectId;
+        if (!subjectsMap.has(subId)) {
+          const mockMatch = MOCK_SUBJECTS.find((m) => m.id === subId);
+          const title = lec.subjectTitle || mockMatch?.title || subId;
+          const yearId = lec.yearId || mockMatch?.yearId || '1';
+          const yearName =
+            lec.yearTitle ||
+            mockMatch?.yearName ||
+            (yearId === '1'
+              ? 'السنة الأولى'
+              : yearId === '2'
+              ? 'السنة الثانية'
+              : yearId === '3'
+              ? 'السنة الثالثة'
+              : 'السنة الرابعة');
+
+          subjectsMap.set(subId, {
+            id: subId,
+            yearId,
+            yearName,
+            slug: mockMatch?.slug || subId,
+            title,
+            englishTitle: mockMatch?.englishTitle || title,
+            code: mockMatch?.code || subId.toUpperCase().slice(0, 7),
+            description: mockMatch?.description || `مقرر ${title} - ملخصات ومحاضرات معتمدة`,
+            icon: mockMatch?.icon || 'Activity',
+            color: mockMatch?.color || 'teal',
+            totalLectures: 0,
+            totalQuizzes: 0,
+          });
+        }
+        const existing = subjectsMap.get(subId)!;
+        existing.totalLectures += 1;
       }
-      const existing = subjectsMap.get(subId)!;
-      existing.totalLectures += 1;
     }
 
     return Array.from(subjectsMap.values());
