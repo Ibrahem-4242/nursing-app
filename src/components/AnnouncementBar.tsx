@@ -15,17 +15,23 @@ export default function AnnouncementBar() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if dismissed in this session
-    const dismissed = sessionStorage.getItem('announcement_dismissed');
-    if (dismissed === 'true') {
-      setIsDismissed(true);
-    }
-
     const fetchAnnouncement = async () => {
       try {
-        const res = await fetch('/api/announcement');
+        const res = await fetch('/api/announcement', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         const data = await res.json();
         if (data.success && data.announcement) {
+          // If the announcement text changed, automatically un-dismiss
+          const dismissedText = sessionStorage.getItem('announcement_dismissed_text');
+          if (dismissedText && dismissedText !== data.announcement.text) {
+            sessionStorage.removeItem('announcement_dismissed');
+            sessionStorage.removeItem('announcement_dismissed_text');
+            setIsDismissed(false);
+          } else if (sessionStorage.getItem('announcement_dismissed') === 'true') {
+            setIsDismissed(true);
+          }
           setAnnouncement(data.announcement);
         }
       } catch (err) {
@@ -43,6 +49,9 @@ export default function AnnouncementBar() {
   const handleDismiss = () => {
     setIsDismissed(true);
     sessionStorage.setItem('announcement_dismissed', 'true');
+    if (announcement?.text) {
+      sessionStorage.setItem('announcement_dismissed_text', announcement.text);
+    }
   };
 
   return (

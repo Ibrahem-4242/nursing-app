@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CmsService } from '@/lib/cms-db';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
@@ -8,7 +12,14 @@ const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 export async function GET() {
   try {
     const announcement = await CmsService.getAnnouncement();
-    return NextResponse.json({ success: true, announcement });
+    return NextResponse.json(
+      { success: true, announcement },
+      {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      }
+    );
   } catch (err) {
     return NextResponse.json({ success: false, message: 'Failed to load announcement' }, { status: 500 });
   }
@@ -32,6 +43,10 @@ export async function POST(req: NextRequest) {
       linkText,
       linkUrl
     );
+
+    try {
+      revalidatePath('/', 'layout');
+    } catch {}
 
     return NextResponse.json({ success: true, announcement: updated });
   } catch (err) {

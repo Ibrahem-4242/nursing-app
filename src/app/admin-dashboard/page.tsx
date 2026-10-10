@@ -27,6 +27,9 @@ import {
   BarChart3,
   Clock,
   HelpCircle,
+  Pencil,
+  EyeOff,
+  X,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 
@@ -76,6 +79,13 @@ export default function AdminDashboardPage() {
   // Lectures state
   const [lectures, setLectures] = useState<any[]>([]);
   const [isLoadingLectures, setIsLoadingLectures] = useState(false);
+  const [editingLecture, setEditingLecture] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editLectureNumber, setEditLectureNumber] = useState(1);
+  const [editAdminNote, setEditAdminNote] = useState('');
+  const [editOverview, setEditOverview] = useState('');
+  const [editIsFree, setEditIsFree] = useState(true);
 
   // Announcement state
   const [announcementText, setAnnouncementText] = useState('');
@@ -125,7 +135,7 @@ export default function AdminDashboardPage() {
   const loadSubjectQuizzes = async () => {
     setIsLoadingSubjectQuizzes(true);
     try {
-      const res = await fetch('/api/admin/upload-quiz-file');
+      const res = await fetch('/api/admin/upload-quiz-file', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.quizzes) {
         setSubjectQuizzes(data.quizzes);
@@ -139,7 +149,7 @@ export default function AdminDashboardPage() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/admin/stats', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.stats) {
         setStats(data.stats);
@@ -152,7 +162,7 @@ export default function AdminDashboardPage() {
   const loadLectures = async () => {
     setIsLoadingLectures(true);
     try {
-      const res = await fetch('/api/admin/lectures');
+      const res = await fetch('/api/admin/lectures', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.lectures) {
         setLectures(data.lectures);
@@ -166,7 +176,7 @@ export default function AdminDashboardPage() {
 
   const loadAnnouncement = async () => {
     try {
-      const res = await fetch('/api/announcement');
+      const res = await fetch('/api/announcement', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.announcement) {
         setAnnouncementText(data.announcement.text || '');
@@ -182,7 +192,7 @@ export default function AdminDashboardPage() {
   const loadReports = async () => {
     setIsLoadingReports(true);
     try {
-      const res = await fetch('/api/admin/reports');
+      const res = await fetch('/api/admin/reports', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         if (data.reports) setReports(data.reports);
@@ -466,6 +476,70 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       alert('فشل حذف المحاضرة');
+    }
+  };
+
+  // Open Edit Lecture Modal
+  const openEditModal = (lec: any) => {
+    setEditingLecture(lec);
+    setEditTitle(lec.title || '');
+    setEditLectureNumber(lec.lectureNumber || 1);
+    setEditAdminNote(lec.adminNote || '');
+    setEditOverview(lec.overview || '');
+    setEditIsFree(lec.isFree !== false);
+  };
+
+  // Save Lecture Edit
+  const handleSaveLectureEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLecture) return;
+    setIsSavingEdit(true);
+
+    try {
+      const res = await fetch('/api/admin/lectures', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingLecture.id,
+          title: editTitle.trim(),
+          lectureNumber: editLectureNumber,
+          adminNote: editAdminNote.trim(),
+          overview: editOverview.trim(),
+          isFree: editIsFree,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setEditingLecture(null);
+        loadLectures();
+        loadStats();
+      } else {
+        alert(data.message || 'فشل تعديل المحاضرة');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'خطأ أثناء حفظ التعديلات');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Toggle Lecture Live Visibility
+  const handleToggleLive = async (id: string, currentIsLive: boolean) => {
+    try {
+      const res = await fetch('/api/admin/lectures', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isLive: !currentIsLive }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        loadLectures();
+        loadStats();
+      }
+    } catch {
+      alert('فشل تغيير حالة ظهور المحاضرة');
     }
   };
 
@@ -1239,6 +1313,28 @@ export default function AdminDashboardPage() {
                         <td className="py-3.5 px-4 text-slate-400">{lec.files?.[0]?.updatedAt || 'معتمد'}</td>
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            {/* Toggle Live button */}
+                            <button
+                              onClick={() => handleToggleLive(lec.id, lec.isLive !== false)}
+                              className={`p-1.5 rounded-lg transition ${
+                                lec.isLive !== false
+                                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'
+                              }`}
+                              title={lec.isLive !== false ? 'المحاضرة منشورة للطلاب (اضغط للإخفاء)' : 'المحاضرة مخفية (اضغط للنشر)'}
+                            >
+                              {lec.isLive !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            </button>
+
+                            {/* Edit lecture button */}
+                            <button
+                              onClick={() => openEditModal(lec)}
+                              className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition"
+                              title="تعديل بيانات المحاضرة"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
                             {/* Anki import button */}
                             <label
                               className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer transition flex items-center"
@@ -1268,7 +1364,7 @@ export default function AdminDashboardPage() {
                               className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition"
                               title="معاينة صفحة المحاضرة"
                             >
-                              <Eye className="w-4 h-4" />
+                              <ExternalLink className="w-4 h-4" />
                             </Link>
 
                             <button
@@ -1284,6 +1380,113 @@ export default function AdminDashboardPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Edit Lecture Modal */}
+            {editingLecture && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" dir="rtl">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">تعديل بيانات المحاضرة 📝</h3>
+                      <p className="text-xs text-slate-500">{editingLecture.subjectTitle}</p>
+                    </div>
+                    <button
+                      onClick={() => setEditingLecture(null)}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveLectureEdit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        اسم المحاضرة:
+                      </label>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        required
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          رقم المحاضرة:
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editLectureNumber}
+                          onChange={(e) => setEditLectureNumber(Number(e.target.value))}
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          الإتاحة للطلاب:
+                        </label>
+                        <select
+                          value={editIsFree ? 'free' : 'paid'}
+                          onChange={(e) => setEditIsFree(e.target.value === 'free')}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="free">مجانية للجميع 🎁</option>
+                          <option value="paid">مدفوعة / مقفولة 🔒</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        ملاحظة الأدمن أو نصيحة المذاكرة:
+                      </label>
+                      <input
+                        type="text"
+                        value={editAdminNote}
+                        onChange={(e) => setEditAdminNote(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        نبذة وشرح مختصر للمحاضرة:
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editOverview}
+                        onChange={(e) => setEditOverview(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLecture(null)}
+                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingEdit}
+                        className="px-6 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-teal-600/20"
+                      >
+                        {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        <span>حفظ التعديلات فوراً</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             )}
           </div>

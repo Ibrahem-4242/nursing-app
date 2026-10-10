@@ -32,42 +32,82 @@ const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   updatedAt: new Date().toISOString(),
 };
 
-// Global in-memory cache to guarantee instant updates in runtime
+// Global in-memory cache to guarantee instant performance in runtime
 let memoryStore: CmsStore | null = null;
-const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a12675d818365e';
+
+function getGistConfig() {
+  const gistId = process.env.GITHUB_GIST_ID || 'c9b4d3dd9bed0d8e8bde23138aff9152';
+  const token = process.env.GITHUB_SYNC_TOKEN || '';
+  return { gistId, token };
+}
 
 export async function syncFromCloud(): Promise<CmsStore | null> {
+  const { gistId, token } = getGistConfig();
+  if (!gistId) return null;
+
   try {
-    const res = await fetch(CLOUD_SYNC_URL, {
+    const headers: Record<string, string> = {
+      'User-Agent': 'NursingStudyHubApp',
+      'Accept': 'application/vnd.github.v3+json',
+    };
+    if (token) {
+      headers['Authorization'] = `token ${token}`;
+    }
+
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
       cache: 'no-store',
-      headers: { Accept: 'application/json' },
+      headers,
     });
+
     if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && Array.isArray(json.data.lectures)) {
-        return json.data as CmsStore;
+      const gist = await res.json();
+      const file = gist.files?.['cms-store.json'];
+      if (file && file.content) {
+        const parsed = JSON.parse(file.content);
+        if (parsed && Array.isArray(parsed.lectures)) {
+          return parsed as CmsStore;
+        }
       }
     }
   } catch (err) {
-    console.warn('[CMS DB] Cloud read error:', err);
+    console.warn('[CMS DB] Cloud sync read error:', err);
   }
   return null;
 }
 
 export async function syncToCloud(store: CmsStore): Promise<void> {
+  const { gistId, token } = getGistConfig();
+  if (!gistId || !token) {
+    console.warn('[CMS DB] GITHUB_SYNC_TOKEN is not set; changes saved locally in memory.');
+    return;
+  }
+
   try {
-    await fetch(CLOUD_SYNC_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'nursing-cms-production', data: store }),
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${token}`,
+        'User-Agent': 'NursingStudyHubApp',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        files: {
+          'cms-store.json': {
+            content: JSON.stringify(store, null, 2),
+          },
+        },
+      }),
     });
+
+    if (!res.ok) {
+      console.warn('[CMS DB] Cloud sync write response error:', res.status);
+    }
   } catch (err) {
-    console.warn('[CMS DB] Cloud write error:', err);
+    console.warn('[CMS DB] Cloud sync write error:', err);
   }
 }
 
 function getStoreFilePath(): string {
-  // On Vercel or serverless environments, prioritize /tmp immediately
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return path.join('/tmp', 'nursing-cms-store.json');
   }
@@ -119,6 +159,23 @@ function initMemoryStore(): CmsStore {
   return memoryStore;
 }
 
+async function getFreshStore(): Promise<CmsStore> {
+  const cloudStore = await syncFromCloud();
+  if (cloudStore && Array.isArray(cloudStore.lectures)) {
+    const store = initMemoryStore();
+    store.announcement = cloudStore.announcement || store.announcement;
+    store.lectures = cloudStore.lectures;
+    if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
+    if (cloudStore.brokenLinks) store.brokenLinks = cloudStore.brokenLinks;
+    if (cloudStore.complaints) store.complaints = cloudStore.complaints;
+    if (cloudStore.visitors) store.visitors = cloudStore.visitors;
+    if (cloudStore.downloads) store.downloads = cloudStore.downloads;
+    memoryStore = store;
+    return memoryStore;
+  }
+  return initMemoryStore();
+}
+
 function persistStore(store: CmsStore): void {
   try {
     const filePath = getStoreFilePath();
@@ -137,14 +194,12 @@ function persistStore(store: CmsStore): void {
     }
   }
 
-  // Background sync to cloud storage
   syncToCloud(store).catch(() => {});
 }
 
 function getTodayString(): string {
   try {
     const d = new Date();
-    // format as YYYY-MM-DD
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -157,7 +212,7 @@ function getTodayString(): string {
 export const CmsService = {
   // --- ANNOUNCEMENT ---
   async getAnnouncement(): Promise<AnnouncementConfig> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     return store.announcement || DEFAULT_ANNOUNCEMENT;
   },
 
@@ -167,9 +222,9 @@ export const CmsService = {
     linkText?: string,
     linkUrl?: string
   ): Promise<AnnouncementConfig> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     store.announcement = {
-      id: 'announcement-1',
+      id: `announcement-${Date.now()}`,
       text,
       isActive,
       linkText: linkText || '',
@@ -177,6 +232,7 @@ export const CmsService = {
       updatedAt: new Date().toISOString(),
     };
     persistStore(store);
+    await syncToCloud(store);
     return store.announcement;
   },
 
@@ -231,32 +287,18 @@ export const CmsService = {
             });
           }
         } catch (err) {
-          console.warn('[Supabase] getAllLectures error, fallback to local store:', err);
+          console.warn('[Supabase] getAllLectures error, fallback to cloud store:', err);
         }
       }
     }
 
-    // Check cloud sync store (guarantees cross-instance persistence on Vercel)
-    const cloudStore = await syncFromCloud();
-    if (cloudStore && Array.isArray(cloudStore.lectures)) {
-      const store = initMemoryStore();
-      store.lectures = cloudStore.lectures;
-      if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
-      if (cloudStore.announcement) store.announcement = cloudStore.announcement;
-      return store.lectures;
-    }
-
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     return store.lectures;
   },
 
-  /**
-   * Returns only lectures that are live AND have active content/files
-   */
   async getLiveLectures(): Promise<Lecture[]> {
     const all = await this.getAllLectures();
     return all.filter((lec) => {
-      // Must have at least 1 downloadable file or flashcards
       const hasFiles = lec.files && lec.files.length > 0;
       const hasCards = lec.flashcards && lec.flashcards.length > 0;
       const isLive = (lec as unknown as { isLive?: boolean }).isLive !== false;
@@ -264,10 +306,6 @@ export const CmsService = {
     });
   },
 
-  /**
-   * Returns live subjects that have at least 1 live lecture with content
-   * (الزائر العادي يرى فقط المواد والمحاضرات التي تحتوي على ملفات ومحتوى فعلي تم رفعه)
-   */
   async getLiveSubjects(): Promise<Subject[]> {
     const liveLectures = await this.getLiveLectures();
     if (!liveLectures || liveLectures.length === 0) {
@@ -317,7 +355,7 @@ export const CmsService = {
   },
 
   async addOrUpdateLecture(lecture: Lecture): Promise<Lecture> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const existingIndex = store.lectures.findIndex((l) => l.id === lecture.id);
 
     if (existingIndex >= 0) {
@@ -359,7 +397,7 @@ export const CmsService = {
   },
 
   async deleteLecture(id: string): Promise<boolean> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const initialLen = store.lectures.length;
     store.lectures = store.lectures.filter((l) => l.id !== id);
     if (store.lectures.length !== initialLen) {
@@ -382,11 +420,22 @@ export const CmsService = {
   },
 
   async toggleLectureLive(id: string, isLive: boolean): Promise<Lecture | undefined> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const lec = store.lectures.find((l) => l.id === id);
     if (lec) {
       (lec as unknown as { isLive: boolean }).isLive = isLive;
       persistStore(store);
+      await syncToCloud(store);
+      if (isSupabaseConfigured) {
+        const supabase = getSupabase();
+        if (supabase) {
+          try {
+            await supabase.from('nursing_lectures').update({ is_live: isLive }).eq('id', id);
+          } catch (sbErr) {
+            console.warn('[Supabase] toggleLectureLive error:', sbErr);
+          }
+        }
+      }
       return lec;
     }
     return undefined;
@@ -394,14 +443,14 @@ export const CmsService = {
 
   // --- BROKEN LINK REPORTS ---
   async getBrokenLinkReports(): Promise<BrokenLinkReport[]> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     return store.brokenLinks || [];
   },
 
   async addBrokenLinkReport(
     report: Omit<BrokenLinkReport, 'id' | 'createdAt' | 'status'>
   ): Promise<BrokenLinkReport> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const newReport: BrokenLinkReport = {
       ...report,
       id: `report-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -411,15 +460,17 @@ export const CmsService = {
     if (!store.brokenLinks) store.brokenLinks = [];
     store.brokenLinks.unshift(newReport);
     persistStore(store);
+    await syncToCloud(store);
     return newReport;
   },
 
   async resolveBrokenLinkReport(id: string): Promise<boolean> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const item = store.brokenLinks?.find((r) => r.id === id);
     if (item) {
       item.status = 'resolved';
       persistStore(store);
+      await syncToCloud(store);
       return true;
     }
     return false;
@@ -427,7 +478,7 @@ export const CmsService = {
 
   // --- COMPLAINTS & STUDENT MESSAGES ---
   async getComplaints(): Promise<ComplaintRecord[]> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     return store.complaints || [];
   },
 
@@ -438,7 +489,7 @@ export const CmsService = {
     type?: string;
     message: string;
   }): Promise<ComplaintRecord> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const newComplaint: ComplaintRecord = {
       id: `comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       name: data.name,
@@ -452,22 +503,24 @@ export const CmsService = {
     if (!store.complaints) store.complaints = [];
     store.complaints.unshift(newComplaint);
     persistStore(store);
+    await syncToCloud(store);
     return newComplaint;
   },
 
   async resolveComplaint(id: string): Promise<boolean> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     if (!store.complaints) return false;
     const item = store.complaints.find((c) => c.id === id);
     if (item) {
       item.status = 'resolved';
       persistStore(store);
+      await syncToCloud(store);
       return true;
     }
     return false;
   },
 
-  // --- VISITOR & DOWNLOAD ANALYTICS ---
+  // --- VISITOR & DOWNLOAD TELEMETRY ---
   async trackVisitor(event: Omit<VisitorEvent, 'id' | 'timestamp' | 'dateStr'>): Promise<void> {
     const store = initMemoryStore();
     const newEvent: VisitorEvent = {
@@ -478,7 +531,6 @@ export const CmsService = {
     };
     if (!store.visitors) store.visitors = [];
     store.visitors.push(newEvent);
-    // Keep last 5,000 events to manage storage cleanly
     if (store.visitors.length > 5000) store.visitors = store.visitors.slice(-5000);
     persistStore(store);
   },
@@ -509,7 +561,6 @@ export const CmsService = {
     const todayVisitors = (store.visitors || []).filter((v) => v.dateStr === today);
     const todayDownloads = (store.downloads || []).filter((d) => d.dateStr === today);
 
-    // Group downloads by lecture
     const breakdownMap: Record<string, { subjectTitle: string; lectureTitle: string; count: number }> = {};
     for (const dl of todayDownloads) {
       const key = `${dl.subjectTitle}:::${dl.lectureTitle}`;
@@ -564,21 +615,15 @@ export const CmsService = {
 
   // --- SUBJECT QUIZZES (اسئلة الكويزات المجمعة) ---
   async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile | null> {
-    const cloudStore = await syncFromCloud();
-    if (cloudStore && cloudStore.subjectQuizzes && cloudStore.subjectQuizzes[subjectId]) {
-      return cloudStore.subjectQuizzes[subjectId];
-    }
-
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     if (store.subjectQuizzes && store.subjectQuizzes[subjectId]) {
       return store.subjectQuizzes[subjectId];
     }
-
     return null;
   },
 
   async saveSubjectQuizFile(quizFile: SubjectQuizFile): Promise<SubjectQuizFile> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     if (!store.subjectQuizzes) {
       store.subjectQuizzes = {};
     }
@@ -589,11 +634,7 @@ export const CmsService = {
   },
 
   async getAllSubjectQuizFiles(): Promise<Record<string, SubjectQuizFile>> {
-    const cloudStore = await syncFromCloud();
-    if (cloudStore && cloudStore.subjectQuizzes) {
-      return cloudStore.subjectQuizzes;
-    }
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     return store.subjectQuizzes || {};
   },
 };

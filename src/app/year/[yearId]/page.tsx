@@ -8,6 +8,7 @@ import AdSenseBanner from '@/components/AdSenseBanner';
 import { BookOpen, FileText, ArrowLeft, Sparkles, CheckCircle2, Layers } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface YearPageProps {
   params: {

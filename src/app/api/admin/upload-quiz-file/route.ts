@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { applyWatermarkToPdf } from '@/lib/pdf-watermark';
 import { saveUploadedFile } from '@/lib/file-storage';
 import { CmsService } from '@/lib/cms-db';
@@ -10,6 +11,7 @@ const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
@@ -69,6 +71,10 @@ export async function POST(req: NextRequest) {
       updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
     });
 
+    try {
+      revalidatePath('/', 'layout');
+    } catch {}
+
     // 5. Send Telegram notification
     const time = getArabicFormattedDate();
     const telegramMsg = `📝 <b>تم رفع وتحديث ملف أسئلة الكويزات المجمعة!</b>
@@ -109,7 +115,10 @@ export async function GET(req: NextRequest) {
     }
 
     const allQuizzes = await CmsService.getAllSubjectQuizFiles();
-    return NextResponse.json({ success: true, quizzes: allQuizzes });
+    return NextResponse.json(
+      { success: true, quizzes: allQuizzes },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

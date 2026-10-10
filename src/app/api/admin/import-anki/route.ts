@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import { CmsService } from '@/lib/cms-db';
 import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
@@ -8,6 +9,7 @@ const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
@@ -55,6 +57,10 @@ export async function POST(req: NextRequest) {
 
     lecture.flashcards = cards;
     await CmsService.addOrUpdateLecture(lecture);
+
+    try {
+      revalidatePath('/', 'layout');
+    } catch {}
 
     // 4. Send Telegram Notification
     const alert = `🎴 <b>تم استيراد بطاقات Anki (.apkg) بنجاح!</b>

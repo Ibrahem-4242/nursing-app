@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { applyWatermarkToPdf } from '@/lib/pdf-watermark';
 import { saveUploadedFile } from '@/lib/file-storage';
 import { parseAnkiPackage } from '@/lib/anki-parser';
@@ -9,6 +10,7 @@ import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
 import { Lecture, LectureFile, Flashcard } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const maxDuration = 60;
 
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
@@ -203,6 +205,10 @@ export async function POST(req: NextRequest) {
 
     // 6. Save in CMS Database (Instant live updates!)
     await CmsService.addOrUpdateLecture(newLecture);
+
+    try {
+      revalidatePath('/', 'layout');
+    } catch {}
 
     // 7. Send Immediate Telegram Notification to Admin
     const telegramAlert = `🚀 <b>تم رفع ونشر محاضرة جديدة متكاملة في المنصة!</b>
