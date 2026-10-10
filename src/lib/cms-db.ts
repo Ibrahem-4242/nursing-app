@@ -16,6 +16,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 interface CmsStore {
   announcement: AnnouncementConfig;
   lectures: Lecture[];
+  subjects?: Subject[];
   subjectQuizzes?: Record<string, SubjectQuizFile>;
   brokenLinks: BrokenLinkReport[];
   complaints: ComplaintRecord[];
@@ -184,10 +185,11 @@ function initMemoryStore(): CmsStore {
     }
   }
 
-  // Pure clean store without test data
+  // Pure clean store with curriculum subjects (fundamentals excluded)
   memoryStore = {
     announcement: DEFAULT_ANNOUNCEMENT,
     lectures: [],
+    subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
     subjectQuizzes: {},
     brokenLinks: [],
     complaints: [],
@@ -205,6 +207,11 @@ async function getFreshStore(): Promise<CmsStore> {
     const store = initMemoryStore();
     store.announcement = cloudStore.announcement || store.announcement;
     store.lectures = cloudStore.lectures;
+    if (cloudStore.subjects && Array.isArray(cloudStore.subjects)) {
+      store.subjects = cloudStore.subjects.filter((s: any) => s.id !== 'fundamentals');
+    } else if (!store.subjects || store.subjects.length === 0) {
+      store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
+    }
     if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
     if (cloudStore.brokenLinks) store.brokenLinks = cloudStore.brokenLinks;
     if (cloudStore.complaints) store.complaints = cloudStore.complaints;
@@ -347,59 +354,88 @@ export const CmsService = {
     });
   },
 
+  // --- SUBJECTS MANAGEMENT ---
+  async getAllSubjects(): Promise<Subject[]> {
+    const store = await getFreshStore();
+    if (!store.subjects || store.subjects.length === 0) {
+      store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
+    }
+    // Strictly filter out fundamentals or any test subject
+    store.subjects = store.subjects.filter((s) => s.id !== 'fundamentals');
+    return store.subjects;
+  },
+
+  async addSubject(
+    subjectData: Partial<Subject> & { title: string; yearId: string },
+    customToken?: string
+  ): Promise<Subject> {
+    const store = await getFreshStore();
+    if (!store.subjects) {
+      store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
+    }
+    const yearNames: Record<string, string> = {
+      '1': 'السنة الأولى',
+      '2': 'السنة الثانية',
+      '3': 'السنة الثالثة',
+      '4': 'السنة الرابعة',
+    };
+    const id = subjectData.id?.trim() || `sub-${Date.now()}`;
+    const newSubject: Subject = {
+      id,
+      yearId: subjectData.yearId || '1',
+      yearName: yearNames[subjectData.yearId || '1'] || 'السنة الأولى',
+      slug: subjectData.slug || id,
+      title: subjectData.title.trim(),
+      englishTitle: subjectData.englishTitle?.trim() || '',
+      description: subjectData.description?.trim() || `مقرر ${subjectData.title.trim()} - ملخصات ومحاضرات معتمدة`,
+      icon: subjectData.icon || 'BookOpen',
+      color: subjectData.color || 'teal',
+      totalLectures: 0,
+      totalQuizzes: 0,
+    };
+    store.subjects.push(newSubject);
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return newSubject;
+  },
+
+  async updateSubject(
+    subjectData: Partial<Subject> & { id: string },
+    customToken?: string
+  ): Promise<Subject | null> {
+    const store = await getFreshStore();
+    if (!store.subjects) store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
+    const index = store.subjects.findIndex((s) => s.id === subjectData.id);
+    if (index === -1) return null;
+    store.subjects[index] = { ...store.subjects[index], ...subjectData };
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return store.subjects[index];
+  },
+
+  async deleteSubject(id: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.subjects) store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
+    store.subjects = store.subjects.filter((s) => s.id !== id);
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
   async getLiveSubjects(): Promise<Subject[]> {
+    const allSubjects = await this.getAllSubjects();
     const liveLectures = await this.getLiveLectures();
-    const subjectsMap = new Map<string, Subject>();
+    const counts: Record<string, number> = {};
 
-    // 1. Prepopulate all official academic curriculum subjects from faculty syllabus
-    for (const sub of MOCK_SUBJECTS) {
-      subjectsMap.set(sub.id, {
-        ...sub,
-        totalLectures: 0,
-        totalQuizzes: 0,
-      });
+    for (const lec of liveLectures) {
+      counts[lec.subjectId] = (counts[lec.subjectId] || 0) + 1;
     }
 
-    // 2. Count live lectures and register any dynamic subjects
-    if (liveLectures && liveLectures.length > 0) {
-      for (const lec of liveLectures) {
-        const subId = lec.subjectId;
-        if (!subjectsMap.has(subId)) {
-          const mockMatch = MOCK_SUBJECTS.find((m) => m.id === subId);
-          const title = lec.subjectTitle || mockMatch?.title || subId;
-          const yearId = lec.yearId || mockMatch?.yearId || '1';
-          const yearName =
-            lec.yearTitle ||
-            mockMatch?.yearName ||
-            (yearId === '1'
-              ? 'السنة الأولى'
-              : yearId === '2'
-              ? 'السنة الثانية'
-              : yearId === '3'
-              ? 'السنة الثالثة'
-              : 'السنة الرابعة');
-
-          subjectsMap.set(subId, {
-            id: subId,
-            yearId,
-            yearName,
-            slug: mockMatch?.slug || subId,
-            title,
-            englishTitle: mockMatch?.englishTitle || title,
-            code: mockMatch?.code || subId.toUpperCase().slice(0, 7),
-            description: mockMatch?.description || `مقرر ${title} - ملخصات ومحاضرات معتمدة`,
-            icon: mockMatch?.icon || 'Activity',
-            color: mockMatch?.color || 'teal',
-            totalLectures: 0,
-            totalQuizzes: 0,
-          });
-        }
-        const existing = subjectsMap.get(subId)!;
-        existing.totalLectures += 1;
-      }
-    }
-
-    return Array.from(subjectsMap.values());
+    return allSubjects.map((sub) => ({
+      ...sub,
+      totalLectures: counts[sub.id] || 0,
+      totalQuizzes: 0,
+    }));
   },
 
   async getLiveLecturesBySubject(subjectId: string): Promise<Lecture[]> {

@@ -34,7 +34,10 @@ export default async function LecturePage({ params }: LecturePageProps) {
     notFound();
   }
 
-  const subject = DataService.getSubjectById(lecture.subjectId);
+  const liveSubjects = await CmsService.getLiveSubjects();
+  const subject =
+    liveSubjects.find((s) => s.id === lecture.subjectId || s.slug === lecture.subjectId) ||
+    DataService.getSubjectById(lecture.subjectId);
   const year = DataService.getAcademicYearById(lecture.yearId);
 
   return (
@@ -68,7 +71,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
               <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>محتوى مدفوع (10 جنيهات)</span>
+              <span>محتوى مقفول 🔒</span>
             </span>
           )}
         </div>
@@ -96,6 +99,18 @@ export default async function LecturePage({ params }: LecturePageProps) {
             <span>متوفر الموارد الـ 4 الكاملة</span>
           </span>
         </div>
+        {/* Lecture Overview Prominently placed right at the top */}
+        {lecture.overview && (
+          <div className="p-5 sm:p-6 rounded-2xl bg-teal-50/80 dark:bg-slate-900 border border-teal-200/70 dark:border-teal-800 text-slate-800 dark:text-slate-200 leading-relaxed shadow-sm mt-3">
+            <h2 className="text-sm sm:text-base font-bold text-teal-900 dark:text-teal-300 mb-2 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+              <span>وصف وملخص المحاضرة</span>
+            </h2>
+            <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+              {lecture.overview}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* 3. Top Google AdSense Placement (Above Content) */}
@@ -113,59 +128,51 @@ export default async function LecturePage({ params }: LecturePageProps) {
           subjectTitle={lecture.subjectTitle}
           adminNote={lecture.adminNote}
           lectureId={lecture.id}
+          isFree={lecture.isFree}
         />
       </section>
 
-      {/* 5. Rich Pedagogical Nursing Content (Essential for Google AdSense acceptance) */}
+      {/* 5. Rich Pedagogical Nursing Content */}
       <section className="space-y-8 my-10 text-slate-800 dark:text-slate-200">
-        {/* Overview Box */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-teal-50/50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800 leading-relaxed shadow-sm">
-          <h2 className="text-lg sm:text-xl font-bold text-teal-900 dark:text-teal-300 mb-3 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-teal-700 dark:text-teal-400" />
-            <span>المقدمة والنظرة الشاملة للمحاضرة</span>
-          </h2>
-          <div className="text-sm sm:text-base text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
-            {lecture.overview}
-          </div>
-        </div>
-
         {/* Detailed Concepts with Clinical Warnings */}
-        <div className="space-y-6">
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            المفاهيم والآليات الفسيولوجية الأساسية (Core Concepts)
-          </h2>
+        {lecture.concepts && lecture.concepts.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+              أهم المفاهيم والنقاط الرئيسية
+            </h2>
 
-          {lecture.concepts.map((concept, index) => (
-            <div
-              key={index}
-              className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
-            >
-              <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
-                {concept.heading}
-              </h3>
+            {lecture.concepts.map((concept, index) => (
+              <div
+                key={index}
+                className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
+              >
+                <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
+                  {concept.heading}
+                </h3>
 
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                {concept.summary}
-              </p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {concept.summary}
+                </p>
 
-              <ul className="space-y-2.5 mr-2">
-                {concept.points.map((pt, pIdx) => (
-                  <li key={pIdx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                    <span className="w-2 h-2 rounded-full bg-teal-600 dark:bg-teal-400 mt-2 flex-shrink-0" />
-                    <span>{pt}</span>
-                  </li>
-                ))}
-              </ul>
+                <ul className="space-y-2.5 mr-2">
+                  {concept.points.map((pt, pIdx) => (
+                    <li key={pIdx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <span className="w-2 h-2 rounded-full bg-teal-600 dark:bg-teal-400 mt-2 flex-shrink-0" />
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
 
-              {concept.clinicalWarning && (
-                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3 mt-4">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <p className="leading-relaxed font-medium">{concept.clinicalWarning}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                {concept.clinicalWarning && (
+                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3 mt-4">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="leading-relaxed font-medium">{concept.clinicalWarning}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* In-Content Google AdSense Placement */}
         <AdSenseBanner

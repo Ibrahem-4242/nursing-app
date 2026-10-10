@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     const adminNote = (formData.get('adminNote') as string) || '';
     const overview = (formData.get('overview') as string) || '';
     const shouldWatermark = formData.get('watermark') !== 'false';
+    const isFree = formData.get('isFree') !== 'false';
 
     if ((!file && !externalPdfUrl) || !lectureTitle.trim()) {
       return NextResponse.json(
@@ -56,10 +57,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const subjectObj = MOCK_SUBJECTS.find((s) => s.id === subjectId) || {
-      id: subjectId,
-      title: 'مقرر تمريض',
-    };
+    const allSubjects = await CmsService.getAllSubjects();
+    const subjectObj = allSubjects.find((s) => s.id === subjectId) ||
+      MOCK_SUBJECTS.find((s) => s.id === subjectId) || {
+        id: subjectId,
+        title: 'مقرر تمريض',
+      };
 
     // 2. Process & Watermark Primary PDF (or use direct external URL)
     let savedPdf = { url: externalPdfUrl, sizeFormatted: 'رابط سحابي 🌐' };
@@ -79,7 +82,7 @@ export async function POST(req: NextRequest) {
       savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
     }
 
-    // 3. Process Flashcards (Anki .apkg extraction)
+    // 3. Process Flashcards (Anki .apkg / JSON / TXT extraction strictly from user file)
     let flashcards: Flashcard[] = [];
     if (ankiFile) {
       try {
@@ -89,33 +92,7 @@ export async function POST(req: NextRequest) {
         console.warn('[UploadLecture] Anki parsing error:', err.message);
       }
     }
-
-    if (!flashcards || flashcards.length === 0) {
-      // High-yield medical nursing flashcards
-      flashcards = [
-        {
-          id: 1,
-          front: `ما هو المفهوم الأساسي والهدف الأكاديمي في ${lectureTitle.trim()}؟`,
-          back: `فهم الآليات الفسيولوجية والتمريضية وتطبيق أسس الرعاية السريرية وتقييم الحالة بدقة.`,
-          category: 'مفاهيم أساسية',
-          clinicalPearl: 'تذكر دائماً مراجعة العلامات الحيوية قبل تطبيق أي إجراء تمريضي.',
-        },
-        {
-          id: 2,
-          front: `ما هي التدخلات التمريضية الأولية (Nursing Interventions) الهامة في هذه المحاضرة؟`,
-          back: `مراقبة المؤشرات الحيوية، توثيق الخطة العلاجية، وتطبيق معايير مكافحة العدوى والسلامة المهنية.`,
-          category: 'تدخلات تمريضية',
-          clinicalPearl: 'التوثيق الفوري والدقيق يحمي المريض ويضمن استمرارية الرعاية الطبية.',
-        },
-        {
-          id: 3,
-          front: `ما هي أهم المصطلحات العلمية والدوائية المرتبطة بـ ${lectureTitle.trim()}؟`,
-          back: `استيعاب دلالات المصطلحات اللاتينية والإنجليزية الطبية والآثار الجانبية للأدوية المقررة.`,
-          category: 'مصطلحات وفارما',
-          clinicalPearl: 'ربط المصطلح بالأصل اللاتيني يسهل حفظه واسترجاعه في الامتحانات.',
-        },
-      ];
-    }
+    // Zero fake cards - strictly uses what the user uploaded!
 
     // 4. Construct Files Array (PDF, PPT, Mindmap) - NOTE: .apkg is NEVER made downloadable!
     const filesList: LectureFile[] = [
@@ -190,14 +167,12 @@ export async function POST(req: NextRequest) {
       lectureNumber,
       title: lectureTitle.trim(),
       subtitle: `شرح وملخص معتمد لمادة ${subjectObj.title}`,
-      isFree: true,
-      price: 0,
+      isFree,
+      price: isFree ? 0 : 10,
       viewCount: 1,
       readingMinutes: 10,
       threeDModelType: 'heart',
-      overview:
-        overview.trim() ||
-        `ملخص وتلخيص شامل لمحاضرة ${lectureTitle.trim()} في مادة ${subjectObj.title}، مجهزة للطباعة والمذاكرة السريعة مع الرسوم التوضيحية للامتحانات.`,
+      overview: overview.trim(),
       concepts: [],
       terminology: [],
       interventions: [],

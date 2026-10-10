@@ -90,8 +90,8 @@ export default async function YearPage({ params }: YearPageProps) {
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-mono font-bold border border-teal-200/60 dark:border-teal-800">
-                      {sub.code}
+                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-bold border border-teal-200/60 dark:border-teal-800">
+                      مقرر معتمد
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-bold">
                       <FileText className="w-3.5 h-3.5" />

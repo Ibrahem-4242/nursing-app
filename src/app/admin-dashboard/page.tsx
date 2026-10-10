@@ -30,12 +30,15 @@ import {
   Pencil,
   EyeOff,
   X,
+  BookOpen,
+  Lock,
+  Gift,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'quizzes' | 'announcement' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'announcement' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Subject Quizzes Form state
@@ -65,6 +68,7 @@ export default function AdminDashboardPage() {
   const [lectureNumber, setLectureNumber] = useState(1);
   const [adminNote, setAdminNote] = useState('');
   const [overview, setOverview] = useState('');
+  const [isFree, setIsFree] = useState(true);
   const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
   const [externalPdfUrl, setExternalPdfUrl] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
@@ -76,6 +80,15 @@ export default function AdminDashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFeedback, setUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Dynamic Subjects state
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
+  const [newSubTitle, setNewSubTitle] = useState('');
+  const [newSubYearId, setNewSubYearId] = useState('1');
+  const [newSubDesc, setNewSubDesc] = useState('');
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [subjectFeedback, setSubjectFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   // Lectures state
   const [lectures, setLectures] = useState<any[]>([]);
   const [isLoadingLectures, setIsLoadingLectures] = useState(false);
@@ -86,6 +99,13 @@ export default function AdminDashboardPage() {
   const [editAdminNote, setEditAdminNote] = useState('');
   const [editOverview, setEditOverview] = useState('');
   const [editIsFree, setEditIsFree] = useState(true);
+  const [editPdfUrl, setEditPdfUrl] = useState('');
+  const [editPptUrl, setEditPptUrl] = useState('');
+  const [editMindmapUrl, setEditMindmapUrl] = useState('');
+  const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
+  const [editPptFile, setEditPptFile] = useState<File | null>(null);
+  const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
+  const [editAnkiFile, setEditAnkiFile] = useState<File | null>(null);
 
   // Announcement state
   const [announcementText, setAnnouncementText] = useState('');
@@ -172,10 +192,84 @@ export default function AdminDashboardPage() {
 
   const loadAllData = () => {
     loadStats();
+    loadSubjects();
     loadLectures();
     loadSubjectQuizzes();
     loadAnnouncement();
     loadReports();
+  };
+
+  const loadSubjects = async () => {
+    setIsLoadingSubjects(true);
+    try {
+      const res = await fetch(`/api/admin/subjects?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
+      const data = await res.json();
+      if (data.success && data.subjects) {
+        setSubjects(data.subjects);
+      }
+    } catch (e) {
+      console.warn('Failed to load subjects:', e);
+    } finally {
+      setIsLoadingSubjects(false);
+    }
+  };
+
+  const handleAddSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubTitle.trim()) {
+      setSubjectFeedback({ type: 'error', message: 'يرجى إدخال اسم المادة' });
+      return;
+    }
+    setIsAddingSubject(true);
+    setSubjectFeedback(null);
+    try {
+      const res = await fetch('/api/admin/subjects', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          title: newSubTitle.trim(),
+          yearId: newSubYearId,
+          description: newSubDesc.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubjectFeedback({ type: 'success', message: data.message || 'تمت إضافة المادة بنجاح! 📚' });
+        setNewSubTitle('');
+        setNewSubDesc('');
+        loadSubjects();
+      } else {
+        setSubjectFeedback({ type: 'error', message: data.message || 'فشل إضافة المادة' });
+      }
+    } catch (err: any) {
+      setSubjectFeedback({ type: 'error', message: err?.message || 'حدث خطأ أثناء إضافة المادة' });
+    } finally {
+      setIsAddingSubject(false);
+    }
+  };
+
+  const handleDeleteSubject = async (id: string, title: string) => {
+    if (!confirm(`هل أنت متأكد من حذف مادة "${title}" نهائياً من الموقع؟`)) return;
+    setSubjects((prev) => prev.filter((s) => s.id !== id));
+    try {
+      const res = await fetch(`/api/admin/subjects?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: getAdminHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjects();
+      }
+    } catch {
+      alert('فشل حذف المادة');
+      loadSubjects();
+    }
   };
 
   const loadSubjectQuizzes = async () => {
@@ -208,7 +302,13 @@ export default function AdminDashboardPage() {
   const loadLectures = async () => {
     setIsLoadingLectures(true);
     try {
-      const res = await fetch('/api/admin/lectures', { cache: 'no-store' });
+      const res = await fetch(`/api/admin/lectures?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await res.json();
       if (data.success && data.lectures) {
         setLectures(data.lectures);
@@ -302,6 +402,7 @@ export default function AdminDashboardPage() {
       formData.append('lectureNumber', String(lectureNumber));
       formData.append('adminNote', adminNote.trim());
       formData.append('overview', overview.trim());
+      formData.append('isFree', String(isFree));
       formData.append('watermark', String(applyWatermark));
 
       if (typeof window !== 'undefined') {
@@ -346,6 +447,7 @@ export default function AdminDashboardPage() {
         setLectureNumber((prev) => prev + 1);
         setAdminNote('');
         setOverview('');
+        setIsFree(true);
         setFile(null);
         setAnkiFile(null);
         setPptFile(null);
@@ -521,10 +623,13 @@ export default function AdminDashboardPage() {
 
   // Delete lecture
   const handleDeleteLecture = async (id: string, title: string) => {
-    if (!confirm(`هل أنت متأكد من حذف محاضرة "${title}"؟`)) return;
+    if (!confirm(`هل أنت متأكد من حذف محاضرة "${title}" نهائياً من الموقع؟`)) return;
+
+    // Immediately remove from local state so it never reappears or lingers on UI
+    setLectures((prev) => prev.filter((l) => l.id !== id));
 
     try {
-      const res = await fetch(`/api/admin/lectures?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/admin/lectures?id=${encodeURIComponent(id)}&t=${Date.now()}`, {
         method: 'DELETE',
         headers: getAdminHeaders(),
       });
@@ -532,9 +637,37 @@ export default function AdminDashboardPage() {
       if (data.success) {
         loadLectures();
         loadStats();
+      } else {
+        loadLectures();
       }
     } catch (err) {
       alert('فشل حذف المحاضرة');
+      loadLectures();
+    }
+  };
+
+  // 1-Click Toggle Open 🎁 vs Locked 🔒
+  const handleToggleFree = async (id: string, currentIsFree: boolean) => {
+    // Optimistic UI update
+    setLectures((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, isFree: !currentIsFree } : l))
+    );
+
+    try {
+      const res = await fetch('/api/admin/lectures', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id, isFree: !currentIsFree }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadLectures();
+      } else {
+        loadLectures();
+      }
+    } catch {
+      alert('فشل تغيير حالة قفل المحاضرة');
+      loadLectures();
     }
   };
 
@@ -546,35 +679,79 @@ export default function AdminDashboardPage() {
     setEditAdminNote(lec.adminNote || '');
     setEditOverview(lec.overview || '');
     setEditIsFree(lec.isFree !== false);
+    const pdf = lec.files?.find((f: any) => f.type === 'pdf') || lec.files?.[0];
+    const ppt = lec.files?.find((f: any) => f.type === 'ppt');
+    const mm = lec.files?.find((f: any) => f.type === 'mindmap');
+    setEditPdfUrl(pdf?.downloadUrl?.startsWith('http') ? pdf.downloadUrl : '');
+    setEditPptUrl(ppt?.downloadUrl?.startsWith('http') ? ppt.downloadUrl : '');
+    setEditMindmapUrl(mm?.downloadUrl?.startsWith('http') ? mm.downloadUrl : '');
+    setEditPdfFile(null);
+    setEditPptFile(null);
+    setEditMindmapFile(null);
+    setEditAnkiFile(null);
   };
 
-  // Save Lecture Edit
+  // Save Lecture Edit (Supports Text Fields + Replacing Files)
   const handleSaveLectureEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLecture) return;
     setIsSavingEdit(true);
 
     try {
-      const res = await fetch('/api/admin/lectures', {
-        method: 'PUT',
-        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          id: editingLecture.id,
-          title: editTitle.trim(),
-          lectureNumber: editLectureNumber,
-          adminNote: editAdminNote.trim(),
-          overview: editOverview.trim(),
-          isFree: editIsFree,
-        }),
-      });
+      if (editPdfFile || editPptFile || editMindmapFile || editAnkiFile) {
+        const formData = new FormData();
+        formData.append('id', editingLecture.id);
+        formData.append('title', editTitle.trim());
+        formData.append('lectureNumber', String(editLectureNumber));
+        formData.append('adminNote', editAdminNote.trim());
+        formData.append('overview', editOverview.trim());
+        formData.append('isFree', String(editIsFree));
+        if (editPdfUrl.trim()) formData.append('pdfUrl', editPdfUrl.trim());
+        if (editPptUrl.trim()) formData.append('pptUrl', editPptUrl.trim());
+        if (editMindmapUrl.trim()) formData.append('mindmapUrl', editMindmapUrl.trim());
+        if (editPdfFile) formData.append('pdfFile', editPdfFile);
+        if (editPptFile) formData.append('pptFile', editPptFile);
+        if (editMindmapFile) formData.append('mindmapFile', editMindmapFile);
+        if (editAnkiFile) formData.append('ankiFile', editAnkiFile);
 
-      const data = await res.json();
-      if (data.success) {
-        setEditingLecture(null);
-        loadLectures();
-        loadStats();
+        const res = await fetch('/api/admin/lectures', {
+          method: 'PUT',
+          headers: getAdminHeaders(),
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEditingLecture(null);
+          loadLectures();
+          loadStats();
+        } else {
+          alert(data.message || 'فشل تعديل المحاضرة');
+        }
       } else {
-        alert(data.message || 'فشل تعديل المحاضرة');
+        const res = await fetch('/api/admin/lectures', {
+          method: 'PUT',
+          headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            id: editingLecture.id,
+            title: editTitle.trim(),
+            lectureNumber: editLectureNumber,
+            adminNote: editAdminNote.trim(),
+            overview: editOverview.trim(),
+            isFree: editIsFree,
+            pdfUrl: editPdfUrl.trim() || undefined,
+            pptUrl: editPptUrl.trim() || undefined,
+            mindmapUrl: editMindmapUrl.trim() || undefined,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setEditingLecture(null);
+          loadLectures();
+          loadStats();
+        } else {
+          alert(data.message || 'فشل تعديل المحاضرة');
+        }
       }
     } catch (err: any) {
       alert(err?.message || 'خطأ أثناء حفظ التعديلات');
@@ -866,6 +1043,18 @@ export default function AdminDashboardPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('subjects')}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'subjects'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>إدارة المواد والمقررات 📚 ({subjects.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('quizzes')}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
               activeTab === 'quizzes'
@@ -945,7 +1134,8 @@ export default function AdminDashboardPage() {
                     onChange={(e) => {
                       const newYear = e.target.value;
                       setYearId(newYear);
-                      const available = MOCK_SUBJECTS.filter((s) => s.yearId === newYear);
+                      const currentSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
+                      const available = currentSubs.filter((s) => s.yearId === newYear);
                       if (available.length > 0) {
                         setSubjectId(available[0].id);
                       }
@@ -969,11 +1159,13 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setSubjectId(e.target.value)}
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
-                    {MOCK_SUBJECTS.filter((s) => s.yearId === yearId).map((sub) => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.title} ({sub.code})
-                      </option>
-                    ))}
+                    {(subjects.length > 0 ? subjects : MOCK_SUBJECTS)
+                      .filter((s) => s.yearId === yearId)
+                      .map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.title}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -1315,6 +1507,54 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* Lecture Overview / Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  وصف وملخص المحاضرة (يظهر في أعلى صفحة المحاضرة للطلاب):
+                </label>
+                <textarea
+                  rows={3}
+                  value={overview}
+                  onChange={(e) => setOverview(e.target.value)}
+                  placeholder="اكتب نبذة أو ملخص سريع عن محتوى المحاضرة وما سيتعلمه الطالب (يظهر في أعلى الصفحة للطلاب)..."
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 leading-relaxed"
+                />
+              </div>
+
+              {/* Free vs Locked Availability */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  إتاحة المحاضرة للطلاب:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsFree(true)}
+                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                      isFree
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Gift className="w-4 h-4 text-emerald-600" />
+                    <span>مفتوحة مجانية للجميع 🎁</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsFree(false)}
+                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                      !isFree
+                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4 text-amber-600" />
+                    <span>مقفولة (تتطلب اشتراك) 🔒</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Optional Admin Note */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -1415,7 +1655,18 @@ export default function AdminDashboardPage() {
                       <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
                         <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
                         <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                          {lec.title}
+                          <div className="flex items-center gap-2">
+                            <span>{lec.title}</span>
+                            {lec.isFree !== false ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                مفتوحة 🎁
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                مقفولة 🔒
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-slate-500">{lec.subjectTitle}</td>
                         <td className="py-3.5 px-4">
@@ -1423,12 +1674,12 @@ export default function AdminDashboardPage() {
                             <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px]">
                               PDF 📄
                             </span>
-                            {lec.files?.some((f: any) => f.fileType === 'powerpoint') && (
+                            {lec.files?.some((f: any) => f.fileType === 'powerpoint' || f.type === 'ppt') && (
                               <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]">
                                 PPT 📊
                               </span>
                             )}
-                            {lec.files?.some((f: any) => f.fileType === 'mindmap') && (
+                            {lec.files?.some((f: any) => f.fileType === 'mindmap' || f.type === 'mindmap') && (
                               <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
                                 Mindmap 🧠
                               </span>
@@ -1447,12 +1698,25 @@ export default function AdminDashboardPage() {
                         <td className="py-3.5 px-4 text-slate-400">{lec.files?.[0]?.updatedAt || 'معتمد'}</td>
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            {/* 1-Click Free vs Locked Toggle button */}
+                            <button
+                              onClick={() => handleToggleFree(lec.id, lec.isFree !== false)}
+                              className={`p-1.5 rounded-lg transition ${
+                                lec.isFree !== false
+                                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                                  : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100'
+                              }`}
+                              title={lec.isFree !== false ? 'المحاضرة مفتوحة مجاناً (اضغط للقفل 🔒)' : 'المحاضرة مقفولة باشتراك (اضغط للفتح 🎁)'}
+                            >
+                              {lec.isFree !== false ? <Gift className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
+                            </button>
+
                             {/* Toggle Live button */}
                             <button
                               onClick={() => handleToggleLive(lec.id, lec.isLive !== false)}
                               className={`p-1.5 rounded-lg transition ${
                                 lec.isLive !== false
-                                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                                  ? 'bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 hover:bg-teal-100'
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'
                               }`}
                               title={lec.isLive !== false ? 'المحاضرة منشورة للطلاب (اضغط للإخفاء)' : 'المحاضرة مخفية (اضغط للنشر)'}
@@ -1464,7 +1728,7 @@ export default function AdminDashboardPage() {
                             <button
                               onClick={() => openEditModal(lec)}
                               className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition"
-                              title="تعديل بيانات المحاضرة"
+                              title="تعديل بيانات المحاضرة واستبدال الملفات"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -1602,6 +1866,117 @@ export default function AdminDashboardPage() {
                       />
                     </div>
 
+                    {/* File Replacement Options */}
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                        <span>تحديث أو استبدال ملفات المحاضرة (اختياري)</span>
+                      </h4>
+
+                      {/* PDF replacement */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                          رابط أو ملف PDF جديد:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editPdfUrl}
+                            onChange={(e) => setEditPdfUrl(e.target.value)}
+                            placeholder="رابط مباشر / Google Drive..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <FileUp className="w-3.5 h-3.5" />
+                            <span>{editPdfFile ? editPdfFile.name.slice(0, 10) : 'رفع PDF'}</span>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) setEditPdfFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* PPT replacement */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                          رابط أو ملف PowerPoint جديد:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editPptUrl}
+                            onChange={(e) => setEditPptUrl(e.target.value)}
+                            placeholder="رابط بوربوينت..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <FileUp className="w-3.5 h-3.5" />
+                            <span>{editPptFile ? editPptFile.name.slice(0, 10) : 'رفع PPT'}</span>
+                            <input
+                              type="file"
+                              accept=".pptx,.ppt"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) setEditPptFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Mindmap replacement */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                          رابط أو صورة الخريطة الذهنية:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editMindmapUrl}
+                            onChange={(e) => setEditMindmapUrl(e.target.value)}
+                            placeholder="رابط الخريطة..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <FileUp className="w-3.5 h-3.5" />
+                            <span>{editMindmapFile ? editMindmapFile.name.slice(0, 10) : 'رفع خريطة'}</span>
+                            <input
+                              type="file"
+                              accept=".png,.jpg,.jpeg,.webp,.pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) setEditMindmapFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Anki Package replacement */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                          استبدال كروت Anki (.apkg):
+                        </label>
+                        <label className="w-full py-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-bold cursor-pointer transition flex items-center justify-center gap-2">
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>{editAnkiFile ? `تم اختيار: ${editAnkiFile.name}` : 'اختر ملف .apkg لتحديث الكروت'}</span>
+                          <input
+                            type="file"
+                            accept=".apkg"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) setEditAnkiFile(e.target.files[0]);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                       <button
                         type="button"
@@ -1623,6 +1998,201 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 3: Dynamic Subjects Management */}
+        {activeTab === 'subjects' && (
+          <div className="space-y-8">
+            {/* 1. Add New Subject Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-teal-600" />
+                    <span>إضافة مادة دراسية جديدة للموقع 📚</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    أضف أي مادة دراسية جديدة مباشرة، وستظهر فوراً في صفحات السنوات وفي قوائم رفع المحاضرات بدون الحاجة لكتابة أي كود!
+                  </p>
+                </div>
+
+                <span className="text-xs font-bold px-3 py-1 bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 rounded-full border border-teal-200 dark:border-teal-800">
+                  ⚡ إضافة حية فورية
+                </span>
+              </div>
+
+              <form onSubmit={handleAddSubject} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      اسم المادة بالعربي:
+                    </label>
+                    <input
+                      type="text"
+                      value={newSubTitle}
+                      onChange={(e) => setNewSubTitle(e.target.value)}
+                      placeholder="مثال: تمريض صحة المجتمع"
+                      required
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      الفرقة الدراسية:
+                    </label>
+                    <select
+                      value={newSubYearId}
+                      onChange={(e) => setNewSubYearId(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="1">السنة الأولى</option>
+                      <option value="2">السنة الثانية</option>
+                      <option value="3">السنة الثالثة</option>
+                      <option value="4">السنة الرابعة</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      وصف المادة (اختياري):
+                    </label>
+                    <input
+                      type="text"
+                      value={newSubDesc}
+                      onChange={(e) => setNewSubDesc(e.target.value)}
+                      placeholder="مثال: ملخصات ومحاضرات معتمدة لمنهج التمريض"
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                </div>
+
+                {subjectFeedback && (
+                  <div
+                    className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      subjectFeedback.type === 'success'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300'
+                        : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300'
+                    }`}
+                  >
+                    {subjectFeedback.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
+                    <span>{subjectFeedback.message}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isAddingSubject || !newSubTitle.trim()}
+                    className="px-6 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black transition flex items-center gap-2 shadow-md shadow-teal-600/20 disabled:opacity-50"
+                  >
+                    {isAddingSubject ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    <span>إضافة المادة فوراً</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 2. Subjects List & Management Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-teal-600" />
+                    <span>المواد والمقررات الحالية ({subjects.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    يمكنك حذف أي مادة دراسية بضغطة زر واحدة بدون الرجوع لأي شخص!
+                  </p>
+                </div>
+
+                <button
+                  onClick={loadSubjects}
+                  disabled={isLoadingSubjects}
+                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                  title="تحديث المواد"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingSubjects ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {isLoadingSubjects ? (
+                <div className="py-12 text-center text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-teal-500 mb-2" />
+                  <span>جارِ تحميل المواد...</span>
+                </div>
+              ) : subjects.length === 0 ? (
+                <div className="py-12 text-center text-slate-400">
+                  <p>لا توجد مواد مسجلة.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                        <th className="py-3 px-4">اسم المادة</th>
+                        <th className="py-3 px-4">الفرقة الدراسية</th>
+                        <th className="py-3 px-4">عدد المحاضرات</th>
+                        <th className="py-3 px-4">الوصف</th>
+                        <th className="py-3 px-4 text-center">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {subjects.map((sub) => {
+                        const count = lectures.filter((l) => l.subjectId === sub.id).length;
+                        return (
+                          <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                            <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
+                              {sub.title}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+                                {sub.yearName || (sub.yearId === '1' ? 'السنة الأولى' : sub.yearId === '2' ? 'السنة الثانية' : sub.yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة')}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-teal-600">
+                              {count} محاضرة
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">
+                              {sub.description || '—'}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Link
+                                  href={`/subject/${sub.id}`}
+                                  target="_blank"
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition"
+                                  title="معاينة صفحة المادة"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
+
+                                <button
+                                  onClick={() => handleDeleteSubject(sub.id, sub.title)}
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
+                                  title="حذف المادة نهائياً"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1659,9 +2229,9 @@ export default function AdminDashboardPage() {
                       onChange={(e) => setQuizSubjectId(e.target.value)}
                       className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
-                      {MOCK_SUBJECTS.map((sub) => (
+                      {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
                         <option key={sub.id} value={sub.id}>
-                          {sub.title} ({sub.code})
+                          {sub.title}
                         </option>
                       ))}
                     </select>
@@ -1808,20 +2378,18 @@ export default function AdminDashboardPage() {
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
                       <th className="py-3 px-4">المادة</th>
-                      <th className="py-3 px-4">كود المقرر</th>
-                      <th className="py-3 px-4">السنة</th>
+                      <th className="py-3 px-4">السنة الدراسية</th>
                       <th className="py-3 px-4">حالة ملف أسئلة الكويزات</th>
                       <th className="py-3 px-4">عدد الأسئلة</th>
                       <th className="py-3 px-4 text-center">معاينة</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {MOCK_SUBJECTS.map((sub) => {
+                    {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => {
                       const customQuiz = subjectQuizzes[sub.id];
                       return (
                         <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
                           <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{sub.title}</td>
-                          <td className="py-3 px-4 text-teal-600 font-mono">{sub.code}</td>
                           <td className="py-3 px-4 text-slate-500">{sub.yearName}</td>
                           <td className="py-3 px-4">
                             {customQuiz ? (

@@ -29,6 +29,27 @@ function cleanHtmlText(html: string): string {
 }
 
 export async function parseAnkiPackage(buffer: Buffer | ArrayBuffer | Uint8Array): Promise<Flashcard[]> {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer as ArrayBuffer);
+
+  // 1. Check if the file is plain JSON
+  try {
+    const text = new TextDecoder('utf-8').decode(bytes);
+    const trimmed = text.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: any, idx: number) => ({
+          id: idx + 1,
+          front: cleanHtmlText(item.front || item.question || item.q || `سؤال ${idx + 1}`),
+          back: cleanHtmlText(item.back || item.answer || item.a || 'الإجابة'),
+          category: item.category || 'كروت استذكار',
+          clinicalPearl: item.clinicalPearl || item.pearl || undefined,
+        }));
+      }
+    }
+  } catch {}
+
+  // 2. Try parsing as Anki .apkg (ZIP + SQLite)
   try {
     const zip = await JSZip.loadAsync(buffer);
 

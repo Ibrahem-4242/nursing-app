@@ -44,7 +44,6 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
           yearName: liveLectures[0].yearTitle || 'السنة الأولى',
           slug: params.subId,
           title: liveLectures[0].subjectTitle || params.subId,
-          code: params.subId.toUpperCase().slice(0, 7),
           description: `مقرر ${liveLectures[0].subjectTitle || params.subId} - ملخصات ومحاضرات معتمدة`,
           icon: 'Activity',
           color: 'teal',
@@ -76,7 +75,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>كود المقرر: {subject.code} • {subject.yearName}</span>
+            <span>مقرر دراسي معتمد • {subject.yearName}</span>
           </div>
 
           {/* Clean Arabic title without small English subtitle */}

@@ -23,7 +23,7 @@ export interface Subject {
   slug: string;
   title: string;
   englishTitle?: string;
-  code: string;
+  code?: string;
   description: string;
   icon: string;
   color: string;

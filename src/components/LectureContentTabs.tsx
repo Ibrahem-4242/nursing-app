@@ -14,6 +14,8 @@ import {
   Info,
   ArrowDownCircle,
   AlertCircle,
+  Lock,
+  MessageCircle,
 } from 'lucide-react';
 
 interface LectureContentTabsProps {
@@ -22,6 +24,7 @@ interface LectureContentTabsProps {
   subjectTitle: string;
   adminNote?: string;
   lectureId?: string;
+  isFree?: boolean;
 }
 
 export default function LectureContentTabs({
@@ -30,6 +33,7 @@ export default function LectureContentTabs({
   subjectTitle,
   adminNote,
   lectureId,
+  isFree = true,
 }: LectureContentTabsProps) {
   const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'flashcards'>('pdf');
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
@@ -237,10 +241,17 @@ export default function LectureContentTabs({
               </div>
             </div>
 
-            <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>متاح للتحميل المجاني</span>
-            </span>
+            {isFree ? (
+              <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>متاح للتحميل المجاني</span>
+              </span>
+            ) : (
+              <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>محتوى مقفول 🔒</span>
+              </span>
+            )}
           </div>
 
           {/* Description or custom note */}
@@ -263,18 +274,43 @@ export default function LectureContentTabs({
 
           {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON */}
           <div className="pt-2 space-y-3">
-            <button
-              onClick={() => handleDownloadNow(activeFile)}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
-            >
-              <ArrowDownCircle className="w-6 h-6 animate-bounce" />
-              <span>حملها دلوقتي</span>
-            </button>
+            {isFree ? (
+              <>
+                <button
+                  onClick={() => handleDownloadNow(activeFile)}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
+                >
+                  <ArrowDownCircle className="w-6 h-6 animate-bounce" />
+                  <span>حملها دلوقتي</span>
+                </button>
 
-            {downloadSuccess === activeFile.type && (
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>بدأ تحميل الملف بنجاح! تفقد مجلد التنزيلات (Downloads) في جهازك.</span>
+                {downloadSuccess === activeFile.type && (
+                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>بدأ تحميل الملف بنجاح! تفقد مجلد التنزيلات (Downloads) في جهازك.</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-amber-900 dark:text-amber-200">هذه المحاضرة مقفولة 🔒</h4>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                    المحتوى متاح للمشتركين فقط. يمكنك التواصل معنا عبر الواتساب للاشتراك وفتح المحاضرة فوراً.
+                  </p>
+                </div>
+                <a
+                  href="https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>تواصل عبر الواتساب للاشتراك وتفعيل المحاضرة 💬</span>
+                </a>
               </div>
             )}
 
