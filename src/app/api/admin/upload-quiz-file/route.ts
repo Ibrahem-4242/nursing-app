@@ -56,8 +56,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const customToken =
+      req.headers.get('x-github-token') ||
+      cookieStore.get('nursing_sync_token')?.value ||
+      ((formData.get('githubToken') as string) || '').trim();
+
     // 3. Save File
-    const savedPdf = await saveUploadedFile(processedBytes, file.name);
+    const savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
 
     // 4. Save to CMS
     const quizFile = await CmsService.saveSubjectQuizFile({
@@ -69,7 +74,7 @@ export async function POST(req: NextRequest) {
       downloadUrl: savedPdf.url,
       questionsCount,
       updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
-    });
+    }, customToken);
 
     try {
       revalidatePath('/', 'layout');

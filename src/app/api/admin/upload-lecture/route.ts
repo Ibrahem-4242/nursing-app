@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
     const pptFile = formData.get('pptFile') as File | null;
     const mindmapFile = formData.get('mindmapFile') as File | null;
 
+    const customToken =
+      req.headers.get('x-github-token') ||
+      cookieStore.get('nursing_sync_token')?.value ||
+      ((formData.get('githubToken') as string) || '').trim();
+
     const externalPdfUrl = ((formData.get('externalPdfUrl') as string) || '').trim();
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
@@ -71,7 +76,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      savedPdf = await saveUploadedFile(processedBytes, file.name);
+      savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
     }
 
     // 3. Process Flashcards (Anki .apkg extraction)
@@ -127,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     if (pptFile) {
       const pptBuffer = new Uint8Array(await pptFile.arrayBuffer());
-      const savedPpt = await saveUploadedFile(pptBuffer, pptFile.name);
+      const savedPpt = await saveUploadedFile(pptBuffer, pptFile.name, customToken);
       filesList.push({
         type: 'ppt',
         title: `عروض بوربوينت - ${lectureTitle.trim()}`,
@@ -151,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     if (mindmapFile) {
       const mmBuffer = new Uint8Array(await mindmapFile.arrayBuffer());
-      const savedMm = await saveUploadedFile(mmBuffer, mindmapFile.name);
+      const savedMm = await saveUploadedFile(mmBuffer, mindmapFile.name, customToken);
       filesList.push({
         type: 'mindmap',
         title: `الخريطة الذهنية الشاملة - ${lectureTitle.trim()}`,
@@ -204,7 +209,7 @@ export async function POST(req: NextRequest) {
     };
 
     // 6. Save in CMS Database (Instant live updates!)
-    await CmsService.addOrUpdateLecture(newLecture);
+    await CmsService.addOrUpdateLecture(newLecture, customToken);
 
     try {
       revalidatePath('/', 'layout');

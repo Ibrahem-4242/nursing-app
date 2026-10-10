@@ -15,6 +15,15 @@ function checkAuth(): boolean {
   return token?.value === AUTH_SECRET_VALUE;
 }
 
+function getCustomToken(req: NextRequest): string {
+  const cookieStore = cookies();
+  return (
+    req.headers.get('x-github-token') ||
+    cookieStore.get('nursing_sync_token')?.value ||
+    ''
+  );
+}
+
 export async function GET() {
   if (!checkAuth()) {
     return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 });
@@ -39,7 +48,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'معرف المحاضرة مطلوب' }, { status: 400 });
   }
 
-  const deleted = await CmsService.deleteLecture(id);
+  const customToken = getCustomToken(req);
+  const deleted = await CmsService.deleteLecture(id, customToken);
 
   try {
     revalidatePath('/', 'layout');
@@ -63,7 +73,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'معرف المحاضرة مطلوب' }, { status: 400 });
   }
 
-  const updated = await CmsService.toggleLectureLive(id, !!isLive);
+  const customToken = getCustomToken(req) || body.token || '';
+  const updated = await CmsService.toggleLectureLive(id, !!isLive, customToken);
 
   try {
     revalidatePath('/', 'layout');
@@ -98,7 +109,8 @@ export async function PUT(req: NextRequest) {
     ...(isFree !== undefined ? { isFree: Boolean(isFree) } : {}),
   };
 
-  await CmsService.addOrUpdateLecture(updated);
+  const customToken = getCustomToken(req) || body.token || '';
+  await CmsService.addOrUpdateLecture(updated, customToken);
 
   try {
     revalidatePath('/', 'layout');

@@ -105,6 +105,52 @@ export default function AdminDashboardPage() {
   const [telegramFeedback, setTelegramFeedback] = useState<string | null>(null);
   const [isSendingDailyReport, setIsSendingDailyReport] = useState(false);
 
+  // Cloud Sync Token state (GitHub Gist synchronization)
+  const [syncToken, setSyncToken] = useState<string>('');
+  const [isEditingToken, setIsEditingToken] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenSavedNotice, setTokenSavedNotice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('nursing_sync_token');
+      if (stored) {
+        setSyncToken(stored);
+        setTokenInput(stored);
+      }
+    }
+  }, []);
+
+  const handleSaveToken = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined') {
+      const trimmed = tokenInput.trim();
+      if (trimmed) {
+        localStorage.setItem('nursing_sync_token', trimmed);
+        setSyncToken(trimmed);
+        setIsEditingToken(false);
+        setTokenSavedNotice(true);
+        setTimeout(() => setTokenSavedNotice(false), 4000);
+      } else {
+        localStorage.removeItem('nursing_sync_token');
+        setSyncToken('');
+        setIsEditingToken(false);
+      }
+    }
+  };
+
+  // Helper to automatically attach token headers to all admin mutation requests
+  const getAdminHeaders = (extraHeaders: Record<string, string> = {}) => {
+    const headers: Record<string, string> = { ...extraHeaders };
+    if (typeof window !== 'undefined') {
+      const tok = localStorage.getItem('nursing_sync_token');
+      if (tok) {
+        headers['x-github-token'] = tok;
+      }
+    }
+    return headers;
+  };
+
   // Verify auth on mount
   useEffect(() => {
     fetch('/api/admin/auth')
@@ -258,8 +304,14 @@ export default function AdminDashboardPage() {
       formData.append('overview', overview.trim());
       formData.append('watermark', String(applyWatermark));
 
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('nursing_sync_token');
+        if (tok) formData.append('githubToken', tok);
+      }
+
       const res = await fetch('/api/admin/upload-lecture', {
         method: 'POST',
+        headers: getAdminHeaders(),
         body: formData,
       });
 
@@ -389,8 +441,14 @@ export default function AdminDashboardPage() {
       formData.append('questionsCount', String(quizQuestionsCount));
       formData.append('watermark', String(quizApplyWatermark));
 
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('nursing_sync_token');
+        if (tok) formData.append('githubToken', tok);
+      }
+
       const res = await fetch('/api/admin/upload-quiz-file', {
         method: 'POST',
+        headers: getAdminHeaders(),
         body: formData,
       });
 
@@ -440,7 +498,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/announcement', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           text: announcementText,
           isActive: announcementActive,
@@ -451,7 +509,7 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (data.success) {
-        setAnnouncementFeedback('تم حفظ وتحديث شريط الإعلانات فوراً لجميع الطلاب! ✅');
+        setAnnouncementFeedback('تم حفظ وتحديث شريط الإعلانات فوراً لجميع الطلاب سحابياً! ✅');
         setTimeout(() => setAnnouncementFeedback(null), 3000);
       }
     } catch {
@@ -468,6 +526,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(`/api/admin/lectures?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
+        headers: getAdminHeaders(),
       });
       const data = await res.json();
       if (data.success) {
@@ -498,7 +557,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/lectures', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           id: editingLecture.id,
           title: editTitle.trim(),
@@ -529,7 +588,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch('/api/admin/lectures', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ id, isLive: !currentIsLive }),
       });
 
@@ -662,6 +721,81 @@ export default function AdminDashboardPage() {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Cloud Sync Status & Configuration Banner */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-teal-900 via-slate-900 to-emerald-950 border border-teal-500/30 text-white shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0 border border-teal-500/30">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-black">المزامنة السحابية المباشرة (GitHub Cloud Sync ⚡)</h3>
+                  {syncToken ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                      نشطة ومفعلة 🟢
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                      أدخل رمز المزامنة لمرة واحدة 🔑
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  {syncToken
+                    ? 'أي تعديل أو إعلان أو رفع محاضرة يتم حفظه ومزامنته سحابياً فوراً لجميع الطلاب والزوار في ثانية واحدة!'
+                    : 'قم بلصق رمز المزامنة السحابية (Sync Token) مرة واحدة لحفظ التعديلات ورفع المحاضرات فورياً لجميع الطلاب.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!isEditingToken && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingToken(true)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>{syncToken ? 'تعديل رمز المزامنة' : 'إدخال رمز المزامنة 🔑'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isEditingToken && (
+            <form onSubmit={handleSaveToken} className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="gho_... الصق الرمز هنا"
+                className="flex-1 min-w-[280px] px-4 py-2.5 rounded-xl bg-slate-950/80 border border-teal-500/40 text-white text-xs font-mono focus:ring-2 focus:ring-teal-400"
+              />
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md"
+              >
+                <Check className="w-4 h-4" />
+                <span>حفظ الرمز في المتصفح</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingToken(false)}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-bold transition"
+              >
+                إلغاء
+              </button>
+            </form>
+          )}
+
+          {tokenSavedNotice && (
+            <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs font-bold text-center">
+              تم حفظ رمز المزامنة السحابية بنجاح! سيتم تطبيق جميع التعديلات فوراً لجميع الطلاب 🚀
+            </div>
+          )}
+        </div>
+
         {/* 1. Quick Stats Counters */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">

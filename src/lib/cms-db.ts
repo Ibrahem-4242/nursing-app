@@ -35,14 +35,22 @@ const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
 // Global in-memory cache to guarantee instant performance in runtime
 let memoryStore: CmsStore | null = null;
 
-function getGistConfig() {
+let runtimeCustomToken = '';
+
+export function setRuntimeSyncToken(tok: string) {
+  if (tok && tok.trim()) {
+    runtimeCustomToken = tok.trim();
+  }
+}
+
+function getGistConfig(customToken?: string) {
   const gistId = process.env.GITHUB_GIST_ID || 'c9b4d3dd9bed0d8e8bde23138aff9152';
-  const token = process.env.GITHUB_SYNC_TOKEN || '';
+  const token = customToken || runtimeCustomToken || process.env.GITHUB_SYNC_TOKEN || '';
   return { gistId, token };
 }
 
-export async function syncFromCloud(): Promise<CmsStore | null> {
-  const { gistId, token } = getGistConfig();
+export async function syncFromCloud(customToken?: string): Promise<CmsStore | null> {
+  const { gistId, token } = getGistConfig(customToken);
   if (!gistId) return null;
 
   try {
@@ -75,11 +83,11 @@ export async function syncFromCloud(): Promise<CmsStore | null> {
   return null;
 }
 
-export async function syncToCloud(store: CmsStore): Promise<void> {
-  const { gistId, token } = getGistConfig();
+export async function syncToCloud(store: CmsStore, customToken?: string): Promise<boolean> {
+  const { gistId, token } = getGistConfig(customToken);
   if (!gistId || !token) {
     console.warn('[CMS DB] GITHUB_SYNC_TOKEN is not set; changes saved locally in memory.');
-    return;
+    return false;
   }
 
   try {
@@ -101,9 +109,12 @@ export async function syncToCloud(store: CmsStore): Promise<void> {
 
     if (!res.ok) {
       console.warn('[CMS DB] Cloud sync write response error:', res.status);
+      return false;
     }
+    return true;
   } catch (err) {
     console.warn('[CMS DB] Cloud sync write error:', err);
+    return false;
   }
 }
 
@@ -176,7 +187,7 @@ async function getFreshStore(): Promise<CmsStore> {
   return initMemoryStore();
 }
 
-function persistStore(store: CmsStore): void {
+function persistStore(store: CmsStore, customToken?: string): void {
   try {
     const filePath = getStoreFilePath();
     const dir = path.dirname(filePath);
@@ -194,7 +205,7 @@ function persistStore(store: CmsStore): void {
     }
   }
 
-  syncToCloud(store).catch(() => {});
+  syncToCloud(store, customToken).catch(() => {});
 }
 
 function getTodayString(): string {
@@ -220,7 +231,8 @@ export const CmsService = {
     text: string,
     isActive: boolean,
     linkText?: string,
-    linkUrl?: string
+    linkUrl?: string,
+    customToken?: string
   ): Promise<AnnouncementConfig> {
     const store = await getFreshStore();
     store.announcement = {
@@ -231,8 +243,8 @@ export const CmsService = {
       linkUrl: linkUrl || '',
       updatedAt: new Date().toISOString(),
     };
-    persistStore(store);
-    await syncToCloud(store);
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
     return store.announcement;
   },
 
@@ -354,7 +366,7 @@ export const CmsService = {
     return all.find((lec) => lec.id === id || lec.slug === id);
   },
 
-  async addOrUpdateLecture(lecture: Lecture): Promise<Lecture> {
+  async addOrUpdateLecture(lecture: Lecture, customToken?: string): Promise<Lecture> {
     const store = await getFreshStore();
     const existingIndex = store.lectures.findIndex((l) => l.id === lecture.id);
 
@@ -364,8 +376,8 @@ export const CmsService = {
       store.lectures.unshift(lecture);
     }
 
-    persistStore(store);
-    await syncToCloud(store);
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
 
     if (isSupabaseConfigured) {
       const supabase = getSupabase();
@@ -396,13 +408,13 @@ export const CmsService = {
     return lecture;
   },
 
-  async deleteLecture(id: string): Promise<boolean> {
+  async deleteLecture(id: string, customToken?: string): Promise<boolean> {
     const store = await getFreshStore();
     const initialLen = store.lectures.length;
     store.lectures = store.lectures.filter((l) => l.id !== id);
     if (store.lectures.length !== initialLen) {
-      persistStore(store);
-      await syncToCloud(store);
+      persistStore(store, customToken);
+      await syncToCloud(store, customToken);
     }
 
     if (isSupabaseConfigured) {
@@ -419,13 +431,13 @@ export const CmsService = {
     return true;
   },
 
-  async toggleLectureLive(id: string, isLive: boolean): Promise<Lecture | undefined> {
+  async toggleLectureLive(id: string, isLive: boolean, customToken?: string): Promise<Lecture | undefined> {
     const store = await getFreshStore();
     const lec = store.lectures.find((l) => l.id === id);
     if (lec) {
       (lec as unknown as { isLive: boolean }).isLive = isLive;
-      persistStore(store);
-      await syncToCloud(store);
+      persistStore(store, customToken);
+      await syncToCloud(store, customToken);
       if (isSupabaseConfigured) {
         const supabase = getSupabase();
         if (supabase) {
@@ -622,14 +634,14 @@ export const CmsService = {
     return null;
   },
 
-  async saveSubjectQuizFile(quizFile: SubjectQuizFile): Promise<SubjectQuizFile> {
+  async saveSubjectQuizFile(quizFile: SubjectQuizFile, customToken?: string): Promise<SubjectQuizFile> {
     const store = await getFreshStore();
     if (!store.subjectQuizzes) {
       store.subjectQuizzes = {};
     }
     store.subjectQuizzes[quizFile.subjectId] = quizFile;
-    persistStore(store);
-    await syncToCloud(store);
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
     return quizFile;
   },
 

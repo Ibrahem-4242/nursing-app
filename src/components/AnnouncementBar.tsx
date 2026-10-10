@@ -17,9 +17,9 @@ export default function AnnouncementBar() {
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        const res = await fetch('/api/announcement', {
+        const res = await fetch(`/api/announcement?t=${Date.now()}`, {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
         });
         const data = await res.json();
         if (data.success && data.announcement) {

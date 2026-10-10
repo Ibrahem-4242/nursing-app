@@ -16,7 +16,9 @@ export async function GET() {
       { success: true, announcement },
       {
         headers: {
-          'Cache-Control': 'no-store, max-age=0',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       }
     );
@@ -37,18 +39,32 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { text, isActive, linkText, linkUrl } = body;
 
+    const customToken =
+      req.headers.get('x-github-token') ||
+      cookieStore.get('nursing_sync_token')?.value ||
+      body.token ||
+      '';
+
     const updated = await CmsService.updateAnnouncement(
       text,
       !!isActive,
       linkText,
-      linkUrl
+      linkUrl,
+      customToken
     );
 
     try {
       revalidatePath('/', 'layout');
     } catch {}
 
-    return NextResponse.json({ success: true, announcement: updated });
+    return NextResponse.json(
+      { success: true, announcement: updated },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        },
+      }
+    );
   } catch (err) {
     return NextResponse.json({ success: false, message: 'فشل حفظ الإعلان' }, { status: 500 });
   }

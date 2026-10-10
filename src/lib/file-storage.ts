@@ -50,7 +50,8 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 
 export async function saveUploadedFile(
   bytes: Uint8Array,
-  filename: string
+  filename: string,
+  customToken?: string
 ): Promise<{ fileId: string; url: string; sizeFormatted: string }> {
   const dir = getUploadsDirectory();
   const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -97,7 +98,46 @@ export async function saveUploadedFile(
     }
   }
 
-  // 3. Fallback persistence to disk
+  // 3. Permanent Cloud Storage: Upload to GitHub repo contents via API
+  try {
+    const token = customToken || process.env.GITHUB_SYNC_TOKEN || '';
+
+    if (token && bytes.length < 25 * 1024 * 1024) {
+      const base64Content = buffer.toString('base64');
+      const ghRes = await fetch(
+        `https://api.github.com/repos/Ibrahem-4242/nursing-app/contents/public/uploads/${encodeURIComponent(safeName)}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${token}`,
+            'User-Agent': 'NursingStudyHubApp',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: `Upload ${originalName} via admin`,
+            content: base64Content,
+          }),
+        }
+      );
+
+      if (ghRes.ok) {
+        const ghData = await ghRes.json();
+        const rawUrl =
+          ghData.content?.download_url ||
+          `https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/${encodeURIComponent(safeName)}`;
+
+        return {
+          fileId: safeName,
+          url: rawUrl,
+          sizeFormatted,
+        };
+      }
+    }
+  } catch (ghErr) {
+    console.warn('[Storage] GitHub contents upload notice:', ghErr);
+  }
+
+  // 4. Fallback persistence to disk
   try {
     const filePath = path.join(dir, safeName);
     fs.writeFileSync(filePath, buffer);
