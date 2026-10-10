@@ -1,13 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { DataService } from '@/lib/data-service';
-import MedicalHero3D from '@/components/ThreeD/MedicalHero3D';
+import StethoscopeHero from '@/components/StethoscopeHero';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import {
   Stethoscope,
   BookOpen,
-  Send,
+  MessageCircle,
   Sparkles,
   ArrowLeft,
   GraduationCap,
@@ -15,6 +15,9 @@ import {
   BrainCircuit,
   Layers,
   HeartPulse,
+  FileText,
+  Presentation,
+  GitFork,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -22,7 +25,7 @@ export default function HomePage() {
 
   return (
     <div className="w-full pb-20">
-      {/* 1. Hero Section with Three.js 3D Visualizer */}
+      {/* 1. Hero Section with Chic Stethoscope Showcase */}
       <section className="relative overflow-hidden bg-gradient-to-b from-teal-50/60 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pt-10 pb-16 border-b border-slate-200/60 dark:border-slate-800 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -34,14 +37,14 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight">
-                ملخصات، كويزات، ومجسمات تمريض{' '}
+                ملخصات، كويزات، ومواد تمريض{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-teal-600 to-emerald-500">
-                  ثلاثية الأبعاد 3D
+                  سريرية متكاملة 🩺
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                مرحباً بك في منصة <strong>ملخصات تمريض</strong>. تصفح ملخصات سنوات التمريض الأربع، حمّل عروض البوربوينت والخرائط الذهنية، واختبر معلوماتك ببطاقات الاستذكار ثلاثية الأبعاد والكويزات الفورية.
+                مرحباً بك في منصة <strong>ملخصات تمريض</strong>. تصفح مقررات سنوات التمريض الأربع، حيث تحتوي كل محاضرة على 4 موارد أساسية: <strong>ملف PDF للطباعة، عروض بوربوينت PPT، خرائط ذهنية Mind Maps، وبطاقات فلاش كاردز تفاعلية</strong>.
               </p>
 
               {/* Action Buttons */}
@@ -55,13 +58,13 @@ export default function HomePage() {
                 </a>
 
                 <a
-                  href={BOT_CONFIG.telegramBotLink}
+                  href={BOT_CONFIG.whatsappGroupLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-teal-400 text-slate-700 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-400 font-bold text-sm shadow-sm active:scale-95 transition flex items-center gap-2"
+                  className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 active:scale-95 transition flex items-center gap-2"
                 >
-                  <Send className="w-4 h-4 text-sky-500 -rotate-45" />
-                  <span>فتح بوت التليجرام الرسمي</span>
+                  <MessageCircle className="w-4 h-4 fill-white/20" />
+                  <span>انضم لجروب الواتساب الرسمي</span>
                 </a>
               </div>
 
@@ -72,19 +75,19 @@ export default function HomePage() {
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">تغطية تامة للمناهج</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                  <span className="block text-xl font-black text-sky-600 dark:text-sky-400">Three.js</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">مجسمات 3D تفاعلية</span>
+                  <span className="block text-xl font-black text-emerald-600 dark:text-emerald-400">4 في 1</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">PDF • PPT • خرائط • كروت</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                  <span className="block text-xl font-black text-emerald-600 dark:text-emerald-400">100%</span>
+                  <span className="block text-xl font-black text-sky-600 dark:text-sky-400">100%</span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">محتوى سريري مدقق</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Interactive Three.js 3D Canvas */}
+            {/* Right Column: Chic Stethoscope Showcase Card */}
             <div className="lg:col-span-5">
-              <MedicalHero3D />
+              <StethoscopeHero />
             </div>
           </div>
         </div>
@@ -159,56 +162,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. Pedagogical & Interactive Features Showcase */}
+      {/* 4. Pedagogical & Interactive 4-Resource Features Showcase */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-teal-900 via-slate-900 to-slate-950 text-white shadow-2xl border border-teal-800/30">
           <div className="max-w-3xl mb-10">
             <span className="text-teal-400 text-xs font-bold tracking-wider uppercase block mb-2">
-              تقنيات تعليمية حديثة
+              هيكل المحاضرة المتكامل
             </span>
             <h3 className="text-2xl sm:text-3xl font-black leading-tight">
-              أدوات تفاعلية صُممت خصيصاً لترسيخ المفاهيم التمريضية والسريرية
+              4 عناصر أساسية في كل محاضرة لمساعدتك على التفوق الأكاديمي والسريري
             </h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center mb-4">
-                <BrainCircuit className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center mb-4">
+                <FileText className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1.5">مجسمات 3D تفاعلية</h4>
+              <h4 className="font-bold text-base text-white mb-1.5">1. ملخصات PDF ملونة</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                استكشف تشريح الأعضاء وعضلة القلب والأوعية الدموية بحرية بزاوية 360 درجة عبر مكتبة Three.js.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center mb-4">
-                <Layers className="w-5 h-5" />
-              </div>
-              <h4 className="font-bold text-base text-white mb-1.5">فلاش كاردز ثلاثية الأبعاد</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                بطاقات استذكار سريعة تدعم التقليب ثلاثي الأبعاد لحفظ المصطلحات الطبية والأدوية.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center mb-4">
-                <FileCheck2 className="w-5 h-5" />
-              </div>
-              <h4 className="font-bold text-base text-white mb-1.5">كويزات بتصحيح فوري</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                اختبارات تجريبية تفاعلية تقدم شروحات نموذجية ولآلئ سريرية لكل سؤال لتجهيزك للامتحانات.
+                ملفات منسقة بعناية فائقة جاهزة للطباعة والمذاكرة السريعة مع الرسوم التوضيحية الدقيقة.
               </p>
             </div>
 
             <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center mb-4">
-                <HeartPulse className="w-5 h-5" />
+                <Presentation className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1.5">خرائط ذهنية وملخصات</h4>
+              <h4 className="font-bold text-base text-white mb-1.5">2. عروض بوربوينت PPT</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                ملفات PDF وPPT وMindmap عالية الدقة مجهزة للطباعة والمراجعة ليلة الامتحان.
+                سلايدات الشرح الجامعي الرسمي مع الملاحظات الإيضاحية لتسهيل متابعة المحاضرات.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center mb-4">
+                <GitFork className="w-5 h-5" />
+              </div>
+              <h4 className="font-bold text-base text-white mb-1.5">3. خرائط ذهنية Mind Map</h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                مخططات بصرية شاملة تختصر المقرر المعقد في شجرة مفاهيم مترابطة للمراجعة قبل الامتحان.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center mb-4">
+                <Layers className="w-5 h-5" />
+              </div>
+              <h4 className="font-bold text-base text-white mb-1.5">4. كروت استذكار فلاش كاردز</h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                بطاقات تفاعلية لدعم الاسترجاع السريع للمصطلحات الطبية وجرعات الأدوية بدقة وسرعة.
               </p>
             </div>
           </div>

@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import { DataService } from '@/lib/data-service';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import MedicalOrganViewer from '@/components/ThreeD/MedicalOrganViewer';
 import Flashcards3D from '@/components/Flashcards3D';
 import InteractiveQuiz from '@/components/InteractiveQuiz';
 import DownloadSection from '@/components/DownloadSection';
@@ -19,6 +18,12 @@ import {
   Lightbulb,
   Stethoscope,
   CheckCircle2,
+  FileText,
+  Presentation,
+  GitFork,
+  Layers,
+  Download,
+  ArrowDownCircle,
 } from 'lucide-react';
 
 interface LecturePageProps {
@@ -46,6 +51,10 @@ export default function LecturePage({ params }: LecturePageProps) {
 
   const subject = DataService.getSubjectById(lecture.subjectId);
   const year = DataService.getAcademicYearById(lecture.yearId);
+
+  const pdfFile = lecture.files.find((f) => f.type === 'pdf') || lecture.files[0];
+  const pptFile = lecture.files.find((f) => f.type === 'ppt') || lecture.files[1];
+  const mindmapFile = lecture.files.find((f) => f.type === 'mindmap') || lecture.files[2];
 
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -101,9 +110,9 @@ export default function LecturePage({ params }: LecturePageProps) {
             <Eye className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             <span>شاهد هذه المحاضرة {lecture.viewCount} طالب</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>مدعومة بمجسم تشريحي ثلاثي الأبعاد 3D</span>
+          <span className="flex items-center gap-1.5 font-bold text-teal-600 dark:text-teal-400">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <span>متوفر الموارد الـ 4 الكاملة</span>
           </span>
         </div>
       </header>
@@ -115,16 +124,138 @@ export default function LecturePage({ params }: LecturePageProps) {
         label="إعلان ممول - منصة ملخصات التمريض"
       />
 
-      {/* 4. Three.js Interactive 3D Anatomical Organ / Model Viewer */}
-      <section className="my-8">
-        <MedicalOrganViewer
-          organType={lecture.threeDModelType || 'heart'}
-          title={`المجسم السريري ثلاثي الأبعاد: ${lecture.title}`}
-          subtitle="حرّك المؤشر للتدوير بزاوية 360 درجة، وكبّر لمشاهدة التفاصيل التشريحية الدقيقة"
-        />
+      {/* 4. THE 4 CORE RESOURCES HUB (ملف PDF • عرض بوربوينت • خريطة ذهنية • فلاش كاردز) */}
+      <section className="my-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-teal-900 via-slate-900 to-slate-950 text-white shadow-xl border border-teal-500/30">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-teal-800/60">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-teal-500/20 text-teal-300">
+                <Sparkles className="w-5 h-5" />
+              </span>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                الموارد الأربعة المتاحة لهذه المحاضرة
+              </h2>
+            </div>
+            <p className="text-xs text-slate-300 mt-1">
+              اختر ما تريد فتحه أو تحميله الآن مباشرة للمذاكرة الفعالة
+            </p>
+          </div>
+
+          <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+            4 عناصر متكاملة 🚀
+          </span>
+        </div>
+
+        {/* The 4 Action Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1. PDF File */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 hover:border-rose-400/50 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-300">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  PDF
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">ملف PDF ملون</h3>
+              <p className="text-[11px] text-slate-300 mb-3">
+                {pdfFile?.fileSize} • جاهز للطباعة والمذاكرة الورقية
+              </p>
+            </div>
+            <a
+              href="#downloads-section"
+              className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-rose-600/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تحميل الـ PDF</span>
+            </a>
+          </div>
+
+          {/* 2. PowerPoint File */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 hover:border-amber-400/50 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300">
+                  <Presentation className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  PPT
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">عروض بوربوينت</h3>
+              <p className="text-[11px] text-slate-300 mb-3">
+                {pptFile?.fileSize} • سلايدات الكلية والشرح السريري
+              </p>
+            </div>
+            <a
+              href="#downloads-section"
+              className="w-full py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-600/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تحميل السلايدات</span>
+            </a>
+          </div>
+
+          {/* 3. Mind Map */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 hover:border-sky-400/50 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-300">
+                  <GitFork className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  Mind Map
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">الخريطة الذهنية</h3>
+              <p className="text-[11px] text-slate-300 mb-3">
+                {mindmapFile?.fileSize} • تشجير سريع لكافة المفاهيم
+              </p>
+            </div>
+            <a
+              href="#downloads-section"
+              className="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-sky-600/20"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تحميل الخريطة</span>
+            </a>
+          </div>
+
+          {/* 4. Interactive Flashcards (Direct open!) */}
+          <div className="p-4 rounded-2xl bg-teal-500/20 backdrop-blur-md border border-teal-400/40 hover:border-teal-300 transition-all flex flex-col justify-between shadow-lg shadow-teal-500/20">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-teal-400 text-slate-900">
+                  <Layers className="w-6 h-6 stroke-[2.5]" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-400/30 text-teal-200 border border-teal-400/40 animate-pulse">
+                  تفاعلية
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-1">كروت استذكار</h3>
+              <p className="text-[11px] text-teal-200 mb-3">
+                {lecture.flashcards.length} بطاقات • تقليب ثلاثي الأبعاد
+              </p>
+            </div>
+            <a
+              href="#flashcards-section"
+              className="w-full py-2.5 px-3 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-teal-400/30"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>تصفح الفلاش كاردز الآن 🗂️</span>
+            </a>
+          </div>
+        </div>
       </section>
 
-      {/* 5. Rich Pedagogical Nursing Content */}
+      {/* 5. INTERACTIVE FLASHCARDS SECTION (مفتوحة ومتاحة للطالب مباشرة) */}
+      <section id="flashcards-section" className="scroll-mt-24">
+        <Flashcards3D cards={lecture.flashcards} subjectTitle={lecture.subjectTitle} />
+      </section>
+
+      {/* 6. Rich Pedagogical Nursing Content (Vital for Google AdSense acceptance) */}
       <section className="space-y-8 my-10 text-slate-800 dark:text-slate-200">
         {/* Overview Box */}
         <div className="p-6 sm:p-8 rounded-3xl bg-teal-50/50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800 leading-relaxed shadow-sm">
@@ -175,7 +306,7 @@ export default function LecturePage({ params }: LecturePageProps) {
           ))}
         </div>
 
-        {/* 6. In-Content Google AdSense Placement (Between Paragraphs) */}
+        {/* In-Content Google AdSense Placement */}
         <AdSenseBanner
           position="in-content"
           slotId="2233445566"
@@ -273,30 +404,29 @@ export default function LecturePage({ params }: LecturePageProps) {
         )}
       </section>
 
-      {/* 7. Interactive 3D Flashcards Section */}
-      <Flashcards3D cards={lecture.flashcards} subjectTitle={lecture.subjectTitle} />
-
-      {/* 8. Pre-Download Google AdSense Placement */}
+      {/* 7. Pre-Download Google AdSense Placement */}
       <AdSenseBanner
         position="pre-download"
         slotId="3344556677"
         label="إعلان ممول - مخصص لروابط التنزيل"
       />
 
-      {/* 9. Download Files Section (PDF, PPT, Mindmap) */}
-      <DownloadSection
-        files={lecture.files}
-        adminNote={lecture.adminNote}
-        lectureTitle={lecture.title}
-      />
+      {/* 8. DOWNLOAD SECTION (ملفات التحميل مع الأحجام وتوجيهات الإدارة) */}
+      <div id="downloads-section" className="scroll-mt-24">
+        <DownloadSection
+          files={lecture.files}
+          adminNote={lecture.adminNote}
+          lectureTitle={lecture.title}
+        />
+      </div>
 
-      {/* 10. Interactive Nursing Quiz Section */}
+      {/* 9. Interactive Nursing Quiz Section */}
       <InteractiveQuiz
         questions={lecture.quiz}
         lectureTitle={lecture.title}
       />
 
-      {/* 11. Bottom AdSense Banner */}
+      {/* 10. Bottom AdSense Banner */}
       <AdSenseBanner
         position="footer"
         slotId="4455667788"

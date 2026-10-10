@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Stethoscope, Send, Heart } from 'lucide-react';
+import { Stethoscope, MessageCircle, Heart } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 
 export default function Footer() {
@@ -20,17 +20,17 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              المنصة الأكاديمية الأولى المتخصصة في دعم طلاب كليات ومعاهد التمريض بأحدث الملخصات، الخرائط الذهنية، الكويزات التفاعلية والمجسمات الطبية ثلاثية الأبعاد.
+              المنصة الأكاديمية الأولى المتخصصة في دعم طلاب كليات ومعاهد التمريض بأحدث الملخصات، الخرائط الذهنية، الكويزات التفاعلية وبطاقات الاستذكار السريرية.
             </p>
             <div className="pt-2">
               <a
-                href={BOT_CONFIG.telegramBotLink}
+                href={BOT_CONFIG.whatsappGroupLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 text-xs font-semibold transition"
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition"
               >
-                <Send className="w-3.5 h-3.5 -rotate-45" />
-                <span>انضم لقناة وبوت التليجرام</span>
+                <MessageCircle className="w-4 h-4 fill-emerald-500/20" />
+                <span>انضم لجروب الواتساب الرسمي</span>
               </a>
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function Footer() {
                 يتم تحديث وإضافة ملخصات وكويزات جديدة بشكل أسبوعي تغطي جميع الفصول الدراسية وفق المعايير الأكاديمية الرسمية.
               </p>
               <div className="p-3 bg-slate-800/60 dark:bg-slate-900 rounded-xl border border-slate-700/60 text-[11px] text-teal-300">
-                ✨ المحاضرة الأولى في كل مادة مجانية دائماً لجميع الطلاب لتجربة جودة المحتوى والمجسمات ثلاثية الأبعاد.
+                ✨ تشمل كل محاضرة 4 عناصر متكاملة: PDF، بوربوينت، خريطة ذهنية، وبطاقات فلاش كاردز تفاعلية.
               </div>
             </div>
           </div>

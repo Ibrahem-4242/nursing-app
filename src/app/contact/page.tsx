@@ -46,7 +46,7 @@ export default function ContactPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">تم استلام رسالتك بنجاح!</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                شكراً لتواصلك معنا يا {formData.name || 'زميلنا'}. سيتم مراجعة استفسارك والرد عليك في أقرب وقت عبر رقم هاتفك أو التليجرام.
+                شكراً لتواصلك معنا يا {formData.name || 'زميلنا'}. سيتم مراجعة استفسارك والرد عليك في أقرب وقت عبر رقم هاتفك أو الواتساب.
               </p>
               <button
                 onClick={() => setSubmitted(false)}
@@ -130,6 +130,26 @@ export default function ContactPage() {
               </button>
             </form>
           )}
+        </div>
+
+        {/* WhatsApp Group Banner */}
+        <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
+          <div>
+            <span className="font-bold text-emerald-950 dark:text-emerald-200 text-sm block">
+              💬 هل تود الانضمام لجروب دفعة التمريض على الواتساب؟
+            </span>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-0.5">
+              لتبادل الاستفسارات ومناقشة أسئلة الكويزات والامتحانات أولاً بأول مع زملائك.
+            </p>
+          </div>
+          <a
+            href="https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition flex-shrink-0 shadow-sm"
+          >
+            <span>انضم لجروب الواتساب 💬</span>
+          </a>
         </div>
       </div>
     </div>

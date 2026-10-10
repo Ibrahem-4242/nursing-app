@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { DataService } from '@/lib/data-service';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import { BookOpen, FileText, Award, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BookOpen, FileText, Award, ArrowLeft, Sparkles, CheckCircle2, Layers } from 'lucide-react';
 
 interface YearPageProps {
   params: {
@@ -47,10 +47,10 @@ export default function YearPage({ params }: YearPageProps) {
             {year.description}
           </p>
 
-          <div className="pt-2 flex items-center gap-4 text-xs font-semibold text-teal-200">
-            <span>📚 عدد المواد: {subjects.length} مقررات</span>
+          <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-teal-200">
+            <span>📚 عدد المواد: {subjects.length} مقررات معتمدة</span>
             <span>•</span>
-            <span>⚡️ متوفر ملخصات وكويزات ومجسمات 3D</span>
+            <span>⚡️ متوفر في كل محاضرة: PDF • بوربوينت • خريطة ذهنية • فلاش كاردز</span>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function YearPage({ params }: YearPageProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">مواد ومقررات {year.title}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اختر المادة لتصفح كافة المحاضرات، الكويزات، وتحميل الملفات</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اختر المادة لتصفح المحاضرات وتحميل الملفات والفلاش كاردز</p>
           </div>
           <span className="text-xs font-bold px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300">
             {subjects.length} مواد
@@ -75,7 +75,7 @@ export default function YearPage({ params }: YearPageProps) {
             <Link
               key={sub.id}
               href={`/subject/${sub.id}`}
-              className="group flex flex-col justify-between p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+              className="group flex flex-col justify-between p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -83,8 +83,8 @@ export default function YearPage({ params }: YearPageProps) {
                     {sub.code}
                   </span>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                    <span className="flex items-center gap-1 font-bold text-teal-600 dark:text-teal-400">
+                      <FileText className="w-3.5 h-3.5" />
                       {sub.totalLectures} محاضرات
                     </span>
                     <span>•</span>
@@ -95,21 +95,25 @@ export default function YearPage({ params }: YearPageProps) {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-1">
+                {/* Subject Arabic Title Only (Removed small englishTitle as requested) */}
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-3">
                   {sub.title}
                 </h3>
-                <span className="text-xs font-medium text-slate-400 dark:text-slate-500 block mb-3 font-mono">
-                  {sub.englishTitle}
-                </span>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-6">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
                   {sub.description}
                 </p>
+
+                {/* 4 Materials Badge Indicator */}
+                <div className="flex items-center gap-2 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/40 mb-4">
+                  <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز</span>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
-                  <span>فتح المحاضرات والكويزات</span>
+                  <span>فتح المحاضرات والملخصات</span>
                   <ArrowLeft className="w-4 h-4" />
                 </span>
 

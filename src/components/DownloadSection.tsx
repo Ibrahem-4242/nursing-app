@@ -71,7 +71,7 @@ export default function DownloadSection({ files, adminNote, lectureTitle }: Down
         </span>
       </div>
 
-      {/* Admin Note Notice (like in Telegram bot) */}
+      {/* Admin Note Notice */}
       {adminNote && (
         <div className="mb-6 p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/40 text-amber-900 dark:text-amber-200 text-sm flex items-start gap-3">
           <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />

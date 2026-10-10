@@ -922,11 +922,10 @@ export const QUIZZES_LIST: QuizItem[] = [
 ];
 
 export const BOT_CONFIG = {
-  botName: 'بوت ملخصات التمريض 🩺✨',
+  botName: 'ملخصات التمريض 🩺✨',
   adminContactPhone: '01148283443',
   paymentMethod: 'اتصالات كاش (Etisalat Cash)',
   workHours: 'يومياً من 11:00 صباحاً حتى 10:00 مساءً',
-  telegramBotLink: 'https://t.me/nursing_study_bot',
-  supportTelegram: 'https://t.me/admin_nursing',
+  whatsappGroupLink: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
   appsScriptWebhookUrl: 'https://script.google.com/macros/s/AKfycby4vIPoD5IRIwfCg6HN23uerHzBPP--_C85vcKrX7PAAS0GV6PGuSbHTe6_h0BwZvhSUA/exec'
 };
