@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Cairo } from 'next/font/google';
-import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import Navbar from '@/components/Navbar';
@@ -50,6 +49,9 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ar_EG',
   },
+  other: {
+    'google-adsense-account': 'ca-pub-9204080838190086',
+  },
 };
 
 export default function RootLayout({
@@ -60,13 +62,12 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
       <head>
-        {/* Google AdSense Head Script */}
-        <Script
+        {/* Google AdSense Script */}
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9204080838190086"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        ></script>
         {/* Script to avoid theme flash */}
         <script
           dangerouslySetInnerHTML={{
