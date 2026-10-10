@@ -5,6 +5,7 @@ import { DataService } from '@/lib/data-service';
 import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
+import SubjectQuizFileBox from '@/components/SubjectQuizFileBox';
 import {
   FileText,
   Clock,
@@ -17,6 +18,7 @@ import {
   Presentation,
   GitFork,
   Layers,
+  HelpCircle,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +39,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
   const year = DataService.getAcademicYearById(subject.yearId);
   const liveLectures = await CmsService.getLiveLecturesBySubject(subject.id);
   const lectures = liveLectures.length > 0 ? liveLectures : DataService.getLecturesBySubject(subject.id);
+  const quizFile = await CmsService.getSubjectQuizFile(subject.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -70,7 +73,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
             </span>
             <span>•</span>
             <span className="text-emerald-400 font-bold">
-              كل محاضرة تشمل: PDF • بوربوينت • خريطة ذهنية • فلاش كاردز
+              متوفر: محاضرات المنهج + ملف أسئلة الكويزات المجمعة 📝
             </span>
           </div>
         </div>
@@ -81,8 +84,15 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
 
       {/* Content Section: Lectures & Quizzes */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 my-10">
-        {/* Main Column: Lectures List */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Main Column: Quizzes Bank & Lectures List */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* 1. Dedicated Subject Quiz Questions File Box (أسئلة الكويزات) */}
+          <section>
+            <SubjectQuizFileBox quizFile={quizFile} />
+          </section>
+
+          {/* 2. Lectures Section */}
+          <div className="space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
             <div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
@@ -187,6 +197,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
               ))}
             </div>
           )}
+          </div>
 
           {/* AdSense In-Content between lectures and quizzes */}
           <AdSenseBanner position="in-content" slotId="5432167890" label="إعلان ممول - المحاضرات الأكاديمية" />
@@ -217,6 +228,10 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
               <li className="flex items-start gap-2.5">
                 <Layers className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <span><strong>فلاش كاردز تفاعلية:</strong> بطاقات استذكار سريعة بنظام Flip Card.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <span><strong>أسئلة الكويزات:</strong> ملف PDF مجمع لبنك الأسئلة وامتحانات الميدتيرم.</span>
               </li>
             </ul>
           </div>

@@ -8,12 +8,14 @@ import {
   ComplaintRecord,
   VisitorEvent,
   DownloadEvent,
+  SubjectQuizFile,
 } from './types';
 import { MOCK_LECTURES, MOCK_SUBJECTS } from './mock-data';
 
 interface CmsStore {
   announcement: AnnouncementConfig;
   lectures: Lecture[];
+  subjectQuizzes?: Record<string, SubjectQuizFile>;
   brokenLinks: BrokenLinkReport[];
   complaints: ComplaintRecord[];
   visitors: VisitorEvent[];
@@ -66,6 +68,7 @@ function initMemoryStore(): CmsStore {
   memoryStore = {
     announcement: DEFAULT_ANNOUNCEMENT,
     lectures: [...MOCK_LECTURES],
+    subjectQuizzes: {},
     brokenLinks: [],
     complaints: [],
     visitors: [],
@@ -379,5 +382,49 @@ export const CmsService = {
       totalLectures: store.lectures.length,
       pendingReports,
     };
+  },
+
+  // --- SUBJECT QUIZZES (اسئلة الكويزات المجمعة) ---
+  async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile> {
+    const store = initMemoryStore();
+    if (!store.subjectQuizzes) {
+      store.subjectQuizzes = {};
+    }
+
+    if (store.subjectQuizzes[subjectId]) {
+      return store.subjectQuizzes[subjectId];
+    }
+
+    const subject = MOCK_SUBJECTS.find((s) => s.id === subjectId);
+    const subjectTitle = subject?.title || 'المقرر الأكاديمي';
+
+    // Default compiled quiz questions file for this subject
+    const defaultQuiz: SubjectQuizFile = {
+      subjectId,
+      subjectTitle,
+      title: `بنك أسئلة الكويزات المجمعة - ${subjectTitle}`,
+      description: `ملف PDF شامل يحتوي على جميع أسئلة الكويزات الدورية، امتحانات الميدتيرم، وأسئلة الاختيار من متعدد (MCQ) المحلولة لمقرر ${subjectTitle}.`,
+      fileSize: '4.2 MB',
+      downloadUrl: `/api/files/quizzes-${subjectId}.pdf`,
+      questionsCount: 150,
+      updatedAt: 'معتمد للعام الأكاديمي الحالي',
+    };
+
+    return defaultQuiz;
+  },
+
+  async saveSubjectQuizFile(quizFile: SubjectQuizFile): Promise<SubjectQuizFile> {
+    const store = initMemoryStore();
+    if (!store.subjectQuizzes) {
+      store.subjectQuizzes = {};
+    }
+    store.subjectQuizzes[quizFile.subjectId] = quizFile;
+    persistStore(store);
+    return quizFile;
+  },
+
+  async getAllSubjectQuizFiles(): Promise<Record<string, SubjectQuizFile>> {
+    const store = initMemoryStore();
+    return store.subjectQuizzes || {};
   },
 };

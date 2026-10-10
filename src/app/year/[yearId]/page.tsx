@@ -94,10 +94,10 @@ export default async function YearPage({ params }: YearPageProps) {
                   {sub.description}
                 </p>
 
-                {/* 4 Materials Badge Indicator */}
+                {/* Materials Badge Indicator */}
                 <div className="flex items-center gap-2 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/40 mb-4">
                   <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز</span>
+                  <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز + أسئلة كويزات 📝</span>
                 </div>
               </div>
 

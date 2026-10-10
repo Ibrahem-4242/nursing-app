@@ -156,7 +156,7 @@ export default async function HomePage() {
 
                 <div className="flex items-center gap-1.5 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-xl mb-4">
                   <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>PDF • PPT • خرائط • فلاش كاردز</span>
+                  <span>PDF • PPT • خرائط • فلاش كاردز + أسئلة كويزات 📝</span>
                 </div>
               </div>
 

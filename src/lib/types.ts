@@ -29,6 +29,18 @@ export interface Subject {
   color: string;
   totalLectures: number;
   totalQuizzes: number;
+  quizzesFile?: SubjectQuizFile;
+}
+
+export interface SubjectQuizFile {
+  subjectId: string;
+  subjectTitle: string;
+  title: string;
+  description?: string;
+  fileSize: string;
+  downloadUrl: string;
+  questionsCount: number;
+  updatedAt: string;
 }
 
 export interface MedicalTerm {
