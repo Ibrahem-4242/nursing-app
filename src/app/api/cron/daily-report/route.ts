@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
     const ok = await sendDailySummary({
       date: stats.date,
       totalVisitors: stats.visitors,
+      pageViews: stats.pageViews,
+      yesterdayVisitors: stats.yesterdayVisitors,
+      allTimeVisitors: stats.allTimeVisitors,
       totalDownloads: stats.downloads,
+      yesterdayDownloads: stats.yesterdayDownloads,
+      allTimeDownloads: stats.allTimeDownloads,
       breakdown: stats.breakdown,
     });
 

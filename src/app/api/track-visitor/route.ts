@@ -5,7 +5,7 @@ import { CmsService } from '@/lib/cms-db';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { deviceType, page, userAgent, isNewStudent } = body;
+    const { deviceType, page, userAgent, isNewStudent, isDailyUnique } = body;
 
     const time = getArabicFormattedDate();
     const forwarded = req.headers.get('x-forwarded-for');
@@ -16,12 +16,11 @@ export async function POST(req: NextRequest) {
       deviceType: deviceType || 'غير محدد',
       page: page || '/',
       userAgent: userAgent || req.headers.get('user-agent') || '',
+      isDailyUnique: isDailyUnique !== false,
     });
 
     // 2. ONLY send Telegram alert if this is the student's FIRST TIME EVER (طالب جديد)
-    // If the student has entered before (دخل قبل كدا), DO NOT send any entrance alert,
-    // only activity alerts (تحميل، فلاش كاردز، بلاغات) will be sent.
-    if (isNewStudent) {
+    if (isNewStudent && isDailyUnique !== false) {
       await notifyNewVisitor({
         deviceType: deviceType || 'غير محدد',
         page: page || '/',

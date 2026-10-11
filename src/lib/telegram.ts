@@ -47,7 +47,12 @@ export interface FlashcardSessionInfo {
 export interface DailySummaryInfo {
   date: string;
   totalVisitors: number;
+  pageViews?: number;
+  yesterdayVisitors?: number;
+  allTimeVisitors?: number;
   totalDownloads: number;
+  yesterdayDownloads?: number;
+  allTimeDownloads?: number;
   breakdown: Array<{
     subjectTitle: string;
     lectureTitle: string;
@@ -193,11 +198,17 @@ export async function sendDailySummary(info: DailySummaryInfo): Promise<boolean>
     breakdownLines = '\n<i>لا توجد تحميلات مسجلة اليوم بعد.</i>\n';
   }
 
+  const pageViewsLine = info.pageViews !== undefined ? `\n👁️ <b>مشاهدات الصفحات اليوم:</b> ${info.pageViews} مشاهدة` : '';
+  const yesterdayVisitorsLine = info.yesterdayVisitors !== undefined ? `\n👥 <b>زوار الأمس:</b> ${info.yesterdayVisitors} زائر` : '';
+  const allTimeVisitorsLine = info.allTimeVisitors !== undefined ? `\n🌐 <b>إجمالي الزوار الكلي:</b> ${info.allTimeVisitors} زائر` : '';
+  const yesterdayDownloadsLine = info.yesterdayDownloads !== undefined ? `\n📥 <b>تحميلات الأمس:</b> ${info.yesterdayDownloads} تحميل` : '';
+  const allTimeDownloadsLine = info.allTimeDownloads !== undefined ? `\n📦 <b>إجمالي التحميلات الكلي:</b> ${info.allTimeDownloads} تحميل` : '';
+
   const text = `📊 <b>التقرير اليومي التلقائي (Daily Analytics Summary)</b>
 ━━━━━━━━━━━━━━━━━━━━
-📅 <b>تاريخ اليوم:</b> ${info.date}
-👥 <b>إجمالي الزوار اليوم:</b> ${info.totalVisitors} زائر
-📥 <b>إجمالي عدد التحميلات اليومية:</b> ${info.totalDownloads} تحميل
+📅 <b>تاريخ التقرير:</b> ${info.date} (توقيت مصر)
+👥 <b>إجمالي الزوار اليوم:</b> ${info.totalVisitors} زائر${pageViewsLine}${yesterdayVisitorsLine}${allTimeVisitorsLine}
+📥 <b>إجمالي عدد التحميلات اليومية:</b> ${info.totalDownloads} تحميل${yesterdayDownloadsLine}${allTimeDownloadsLine}
 ━━━━━━━━━━━━━━━━━━━━
 <b>تفصيل التحميلات لكل مادة ومحاضرة:</b>${breakdownLines}
 ━━━━━━━━━━━━━━━━━━━━

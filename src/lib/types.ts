@@ -169,6 +169,7 @@ export interface VisitorEvent {
   deviceType: string;
   page: string;
   userAgent?: string;
+  isDailyUnique?: boolean;
 }
 
 export interface DownloadEvent {

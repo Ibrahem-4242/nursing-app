@@ -234,8 +234,20 @@ async function getFreshStore(): Promise<CmsStore> {
     if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
     if (cloudStore.brokenLinks) store.brokenLinks = cloudStore.brokenLinks;
     if (cloudStore.complaints) store.complaints = cloudStore.complaints;
-    if (cloudStore.visitors) store.visitors = cloudStore.visitors;
-    if (cloudStore.downloads) store.downloads = cloudStore.downloads;
+    if (cloudStore.visitors && Array.isArray(cloudStore.visitors)) {
+      const existingVisMap = new Map((store.visitors || []).map((v) => [v.id, v]));
+      for (const v of cloudStore.visitors) {
+        existingVisMap.set(v.id, v);
+      }
+      store.visitors = Array.from(existingVisMap.values());
+    }
+    if (cloudStore.downloads && Array.isArray(cloudStore.downloads)) {
+      const existingDlMap = new Map((store.downloads || []).map((d) => [d.id, d]));
+      for (const d of cloudStore.downloads) {
+        existingDlMap.set(d.id, d);
+      }
+      store.downloads = Array.from(existingDlMap.values());
+    }
     memoryStore = store;
 
     // Save a local disk backup copy silently so offline/cold-start has it
@@ -278,15 +290,22 @@ function persistStore(store: CmsStore, customToken?: string): void {
   syncToCloud(store, customToken).catch(() => {});
 }
 
-function getTodayString(): string {
+function getTodayString(offsetDays = 0): string {
   try {
     const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    if (offsetDays !== 0) {
+      d.setDate(d.getDate() + offsetDays);
+    }
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
   } catch {
-    return new Date().toISOString().split('T')[0];
+    const d = new Date();
+    if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().split('T')[0];
   }
 }
 
@@ -650,7 +669,7 @@ export const CmsService = {
 
   // --- VISITOR & DOWNLOAD TELEMETRY ---
   async trackVisitor(event: Omit<VisitorEvent, 'id' | 'timestamp' | 'dateStr'>): Promise<void> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const newEvent: VisitorEvent = {
       ...event,
       id: `vis-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -661,10 +680,11 @@ export const CmsService = {
     store.visitors.push(newEvent);
     if (store.visitors.length > 5000) store.visitors = store.visitors.slice(-5000);
     persistStore(store);
+    await syncToCloud(store);
   },
 
   async trackDownload(event: Omit<DownloadEvent, 'id' | 'timestamp' | 'dateStr'>): Promise<void> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const newEvent: DownloadEvent = {
       ...event,
       id: `dl-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -675,19 +695,36 @@ export const CmsService = {
     store.downloads.push(newEvent);
     if (store.downloads.length > 5000) store.downloads = store.downloads.slice(-5000);
     persistStore(store);
+    await syncToCloud(store);
   },
 
-  async getTodayAnalytics(): Promise<{
+  async getTodayAnalytics(targetDate?: string): Promise<{
     date: string;
     visitors: number;
+    pageViews: number;
+    yesterdayVisitors: number;
+    allTimeVisitors: number;
     downloads: number;
+    yesterdayDownloads: number;
+    allTimeDownloads: number;
     breakdown: Array<{ subjectTitle: string; lectureTitle: string; downloads: number }>;
   }> {
-    const store = initMemoryStore();
-    const today = getTodayString();
+    const store = await getFreshStore();
+    const today = targetDate || getTodayString();
+    const yesterday = getTodayString(-1);
 
-    const todayVisitors = (store.visitors || []).filter((v) => v.dateStr === today);
-    const todayDownloads = (store.downloads || []).filter((d) => d.dateStr === today);
+    const allVisitors = store.visitors || [];
+    const allDownloads = store.downloads || [];
+
+    const todayVisitorsList = allVisitors.filter((v) => v.dateStr === today);
+    const yesterdayVisitorsList = allVisitors.filter((v) => v.dateStr === yesterday);
+
+    // Count daily unique visitors (where isDailyUnique !== false)
+    const todayUnique = todayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
+    const yesterdayUnique = yesterdayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
+
+    const todayDownloads = allDownloads.filter((d) => d.dateStr === today);
+    const yesterdayDownloads = allDownloads.filter((d) => d.dateStr === yesterday);
 
     const breakdownMap: Record<string, { subjectTitle: string; lectureTitle: string; count: number }> = {};
     for (const dl of todayDownloads) {
@@ -710,8 +747,13 @@ export const CmsService = {
 
     return {
       date: today,
-      visitors: todayVisitors.length,
+      visitors: todayUnique || todayVisitorsList.length,
+      pageViews: todayVisitorsList.length,
+      yesterdayVisitors: yesterdayUnique || yesterdayVisitorsList.length,
+      allTimeVisitors: allVisitors.length,
       downloads: todayDownloads.length,
+      yesterdayDownloads: yesterdayDownloads.length,
+      allTimeDownloads: allDownloads.length,
       breakdown,
     };
   },
@@ -724,10 +766,13 @@ export const CmsService = {
     totalLectures: number;
     pendingReports: number;
   }> {
-    const store = initMemoryStore();
+    const store = await getFreshStore();
     const today = getTodayString();
 
-    const todayVisitors = (store.visitors || []).filter((v) => v.dateStr === today).length;
+    const todayVisitorsList = (store.visitors || []).filter((v) => v.dateStr === today);
+    const todayUnique = todayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
+    const todayVisitors = todayUnique || todayVisitorsList.length;
+
     const todayDownloads = (store.downloads || []).filter((d) => d.dateStr === today).length;
     const pendingReports = (store.brokenLinks || []).filter((r) => r.status === 'pending').length;
 
