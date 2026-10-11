@@ -95,7 +95,7 @@
         {
           "id": 10,
           "front": "في الوضع التشريحي القياسي لليد، ما هي العلاقة بين الإبهام (Thumb) والإصبع الصغير (Little finger)؟",
-          "back": "الإبهام يكون وحشياً/خارجياً (Thumb -> Lateral)، بينما الإصبع الصغير يكون إنسياً/داخلياً (Little finger -> Medial).",
+          "back": "الإبهام يكون وحشياً/خارجياً (Thumb -> Lateral)، بينما الإصبع الص��ير يكون إنسياً/داخلياً (Little finger -> Medial).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -115,7 +115,7 @@
         },
         {
           "id": 13,
-          "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير الشعاعي (Radiology)؟",
+          "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير ا��شعاعي (Radiology)؟",
           "back": "تساعد في التغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -144,7 +144,7 @@
         {
           "id": 17,
           "front": "قارن بين المستوى السهمي المتوسط (Sagittal) والمستوى جنيب السهمي (Para-sagittal) من حيث العدد وتساوي الأجزاء.",
-          "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بي��ما جنيب السهمي يقسم لأجزاء غير متساوية (Unequal parts).",
+          "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بي��ما جنيب السهمي يقسم لأ��زاء غير متساوية (Unequal parts).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -179,7 +179,7 @@
         {
           "id": 22,
           "front": "حدد المستويات التشريحية الموضحة بالألوان في هذا الرسم التوضيحي للرأس.",
-          "back": "• المستوى الأحمر: المستوى السهمي المتوسط (Midsagittal / Median plane)\n• المستوى الأصفر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
+          "back": "• المستوى الأحمر: المستوى السهمي المتوسط (Midsagittal / Median plane)\n• المس��وى الأصفر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -214,7 +214,7 @@
         {
           "id": 27,
           "front": "ما المصطلح المرادف للمصطلح التشريحي سفلي (Inferior)؟",
-          "back": "ذنبي (Caudal)، ويشير للتركيب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
+          "back": "ذنبي (Caudal)، ويش��ر للتركيب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -277,7 +277,7 @@
         {
           "id": 36,
           "front": "ما هما المصطلحان المستخدمان لوصف السطحين السفلي والأعلا للقدم؟",
-          "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
+          "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = الس��ح العلوي لظهر القدم.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -466,7 +466,7 @@
         {
           "id": 63,
           "front": "أكمل الفراغ: يُسمى المستوى الذي يمر شاقولياً بمنتصف الجسم تماماً بـ _____ بينما المستويات الموازية له تُسمى بـ _____.",
-          "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستويات جنيبة السهمية (Parasagittal planes).",
+          "back": "المستوى السهمي الم��وسط (Median / Mid-sagittal plane)؛ المستويات جنيبة السهمية (Parasagittal planes).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -486,7 +486,7 @@
         },
         {
           "id": 66,
-          "front": "ما هي وضعية أصابع القدمين (Toes) ف�� الوضع التشريحي القياسي؟",
+          "front": "م�� هي وضعية أصابع القدمين (Toes) ف�� الوضع التشريحي القياسي؟",
           "back": "تشير أصابع القدمين مباشرة إلى الأمام (Pointing forward).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -623,7 +623,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "علم الفسيولوجي (علم وظائف الأعضاء) هو العلم الذي يدرس كيفية ع��ل الجسم البشري وجميع أجهزته الحيوية. يركز هذا العلم على فهم الآليات الميكانيكية والفيزيائية والكيميائية التي تبقينا على قيد الحياة. يبدأ الفسيولوجي من دراسة وظائف الخلايا الصغيرة والجزيئات وحتى تفاعل الأعضاء الكاملة معاً. يشرح العلم كيف تنبض قلوبنا، وكيف تتنفس رئاتنا، وكيف يحول الجهاز الهضمي الطعام إلى طاقة. كما يوضح كيف يتعامل الجسم مع التغيرات البيئية المحيطة به للحفاظ على توازنه الداخلي وثباته. يعتبر الفسيولوجي الحجر الأساس لجميع العلوم الطبية، وبدونه لا يمكن فهم الأمراض أو العلاج. باختصار، هو العلم الذي يجيب عن السؤال الجوهري: \"كيف تعمل الأجسام والكائنات الحية؟\". يساعدنا هذا التخصص في تطوير الأدوية الحديثة وتحسين الأداء الرياضي وفهم طبيعة الحياة",
+      "overview": "علم الفسيولوجي (علم وظائف الأعضاء) هو العلم الذي يدرس كيفية ع��ل الجسم البشري وجميع أجهزته الحيوية. يركز هذا العلم على فهم الآليات الميكانيكية والفيزيائية والكيميائية التي تبقينا على قيد الحياة. يبدأ الفسيولوجي من دراسة وظائف الخلايا الصغيرة والجزيئات وحتى تفاعل الأعضاء الكاملة معاً. يشرح العلم كيف تنبض قلوبنا، وكيف ت��نفس رئاتنا، وكيف يحول الجهاز الهضمي الطعام إلى طاقة. كما يوضح كيف يتعامل الجسم مع التغيرات البيئية المحيطة به للحفاظ على توازنه الداخلي وثباته. يعتبر الفسيولوجي الحجر الأساس لجميع العلوم الطبية، وبدونه لا يمكن فهم الأمراض أو العلاج. باختصار، هو العلم الذي يجيب عن السؤال الجوهري: \"كيف تعمل الأجسام والكائنات الحية؟\". يساعدنا هذا التخصص في تطوير الأدوية الحديثة وتحسين الأداء الرياضي وفهم طبيعة الحياة",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -737,7 +737,7 @@
         {
           "id": 16,
           "front": "ما هي الخصائص الفيزيائية الرئيسية للبلازما (اللون، اللزوجة، الكثافة النوعية، والأس الهيدروجيني)؟",
-          "back": "- اللون (Colour): أصفر (Yellow).\n- اللزوجة (Viscosity): ضعف لزوجة الماء مرتين (2 × water).\n- الكثافة النوعية (Specific Gravity): 1030.\n- الأس الهيدروجيني (pH): 7.4.",
+          "back": "- اللون (Colour): أصفر (Yellow).\n- اللزوجة (Viscosity): ضعف لزوجة ��لماء مرتين (2 × water).\n- الكثافة النوعية (Specific Gravity): 1030.\n- الأس الهيدروجيني (pH): 7.4.",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
@@ -939,7 +939,7 @@
         },
         {
           "id": 45,
-          "front": "ما هي المصادر الغذائية لفيتامين B12 وما هي أهميته الأخرى للجهاز العصبي؟",
+          "front": "ما هي المصادر الغذائية لفيتامين B12 وما هي أهميته الأخرى للجها�� العصبي؟",
           "back": "- المصادر: المنتجات الحيوانية فقط (Animal products only).\n- الأهمية العصبية: ضروري لتكوين المايلين (Myelin formation)، لذا فإن نقصه يسبب أعراضًا عصبية.",
           "category": "ك��وت استذكار",
           "clinicalPearl": "أنواع الأنيميا والعوامل (Anemia & Factors)"
@@ -974,7 +974,7 @@
         },
         {
           "id": 50,
-          "front": "ما هما العضوان اللذان تشترط سلامتهما (Healthy organs) لاستمرار تصنيع كرات الدم الحمراء بشكل طبيعي؟",
+          "front": "ما هما العضوان اللذان تشترط سلامتهما (Healthy organs) لاستمرار تصنيع كرات الدم الحمراء بشكل ط��يعي؟",
           "back": "1. نخاع العظام (Healthy bone marrow).\n2. الكبد (Healthy liver).",
           "category": "كروت استذكار",
           "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
@@ -1032,9 +1032,145 @@
       "id": "vis-1791662031499-xwtz",
       "timestamp": "2026-10-10T19:53:51.499Z",
       "dateStr": "2026-10-10"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1791714257944-l5gu",
+      "timestamp": "2026-10-11T10:24:17.944Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791714957460-vsb3",
+      "timestamp": "2026-10-11T10:35:57.460Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715006041-f7sf",
+      "timestamp": "2026-10-11T10:36:46.041Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715012739-ww32",
+      "timestamp": "2026-10-11T10:36:52.739Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715014673-sy9e",
+      "timestamp": "2026-10-11T10:36:54.673Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715206086-r6mi",
+      "timestamp": "2026-10-11T10:40:06.086Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715208187-9yze",
+      "timestamp": "2026-10-11T10:40:08.187Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/physiology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715214038-ly1f",
+      "timestamp": "2026-10-11T10:40:14.038Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715222058-cn55",
+      "timestamp": "2026-10-11T10:40:22.058Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715226654-nudm",
+      "timestamp": "2026-10-11T10:40:26.654Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715228975-z3h7",
+      "timestamp": "2026-10-11T10:40:28.975Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715591394-ukp8",
+      "timestamp": "2026-10-11T10:46:31.394Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715593287-yg2y",
+      "timestamp": "2026-10-11T10:46:33.287Z",
+      "dateStr": "2026-10-11"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1791713733553",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791715596497-acd4",
+      "timestamp": "2026-10-11T10:46:36.497Z",
+      "dateStr": "2026-10-11"
     }
   ],
-  "downloads": [],
+  "downloads": [
+    {
+      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
+      "subjectTitle": "علم الأمراض (باثولوجي)",
+      "fileType": "ملف أسئلة الكويزات PDF",
+      "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
+      "id": "dl-1791714975235-ms25",
+      "timestamp": "2026-10-11T10:36:15.235Z",
+      "dateStr": "2026-10-11"
+    }
+  ],
   "subjects": [
     {
       "id": "anatomy",
@@ -1095,7 +1231,7 @@
       "slug": "pharmacology",
       "title": "علم الأدوية (فارماكولوجي)",
       "englishTitle": "Clinical Pharmacology",
-      "description": "تصنيف المجموعات الدوائية، حركية الدواء وتأثيراته، حساب الجرعات بدقة، والمسؤوليات التمريضية قبل إعطاء الدواء.",
+      "description": "تصنيف المجموعات الدوائية، حركية الدواء وتأثيراته، ح��اب الجرعات بدقة، والمسؤوليات التمريضية قبل إعطاء الدواء.",
       "icon": "Pill",
       "color": "sky",
       "totalLectures": 0,
