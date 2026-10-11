@@ -1,11 +1,12 @@
 import JSZip from 'jszip';
 import initSqlJs from 'sql.js';
 import { Flashcard } from './types';
+import { cleanLatexMath } from './text-cleaner';
 
 function cleanHtmlText(html: string): string {
   if (!html) return '';
 
-  return html
+  const raw = html
     // Remove style and script blocks
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -26,6 +27,8 @@ function cleanHtmlText(html: string): string {
     .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+
+  return cleanLatexMath(raw);
 }
 
 let sqlPromise: Promise<any> | null = null;

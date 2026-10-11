@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Flashcard } from '@/lib/types';
+import { cleanLatexMath } from '@/lib/text-cleaner';
 import {
   ChevronRight,
   ChevronLeft,
@@ -207,8 +208,8 @@ export default function Flashcards3D({
             </div>
 
             <div className="my-auto text-center px-4 sm:px-6">
-              <p className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 leading-relaxed">
-                {currentCard.front}
+              <p className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-line">
+                {cleanLatexMath(currentCard.front)}
               </p>
             </div>
 
@@ -234,14 +235,14 @@ export default function Flashcards3D({
             </div>
 
             <div className="my-auto text-center px-4 sm:px-6 overflow-y-auto max-h-[220px]">
-              <p className="text-base sm:text-lg md:text-xl font-semibold text-slate-100 leading-relaxed">
-                {currentCard.back}
+              <p className="text-base sm:text-lg md:text-xl font-semibold text-slate-100 leading-relaxed whitespace-pre-line">
+                {cleanLatexMath(currentCard.back)}
               </p>
 
               {currentCard.clinicalPearl && (
-                <div className="mt-4 p-3.5 rounded-2xl bg-teal-900/60 border border-teal-500/40 text-xs text-teal-200 text-right leading-relaxed shadow-sm">
+                <div className="mt-4 p-3.5 rounded-2xl bg-teal-900/60 border border-teal-500/40 text-xs text-teal-200 text-right leading-relaxed shadow-sm whitespace-pre-line">
                   <span className="font-bold text-teal-300 block mb-1">💡 معلومة ونقطة تركيز للامتحان:</span>
-                  {currentCard.clinicalPearl}
+                  {cleanLatexMath(currentCard.clinicalPearl)}
                 </div>
               )}
             </div>

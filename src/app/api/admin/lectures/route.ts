@@ -6,6 +6,7 @@ import { saveUploadedFile } from '@/lib/file-storage';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import { getArabicFormattedDate } from '@/lib/telegram';
 import { Flashcard } from '@/lib/types';
+import { cleanLatexMath } from '@/lib/text-cleaner';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -301,7 +302,12 @@ export async function PUT(req: NextRequest) {
   }
 
   if (updatedCards && updatedCards.length > 0) {
-    existing.flashcards = updatedCards;
+    existing.flashcards = updatedCards.map((c) => ({
+      ...c,
+      front: cleanLatexMath(c.front),
+      back: cleanLatexMath(c.back),
+      clinicalPearl: c.clinicalPearl ? cleanLatexMath(c.clinicalPearl) : undefined,
+    }));
   }
 
   // Update Text Fields

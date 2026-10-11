@@ -28,13 +28,14 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const externalDriveUrl = ((formData.get('externalDriveUrl') as string) || '').trim();
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const questionsCount = Number(formData.get('questionsCount')) || 150;
     const shouldWatermark = formData.get('watermark') !== 'false';
 
-    if (!file) {
+    if (!file && !externalDriveUrl) {
       return NextResponse.json(
-        { success: false, message: 'يرجى اختيار ملف PDF لأسئلة الكويزات' },
+        { success: false, message: 'يرجى اختيار ملف PDF لأسئلة الكويزات أو إدخال رابط Google Drive' },
         { status: 400 }
       );
     }
@@ -44,25 +45,32 @@ export async function POST(req: NextRequest) {
       title: 'مقرر تمريض',
     };
 
-    // 2. Process & Apply Watermark
-    const originalBuffer = await file.arrayBuffer();
-    let processedBytes = new Uint8Array(originalBuffer);
-
-    if (shouldWatermark) {
-      try {
-        processedBytes = await applyWatermarkToPdf(originalBuffer);
-      } catch (watermarkErr) {
-        console.warn('[UploadQuizFile] Watermark fallback to original:', watermarkErr);
-      }
-    }
-
     const customToken =
       req.headers.get('x-github-token') ||
       cookieStore.get('nursing_sync_token')?.value ||
       ((formData.get('githubToken') as string) || '').trim();
 
-    // 3. Save File
-    const savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
+    let savedPdf = {
+      url: externalDriveUrl,
+      sizeFormatted: 'رابط Google Drive 🌐',
+    };
+
+    if (file) {
+      // 2. Process & Apply Watermark
+      const originalBuffer = await file.arrayBuffer();
+      let processedBytes = new Uint8Array(originalBuffer);
+
+      if (shouldWatermark) {
+        try {
+          processedBytes = await applyWatermarkToPdf(originalBuffer);
+        } catch (watermarkErr) {
+          console.warn('[UploadQuizFile] Watermark fallback to original:', watermarkErr);
+        }
+      }
+
+      // 3. Save File
+      savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
+    }
 
     // 4. Save to CMS
     const quizFile = await CmsService.saveSubjectQuizFile({
@@ -82,14 +90,17 @@ export async function POST(req: NextRequest) {
 
     // 5. Send Telegram notification
     const time = getArabicFormattedDate();
+    const fileNameDisplay = file ? `<code>${file.name}</code>` : 'رابط Google Drive خارجي 🌐';
+    const watermarkDisplay = file && shouldWatermark ? 'تم التطبيق بنجاح ✅' : file ? 'بدون علامة' : 'ملف سحابي خارجي';
+
     const telegramMsg = `📝 <b>تم رفع وتحديث ملف أسئلة الكويزات المجمعة!</b>
 ━━━━━━━━━━━━━━━━━━━━
 📚 <b>المادة:</b> ${subjectObj.title}
-📄 <b>الملف:</b> <code>${file.name}</code>
-💾 <b>الحجم:</b> ${savedPdf.sizeFormatted}
+📄 <b>الملف:</b> ${fileNameDisplay}
+💾 <b>الحجم / المصدر:</b> ${savedPdf.sizeFormatted}
 ❓ <b>عدد الأسئلة:</b> +${questionsCount} سؤال
 ⏰ <b>التوقيت:</b> ${time}
-🛡️ <b>العلامة المائية:</b> ${shouldWatermark ? 'تم التطبيق بنجاح ✅' : 'بدون علامة'}`;
+🛡️ <b>العلامة المائية:</b> ${watermarkDisplay}`;
 
     sendTelegramMessage(telegramMsg).catch((err) =>
       console.warn('[Telegram] Quiz file alert notice:', err)

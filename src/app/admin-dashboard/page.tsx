@@ -44,7 +44,9 @@ export default function AdminDashboardPage() {
 
   // Subject Quizzes Form state
   const [quizSubjectId, setQuizSubjectId] = useState('anatomy');
+  const [quizUploadMode, setQuizUploadMode] = useState<'file' | 'link'>('file');
   const [quizFile, setQuizFile] = useState<File | null>(null);
+  const [quizDriveUrl, setQuizDriveUrl] = useState('');
   const [quizQuestionsCount, setQuizQuestionsCount] = useState(150);
   const [quizApplyWatermark, setQuizApplyWatermark] = useState(true);
   const [isUploadingQuiz, setIsUploadingQuiz] = useState(false);
@@ -548,18 +550,24 @@ export default function AdminDashboardPage() {
   // Upload Subject Quiz Questions PDF
   const handleUploadQuizFile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quizFile) {
+    if (quizUploadMode === 'file' && !quizFile) {
       setQuizUploadFeedback({ type: 'error', message: 'يرجى اختيار ملف PDF لأسئلة الكويزات أولاً' });
       return;
     }
-
-    const quizSizeMb = quizFile.size / (1024 * 1024);
-    if (quizSizeMb > 4.5) {
-      setQuizUploadFeedback({
-        type: 'error',
-        message: `حجم ملف الكويزات (${quizSizeMb.toFixed(1)} MB) يتجاوز الحد الأقصى المسموح به في الرفع المباشر (4.5 MB). يرجى ضغط الـ PDF لتفادي انقطاع الاتصال من السيرفر.`,
-      });
+    if (quizUploadMode === 'link' && !quizDriveUrl.trim()) {
+      setQuizUploadFeedback({ type: 'error', message: 'يرجى إدخال رابط Google Drive لملف أسئلة الكويزات' });
       return;
+    }
+
+    if (quizUploadMode === 'file' && quizFile) {
+      const quizSizeMb = quizFile.size / (1024 * 1024);
+      if (quizSizeMb > 4.5) {
+        setQuizUploadFeedback({
+          type: 'error',
+          message: `حجم ملف الكويزات (${quizSizeMb.toFixed(1)} MB) يتجاوز الحد الأقصى المسموح به في الرفع المباشر (4.5 MB). يمكنك استخدام خيار "رابط جوجل درايف" لرفعه بأي حجم!`,
+        });
+        return;
+      }
     }
 
     setIsUploadingQuiz(true);
@@ -567,7 +575,11 @@ export default function AdminDashboardPage() {
 
     try {
       const formData = new FormData();
-      formData.append('file', quizFile);
+      if (quizUploadMode === 'file' && quizFile) {
+        formData.append('file', quizFile);
+      } else {
+        formData.append('externalDriveUrl', quizDriveUrl.trim());
+      }
       formData.append('subjectId', quizSubjectId);
       formData.append('questionsCount', String(quizQuestionsCount));
       formData.append('watermark', String(quizApplyWatermark));
@@ -590,7 +602,7 @@ export default function AdminDashboardPage() {
           data = JSON.parse(text);
         } catch {
           if (res.status === 413) {
-            throw new Error('حجم ملف الكويزات كبير جداً وتجاوز الحد الأقصى (4.5 MB). يرجى ضغط الـ PDF قبل رفعه.');
+            throw new Error('حجم ملف الكويزات كبير جداً وتجاوز الحد الأقصى (4.5 MB). يرجى استخدام خيار رابط Google Drive لرفعه بدون قيود.');
           } else if (res.status === 401) {
             throw new Error('انتهت صلاحية جلسة الأدمن. يرجى إعادة تسجيل الدخول عبر زر الفوتر السري.');
           } else if (res.status === 504) {
@@ -606,6 +618,7 @@ export default function AdminDashboardPage() {
       if (data && data.success) {
         setQuizUploadFeedback({ type: 'success', message: data.message });
         setQuizFile(null);
+        setQuizDriveUrl('');
         loadSubjectQuizzes();
       } else {
         setQuizUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
@@ -2420,75 +2433,129 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* PDF Dropzone */}
+                {/* PDF Dropzone / Drive Link */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                     ملف أسئلة الكويزات (صيغة PDF):
                   </label>
-                  <div
-                    className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer ${
-                      quizFile
-                        ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-950/20'
-                        : 'border-slate-300 dark:border-slate-700 hover:border-amber-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                    }`}
-                    onClick={() => document.getElementById('quiz-pdf-input')?.click()}
-                  >
-                    <input
-                      id="quiz-pdf-input"
-                      type="file"
-                      accept=".pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setQuizFile(e.target.files[0]);
-                        }
-                      }}
-                    />
 
-                    {quizFile ? (
-                      <div className="space-y-2">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
-                          <Check className="w-6 h-6" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{quizFile.name}</p>
-                        <p className="text-xs text-slate-500">
-                          الحجم: {(quizFile.size / (1024 * 1024)).toFixed(2)} MB • جاهز للرفع والختم
-                        </p>
-                        <span className="inline-block text-[11px] text-amber-600 dark:text-amber-400 font-bold underline">
-                          اضغط لتغيير الملف
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-                          <FileUp className="w-7 h-7" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900 dark:text-white">
-                            اضغط هنا لاختيار ملف PDF لأسئلة الكويزات أو اسحبه هنا
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            ملف مجمع للأسئلة والإجابات • الحد الأقصى: 4.5 MB • تطبق العلامة المائية تلقائياً
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                  {/* Mode Selector */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setQuizUploadMode('file')}
+                      className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                        quizUploadMode === 'file'
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shadow-sm'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                      }`}
+                    >
+                      <FileUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>رفع ملف PDF مباشر (حتى 4.5 MB)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setQuizUploadMode('link')}
+                      className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                        quizUploadMode === 'link'
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shadow-sm'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                      }`}
+                    >
+                      <ExternalLink className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>رابط خارجي مباشر (Google Drive / سحابي) - بدون حد للحجم 🚀</span>
+                    </button>
                   </div>
+
+                  {quizUploadMode === 'file' ? (
+                    <div
+                      className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer ${
+                        quizFile
+                          ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-950/20'
+                          : 'border-slate-300 dark:border-slate-700 hover:border-amber-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                      onClick={() => document.getElementById('quiz-pdf-input')?.click()}
+                    >
+                      <input
+                        id="quiz-pdf-input"
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setQuizFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+
+                      {quizFile ? (
+                        <div className="space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
+                            <Check className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{quizFile.name}</p>
+                          <p className="text-xs text-slate-500">
+                            الحجم: {(quizFile.size / (1024 * 1024)).toFixed(2)} MB • جاهز للرفع والختم
+                          </p>
+                          <span className="inline-block text-[11px] text-amber-600 dark:text-amber-400 font-bold underline">
+                            اضغط لتغيير الملف
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                            <FileUp className="w-7 h-7" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">
+                              اضغط هنا لاختيار ملف PDF لأسئلة الكويزات أو اسحبه هنا
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              ملف مجمع للأسئلة والإجابات • الحد الأقصى: 4.5 MB • تطبق العلامة المائية تلقائياً
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                        <ExternalLink className="w-4 h-4" />
+                        <span>ضع رابط ملف أسئلة الكويزات (Google Drive / Telegram / رابط مباشر):</span>
+                      </div>
+                      <input
+                        type="url"
+                        value={quizDriveUrl}
+                        onChange={(e) => setQuizDriveUrl(e.target.value)}
+                        placeholder="https://drive.google.com/file/d/.../view أو رابط مباشر"
+                        className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                      />
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">
+                        <p className="font-bold">💡 نصيحة لنشر ملفات Google Drive لأي حجم بدون أي قيود:</p>
+                        <p>1. ارفع ملف بنك أسئلة الكويزات على Google Drive من حسابك.</p>
+                        <p>2. اضغط كليك يمين على الملف ⬅️ مشاركة (Share) ⬅️ اجعل الوصول العام: <strong>أي شخص لديه الرابط (Anyone with the link)</strong>.</p>
+                        <p>3. انسخ الرابط والصقه هنا مباشرة. سيعمل للطلاب فوراً بدون حدود لحجم الملف!</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Watermark Toggle */}
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
-                  <input
-                    type="checkbox"
-                    id="quiz-watermark-toggle"
-                    checked={quizApplyWatermark}
-                    onChange={(e) => setQuizApplyWatermark(e.target.checked)}
-                    className="w-5 h-5 text-amber-600 rounded-lg border-slate-300 focus:ring-amber-500"
-                  />
-                  <label htmlFor="quiz-watermark-toggle" className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
-                    ختم علامة مائية تلقائية باسم "منصة ملخصات تمريض" على جميع صفحات بنك الأسئلة لحفظ الحقوق الفكرية
-                  </label>
-                </div>
+                {quizUploadMode === 'file' && (
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
+                    <input
+                      type="checkbox"
+                      id="quiz-watermark-toggle"
+                      checked={quizApplyWatermark}
+                      onChange={(e) => setQuizApplyWatermark(e.target.checked)}
+                      className="w-5 h-5 text-amber-600 rounded-lg border-slate-300 focus:ring-amber-500"
+                    />
+                    <label htmlFor="quiz-watermark-toggle" className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                      ختم علامة مائية تلقائية باسم "منصة ملخصات تمريض" على جميع صفحات بنك الأسئلة لحفظ الحقوق الفكرية
+                    </label>
+                  </div>
+                )}
 
                 {quizUploadFeedback && (
                   <div
@@ -2506,13 +2573,13 @@ export default function AdminDashboardPage() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isUploadingQuiz || !quizFile}
+                  disabled={isUploadingQuiz || (quizUploadMode === 'file' ? !quizFile : !quizDriveUrl.trim())}
                   className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-700 hover:to-teal-700 text-white font-black text-base shadow-xl shadow-amber-600/25 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isUploadingQuiz ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>جارِ معالجة ملف الكويزات ووضع العلامة المائية والنشر...</span>
+                      <span>جارِ معالجة ملف الكويزات والنشر...</span>
                     </>
                   ) : (
                     <>

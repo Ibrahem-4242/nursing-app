@@ -8,6 +8,7 @@ import { CmsService } from '@/lib/cms-db';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
 import { Lecture, LectureFile, Flashcard } from '@/lib/types';
+import { cleanLatexMath } from '@/lib/text-cleaner';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -105,6 +106,16 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         console.warn('[UploadLecture] Anki parsing error:', err.message);
       }
+    }
+
+    // Clean any raw LaTeX, math symbols, and ugly brackets from card texts
+    if (flashcards.length > 0) {
+      flashcards = flashcards.map((c) => ({
+        ...c,
+        front: cleanLatexMath(c.front),
+        back: cleanLatexMath(c.back),
+        clinicalPearl: c.clinicalPearl ? cleanLatexMath(c.clinicalPearl) : undefined,
+      }));
     }
     // Zero fake cards - strictly uses what the user uploaded!
 

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { QuizQuestion } from '@/lib/types';
+import { cleanLatexMath } from '@/lib/text-cleaner';
 import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb } from 'lucide-react';
 
 interface InteractiveQuizProps {
@@ -130,7 +131,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                 <span className="flex-shrink-0 w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   {qIndex + 1}
                 </span>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white leading-relaxed pt-0.5">{q.question}</h4>
+                <h4 className="text-base font-bold text-slate-900 dark:text-white leading-relaxed pt-0.5 whitespace-pre-line">{cleanLatexMath(q.question)}</h4>
               </div>
 
               {/* Options */}
@@ -170,7 +171,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                         >
                           {String.fromCharCode(65 + optIndex)}
                         </span>
-                        <span>{option}</span>
+                        <span>{cleanLatexMath(option)}</span>
                       </span>
 
                       {showResults && isThisCorrect && (
@@ -191,7 +192,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                     <HelpCircle className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <span className="font-bold text-teal-900 dark:text-teal-300 block mb-0.5">التصحيح والتعليل الطبي:</span>
-                      <p className="leading-relaxed text-slate-600 dark:text-slate-300">{q.explanation}</p>
+                      <p className="leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-line">{cleanLatexMath(q.explanation)}</p>
                     </div>
                   </div>
 
@@ -200,7 +201,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                       <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <span className="font-bold block mb-0.5">نصيحة ونقطة هامة للامتحان:</span>
-                        <p className="leading-relaxed">{q.pearl}</p>
+                        <p className="leading-relaxed whitespace-pre-line">{cleanLatexMath(q.pearl)}</p>
                       </div>
                     </div>
                   )}
