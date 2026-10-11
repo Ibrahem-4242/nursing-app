@@ -1,0 +1,404 @@
+{
+  "id": "lec-1791657104297",
+  "subjectId": "pathology",
+  "yearId": "1",
+  "subjectTitle": "علم الأمراض (باثولوجي)",
+  "yearTitle": "السنة الأولى",
+  "slug": "lec-1791657104297",
+  "lectureNumber": 1,
+  "title": "Inflammation 1",
+  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (باثولوجي)",
+  "isFree": true,
+  "price": 0,
+  "viewCount": 1,
+  "readingMinutes": 10,
+  "threeDModelType": "heart",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "concepts": [],
+  "terminology": [],
+  "interventions": [],
+  "clinicalPearls": [],
+  "flashcards": [
+    {
+      "id": 1,
+      "front": "What is Pathology (علم الأمراض)?",
+      "back": "Pathology (علم الأمراض) is defined as the science of disease study.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 2,
+      "front": "What are the five main components of disease studied in Pathology (مكونات المرض في علم الأمراض)?",
+      "back": "The five components are Definition (التعريف), Causes (الأسباب), Mechanisms/Pathogenesis (آلية حدوث المرض), Morphologic changes (التغيرات الشكلية), and Complications (المضاعفات).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 3,
+      "front": "How is Inflammation (الالتهاب) defined in pathology?",
+      "back": "Inflammation (الالتهاب) is defined as a protective immune-vascular response representing the reaction of living tissue against injury.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 4,
+      "front": "Which standard medical suffix denotes Inflammation (الالتهاب) in tissue terminology?",
+      "back": "The suffix '-itis' (اللاحقة إيتس) is added to tissue names to indicate inflammation.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 5,
+      "front": "What are the primary etiology categories or Causes of Inflammation (أسباب الالتهاب)?",
+      "back": "The primary causes include infectious agents, immunological reactions, tissue necrosis, chemical and physical agents, and nutritional factors.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 6,
+      "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
+      "back": "The four components are the Cause (السبب), Immune cells (الخلايا ا��مناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 7,
+      "front": "What are the three primary Purposes of Inflammation (أهداف الالتهاب)?",
+      "back": "The purposes are the elimination of the cause, clearing of necrotic cells, and initiation of repair.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 8,
+      "front": "What vascular mechanism causes Redness (الحمرة) in acute inflammation?",
+      "back": "Redness (الحمرة) is caused by Vasodilation (اتساع الأوعية الدموية).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 9,
+      "front": "What factor produces Swelling (التورم) during acute inflammation?",
+      "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح السائلي الالتهابي).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 10,
+      "front": "What mechanisms trigger Pain (الألم) at the site of acute inflammation?",
+      "back": "Pain (الألم) is triggered by the irritation of nerve endings by toxins and chemical mediators, or by mechanical compression from exudate.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 11,
+      "front": "What is Chemotaxis (الانجذاب الكيميائي)?",
+      "back": "Chemotaxis (الانجذاب الكيميائي) is the directional movement of white blood cells toward microbes or injury sites along a chemical gradient.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتها�� (Pathology & Inflammation)"
+    },
+    {
+      "id": 12,
+      "front": "Which factors aid in driving Leukocyte Chemotaxis (الانجذاب الكيميائي للخلاي�� البيضاء)?",
+      "back": "Chemotaxis is driven by bacterial toxins, complement components (such as C5a), and substances from necrotic tissue.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "التغيرات الخلوية وزيادة الهجرة (Cellular Events & Extravasation)"
+    },
+    {
+      "id": 13,
+      "front": "What is the primary Definition of Phagocytosis (البلعمة)?",
+      "back": "Phagocytosis (البلعمة) is defined as the process of engulfing foreign bodies, such as bacteria and cellular debris, by phagocytic cells.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 14,
+      "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا البالعة الرئيسية) during inflammation?",
+      "back": "Neutrophils (العدلات) and Macrophages (الخلايا البلعمية الكبيرة) serve as the principal phagocytic cells.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 15,
+      "front": "What overall physiological Function does Phagocytosis (وظيفة البلعمة) serve in inflammation?",
+      "back": "Phagocytosis functions to clean and clear the inflamed area of pathogens and debris to prepare it for repair.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 16,
+      "front": "Which systemic and humoral Factors help enhance Phagocytosis (العوامل المساعدة على البلعمة)?",
+      "back": "Phagocytosis is enhanced by opsonins, complement proteins, fibrin, and mild fever.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 17,
+      "front": "What is the initial step in the process of Phagocytosis (الخطوة الأولى للبلعمة)?",
+      "back": "The initial step is Chemotaxis (الانجذاب الكيميائي), which brings phagocytes to the targeted pathogen.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 18,
+      "front": "What step immediately follows Chemotaxis in Phagocytosis (البلعمة)?",
+      "back": "The second step is the Adherence of the microbe to phagocyte receptors (التصاق الميكروب بالخلية البالعة).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 19,
+      "front": "What vacuole structure forms upon Ingestion (الابتلاع) during phagocytosis?",
+      "back": "Ingestion results in the formation of a membrane-bound Phagosome (الفجوة البالعة).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 20,
+      "front": "How is a Phagolysosome (الفجوة البلعمية الليزوسومية) formed during phagocytosis?",
+      "back": "A Phagolysosome is formed by the intracellular fusion of a phagosome with a lysosome.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 21,
+      "front": "What enzyme-mediated process occurs inside the Phagolysosome (الفجوة البلعمية الليزوسومية)?",
+      "back": "Lysosomal enzymes execute the Digestion (الهضم) and destruction of the ingested material inside the phagolysosome.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 22,
+      "front": "How are indigestible residual materials eliminated following phagocytosis?",
+      "back": "Waste materials remaining in residual bodies are discharged outside the cell via Exocytosis (الإخراج الخلوي).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 23,
+      "front": "What is the Complement System (جهاز المتممة)?",
+      "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 24,
+      "front": "Where are Complement proteins (بروتينات المتممة) primarily synthesized in the body?",
+      "back": "Complement proteins are primarily synthesized in the Liver (الكبد).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 25,
+      "front": "What stimuli trigger the activation cascade of the Complement System (تنشيط المتممة)?",
+      "back": "The cascade is stimulated by antigen-antibody complexes or directly by bacterial surfaces.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 26,
+      "front": "Which complex is formed by C5b binding to C6-C9 during complement activation?",
+      "back": "C5b binding to C6-C9 forms the Membrane Attack Complex (مركب الهجوم الغشائي), which causes cell lysis by creating membrane pores.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 27,
+      "front": "What function do Complement fragments C3a and C5a perform in acute inflammation?",
+      "back": "C3a and C5a act as anaphylatoxins that stimulate Histamine release (إطلاق الهيستامين) from cells.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 28,
+      "front": "What specific chemoattractant Role does Complement fragment C5a play?",
+      "back": "Complement fragment C5a acts as a potent Leukocyte Chemoattractant (جذاب كيميائي قوي لخلايا الدم البيضاء).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 29,
+      "front": "How does Complement fragment C3b facilitate Phagocytosis (البلعمة)?",
+      "back": "C3b acts as an Opsonin (طاه��ة) by binding to target surfaces and promoting phagocyte receptor attachment.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+    },
+    {
+      "id": 30,
+      "front": "How does the Onset (البداية) differ between Acute and Chronic Inflammation?",
+      "back": "Acute inflammation has a Rapid onset (بدء سريع), whereas Chronic inflammation has a Gradual onset (بدء تدريجي).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الحاد والمزمن (Acute vs Chronic Inflammation)"
+    },
+    {
+      "id": 31,
+      "front": "How does the Duration (المدة) compare between Acute and Chronic Inflammation?",
+      "back": "Acute inflammation lasts a Few days (أيام قليلة), whereas Chronic inflammation lasts Months or years (أشهر أو سنوات).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الحاد والمزمن (Acute vs Chronic Inflammation)"
+    },
+    {
+      "id": 32,
+      "front": "In which inflammation type are Cardinal Signs (العلامات الرئيسية) characteristically absent?",
+      "back": "Cardinal signs are characteristically absent in Chronic Inflammation (الالتهاب المزمن).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 33,
+      "front": "Which inflammatory cells predominate in microscopic examinations of Acute Inflammation (الالتهاب الحاد)?",
+      "back": "Neutrophils and Macrophages (العدلات والخلايا البلعمية الكبيرة) predominate in acute inflammation.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الحاد والمزمن (Acute vs Chronic Inflammation)"
+    },
+    {
+      "id": 34,
+      "front": "Which cell types characteristically infiltrate Chronic Inflammation (الالتهاب المزمن) tissues?",
+      "back": "Chronic inflammation tissue is infiltrated by macrophages, lymphocytes, plasma cells, giant cells, and fibroblasts.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الحاد والمزمن (Acute vs Chronic Inflammation)"
+    },
+    {
+      "id": 35,
+      "front": "How does the presence of Inflammatory Edema Fluid (سائل الوذمة) differ between acute and chronic inflammation?",
+      "back": "Inflammatory edema fluid is Present in acute inflammation but Absent in chronic inflammation.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 36,
+      "front": "What microscopic characteristics define Blood Vessels (الأوعية الدموية) in acute inflammation?",
+      "back": "Blood vessels in acute inflammation are numerous, thin-walled, dilated, and engorged with blood.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 37,
+      "front": "What vascular alterations characterize Blood Vessels (الأوعية الدموية) in chronic inflammation?",
+      "back": "Blood vessels in chronic inflammation are less numerous, thick-walled, and show angiogenesis or endarteritis obliterans.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 38,
+      "front": "What mechanism produces systemic Fever (الحمى) during inflammation?",
+      "back": "Fever (الحمى) is produced by the systemic release of pyrogenic Chemical Mediators.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 39,
+      "front": "What does Leukocytosis (زيادة خلايا الدم البيضاء) signify during an inflammatory response?",
+      "back": "Leukocytosis signifies an increased total number of circulating white blood cells in the bloodstream.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 40,
+      "front": "What role do Neutrophils (العدلات) play in Suppurative Inflammation (الالتهاب القيحي)?",
+      "back": "Neutrophils dominate suppurative inflammation and release proteolytic enzymes that liquefy tissue to form pus.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 41,
+      "front": "What are the four primary Beneficial Effects of Inflammation (الآثار النافعة للالتهاب)?",
+      "back": "The beneficial effects are toxin dilution, phagocytosis of pathogens, injury localization by fibrin, and stimulation of immunity.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 42,
+      "front": "How can severe Tissue Swelling (التورم التنسجي) act as a harmful effect of inflammation?",
+      "back": "Severe swelling can cause mechanical obstruction in hollow organs and loss of vital tissue function.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 43,
+      "front": "Why is Healing by Fibrosis (التليف) considered a potential harmful effect of chronic inflammation?",
+      "back": "Fibrosis leads to lumen narrowing, pressure atrophy, parenchymal replacement, and ultimate organ dysfunction.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 44,
+      "front": "What defines Hypersensitivity (فرط الحساسية) in the context of inflammatory cell response?",
+      "back": "Hypersensitivity is an exaggerated and damaging response of inflammatory cells to an antigen or stimulus.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 45,
+      "front": "What are the two primary origins of Chemical Mediators (مصادر الوسائط الكيميائية) of inflammation?",
+      "back": "Chemical mediators are derived either directly from cells or generated from plasma proteins.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الوسائط الكيميائية (Chemical Mediators)"
+    },
+    {
+      "id": 46,
+      "front": "What triggers the synthesis and release of inflammatory Chemical Mediators (الوسائط الكيميائية)?",
+      "back": "Mediators are released in response to microbial products or factors released by necrotic tissues.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الوسائط الكيميائية (Chemical Mediators)"
+    },
+    {
+      "id": 47,
+      "front": "What role does Fibrin (الفايبرين) play at the local inflammation site?",
+      "back": "Fibrin forms a meshwork that traps pathogens to localize the inflammatory process and prevent spread.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 48,
+      "front": "What is Pavementing or Margination (التهميش / الترصيف) in leukocyte extravasation?",
+      "back": "Pavementing is the accumulation and lining up of white blood cells along the vascular endothelial surface.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+    },
+    {
+      "id": 49,
+      "front": "What is Diapedesis (العبور الخلوي) during leukocyte migration?",
+      "back": "Diapedesis is the active passage of leukocytes through uninjured blood vessel walls into extravascular tissues.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "التغيرات الخلوية وزيادة الهجرة (Cellular Events & Extravasation)"
+    },
+    {
+      "id": 50,
+      "front": "What general role do Opsonins (الطاهيات) perform in immune defense?",
+      "back": "Opsonins coat foreign particles to make them readily recognized and bound by phagocyte receptors.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "ع��م الأمراض والالتهاب (Pathology & Inflammation)"
+    }
+  ],
+  "quiz": [],
+  "files": [
+    {
+      "type": "pdf",
+      "title": "Inflammation 1",
+      "fileSize": "رابط سحابي 🌐",
+      "downloadUrl": "https://drive.google.com/file/d/1CwjwB00hSPHIYixMLPwilaiFOK71YdNn/view?usp=sharing",
+      "pageCount": "ملف PDF معتمد",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
+      "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+    },
+    {
+      "type": "ppt",
+      "title": "عروض بوربوينت - Inflammation 1",
+      "fileSize": "2.6 MB",
+      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657101916-1k0o9w_المحاضرة_الاولي__باثولوجي__PowerPoint.pdf",
+      "pageCount": "سلايدات PowerPoint",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
+      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
+    },
+    {
+      "type": "mindmap",
+      "title": "الخر��طة الذهنية الشاملة - Inflammation 1",
+      "fileSize": "1.2 MB",
+      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657103228-p3ocio_المحاضرة_الاولي__باثولوجي__MindMap.pdf",
+      "pageCount": "خريطة ذهنية عالية الدقة",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
+    }
+  ],
+  "adminNote": "بالتوفيق ليكم يا ابطااااااال"
+}

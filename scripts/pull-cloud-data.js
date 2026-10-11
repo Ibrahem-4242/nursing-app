@@ -61,7 +61,14 @@ const req = https.get(options, (res) => {
             fs.writeFileSync(storePath, JSON.stringify(cloudStore, null, 2), 'utf8');
             fs.writeFileSync(vaultPath, JSON.stringify(cloudStore.lectures, null, 2), 'utf8');
 
-            console.log(`[Prebuild Guard] ✓ Successfully synced and secured ${cloudStore.lectures.length} live lectures!`);
+            // Save isolated lecture files in lectures-data folder
+            const lecturesDir = path.join(process.cwd(), 'lectures-data');
+            if (!fs.existsSync(lecturesDir)) fs.mkdirSync(lecturesDir, { recursive: true });
+            for (const lec of cloudStore.lectures) {
+              fs.writeFileSync(path.join(lecturesDir, `${lec.id}.json`), JSON.stringify(lec, null, 2), 'utf8');
+            }
+
+            console.log(`[Prebuild Guard] ✓ Successfully synced and secured ${cloudStore.lectures.length} live lectures in lectures-data folder!`);
             process.exit(0);
           }
         }

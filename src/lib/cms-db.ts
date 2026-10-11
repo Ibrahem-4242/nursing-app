@@ -245,6 +245,61 @@ function getStoreFilePath(): string {
   }
 }
 
+function saveLectureToFile(lecture: Lecture): void {
+  try {
+    const candidates = [
+      path.join(process.cwd(), 'lectures-data'),
+      path.join('/tmp', 'nursing-lectures-data'),
+    ];
+    for (const dir of candidates) {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const filePath = path.join(dir, `${lecture.id}.json`);
+      fs.writeFileSync(filePath, JSON.stringify(lecture, null, 2), 'utf-8');
+    }
+  } catch (err) {
+    console.warn('[CMS DB] Failed to save lecture to isolated file:', err);
+  }
+}
+
+function removeLectureFile(lectureId: string): void {
+  try {
+    const candidates = [
+      path.join(process.cwd(), 'lectures-data', `${lectureId}.json`),
+      path.join('/tmp', 'nursing-lectures-data', `${lectureId}.json`),
+    ];
+    for (const file of candidates) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+  } catch (err) {
+    console.warn('[CMS DB] Failed to delete lecture isolated file:', err);
+  }
+}
+
+function loadAllLecturesFromFiles(): Lecture[] {
+  const lectures: Lecture[] = [];
+  const candidates = [
+    path.join(process.cwd(), 'lectures-data'),
+    path.join('/tmp', 'nursing-lectures-data'),
+  ];
+  for (const dir of candidates) {
+    try {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            const content = fs.readFileSync(path.join(dir, file), 'utf-8');
+            const lec = JSON.parse(content) as Lecture;
+            if (lec && lec.id && !lectures.some((l) => l.id === lec.id)) {
+              lectures.push(lec);
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+  return lectures;
+}
+
 function initMemoryStore(): CmsStore {
   if (memoryStore) return memoryStore;
 
@@ -300,6 +355,33 @@ function initMemoryStore(): CmsStore {
       }
     }
   } catch {}
+
+  // Also load and merge from isolated lectures-data folder
+  const isolatedLecs = loadAllLecturesFromFiles();
+  if (isolatedLecs.length > 0) {
+    if (!loadedStore) {
+      loadedStore = {
+        announcement: DEFAULT_ANNOUNCEMENT,
+        lectures: isolatedLecs,
+        deletedLectureIds: [],
+        subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
+        subjectQuizzes: {},
+        brokenLinks: [],
+        complaints: [],
+        visitors: [],
+        downloads: [],
+      };
+    } else {
+      const deletedSet = new Set(loadedStore.deletedLectureIds || []);
+      const curIds = new Set(loadedStore.lectures.map((l) => l.id));
+      for (const iso of isolatedLecs) {
+        if (!deletedSet.has(iso.id) && !curIds.has(iso.id)) {
+          loadedStore.lectures.push(iso);
+          curIds.add(iso.id);
+        }
+      }
+    }
+  }
 
   if (loadedStore) {
     memoryStore = loadedStore;
@@ -398,6 +480,9 @@ async function getFreshStore(): Promise<CmsStore> {
 }
 
 function persistStore(store: CmsStore, customToken?: string): void {
+  for (const lec of (store.lectures || [])) {
+    saveLectureToFile(lec);
+  }
   try {
     const candidates = [
       path.join(process.cwd(), 'data', 'cms-store.json'),
@@ -682,6 +767,7 @@ export const CmsService = {
   },
 
   async deleteLecture(id: string, customToken?: string): Promise<boolean> {
+    removeLectureFile(id);
     const store = await getFreshStore();
     if (!store.deletedLectureIds) store.deletedLectureIds = [];
     if (!store.deletedLectureIds.includes(id)) {

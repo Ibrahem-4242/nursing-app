@@ -1,0 +1,404 @@
+{
+  "id": "lec-1791657855705",
+  "subjectId": "pathology",
+  "yearId": "1",
+  "subjectTitle": "علم الأمراض (باثولوجي)",
+  "yearTitle": "السنة الأولى",
+  "slug": "lec-1791657855705",
+  "lectureNumber": 2,
+  "title": "Inflammation 2",
+  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (باثولوجي)",
+  "isFree": true,
+  "price": 0,
+  "viewCount": 1,
+  "readingMinutes": 10,
+  "threeDModelType": "heart",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
+  "concepts": [],
+  "terminology": [],
+  "interventions": [],
+  "clinicalPearls": [],
+  "flashcards": [
+    {
+      "id": 1,
+      "front": "How is catarrhal inflammation (التهاب مخاط��) defined?",
+      "back": "It is a mild acute non-suppurative inflammation of mucous membranes resulting in an exudate rich in mucus.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
+    },
+    {
+      "id": 2,
+      "front": "What are three anatomical structures commonly affected by catarrhal inflammation (التهاب مخاطي)?",
+      "back": "The nose, larynx, and trachea are commonly affected.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
+    },
+    {
+      "id": 3,
+      "front": "What five types comprise acute non-suppurative inflammation (التهاب حاد غير صديدي)?",
+      "back": "The types are catarrhal, fibrinous, membranous, allergic, and necrotizing/hemorrhagic inflammation.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
+    },
+    {
+      "id": 4,
+      "front": "What is an abscess (خراج)?",
+      "back": "An abscess is a localized acute suppurative inflammation characterized by liquefactive necrosis.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 5,
+      "front": "What mechanism causes tissue destruction during abscess (خراج) formation?",
+      "back": "Bacterial enzymes and toxins induce liquefactive necrosis of the surrounding tissue.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 6,
+      "front": "How is an abscess cavity locally walled off from surrounding healthy tissue?",
+      "back": "It is localized by a meshwork of fibrin threads.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 7,
+      "front": "What is the pyogenic membrane (الغشاء المولد للصديد) of an abscess?",
+      "back": "It is the peripheral boundary zone of an abscess cavity containing congested blood vessels, bacteria, neutrophils, and fibrin threads.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 8,
+      "front": "Which inflammatory cell predominates within the pyogenic membrane (الغشاء المولد للصديد)?",
+      "back": "Neutrophils (خلايا العدلات) predominate within the membrane.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 9,
+      "front": "Which leukocyte type is the primary cell involved in suppurative inflammation (التهاب صديدي)?",
+      "back": "Neutrophils (الخلايا المتعادلة) are the primary cells involved.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 10,
+      "front": "What are the core components that make up pus (الصديد)?",
+      "back": "Pus consists of fluid exudate containing dead and living bacteria, dead and living neutrophils, and necrotic tissue debris.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 11,
+      "front": "What is a boil or furuncle (دمل)?",
+      "back": "It is a small, localized acute suppurative inflammation affecting a single hair follicle and its associated sebaceous gland.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 12,
+      "front": "What is a carbuncle (الجمرة / الخراج العنقودي)?",
+      "back": "It is a large suppurative lesion formed by multiple communicating abscess cavities in the subcutaneous tissue.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 13,
+      "front": "Which patient group is particularly prone to developing a carbuncle (الجمرة)?",
+      "back": "Diabetic patients (مرضى السكري) are particularly susceptible due to lowered resistance to infection.",
+      "category": "كروت استذكا��",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 14,
+      "front": "Why does a carbuncle (الجمرة) typically develop in areas like the back of the neck, scalp, and buttocks?",
+      "back": "The subcutaneous tissue in these regions is tough and divided into compartments by dense fibrous septa.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 15,
+      "front": "How does pus drain onto the skin surface in a carbuncle (الجمرة)?",
+      "back": "It discharges through multiple separate openings in the skin.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 16,
+      "front": "What is the definitive surgical treatment for a localized abscess (خراج)?",
+      "back": "Surgical excision with total removal of the abscess cavity and its pyogenic membrane.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي و��لقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 17,
+      "front": "Why must the pyogenic membrane (الغشاء المولد للصديد) be excised during abscess surgery?",
+      "back": "Removal prevents infection persistence, chronic abscess formation, and local recurrence.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 18,
+      "front": "What path of localized spread can occur as a complication of an abscess (خراج)?",
+      "back": "Inflammation can spread along lymphatic channels to regional lymph nodes.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 19,
+      "front": "What skin and tissue destruction complications can arise from an untreated abscess (خراج)?",
+      "back": "It can lead to the formation of an ulcer, sinus, or fistula.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي و��لقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 20,
+      "front": "What systemic circulatory complications can originate from an abscess (خراج)?",
+      "back": "It can cause bacteremia, septicemia, sepsis, and pyemia.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 21,
+      "front": "What is an ulcer (قرحة)?",
+      "back": "An ulcer is a local defect or breach in the surface of an organ or tissue produced by the sloughing of inflammatory necrotic tissue.",
+      "category": "كروت اس��ذكار",
+      "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
+    },
+    {
+      "id": 22,
+      "front": "What is a sinus (جيب صديدي)?",
+      "back": "A sinus is a blind track lined by infected granulation tissue that connects an internal abscess cavity to an outer surface.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 23,
+      "front": "What structural feature defines the inner termination of a sinus (جيب صد��دي)?",
+      "back": "It has a single closed, blind end within the tissue.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 24,
+      "front": "What is a fistula (ناصور)?",
+      "back": "A fistula is an abnormal track lined by infected granulation tissue connecting an abscess cavity to another hollow organ cavity or the exterior.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
+    },
+    {
+      "id": 25,
+      "front": "How do a sinus (جيب صديدي) and a fistula (ناصور) structurally differ?",
+      "back": "A sinus has one open end with a blind tract, whereas a fistula has two open ends connecting two surfaces or cavities.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 26,
+      "front": "What type of tissue lines the tracks of both sinuses (جيوب صديد��ة) and fistulas (نواصير)?",
+      "back": "Infected granulation tissue (نسيج حبيبي مخموج) lines these tracks.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 27,
+      "front": "What is bacteremia (تجرثم الدم)?",
+      "back": "It is the transient presence of bacteria within the bloodstream as a severe complication of infection.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 28,
+      "front": "What is septicemia (تسمم الدم البكتيري)?",
+      "back": "It is the presence of large amounts of rapidly multiplying, virulent bacteria in the bloodstream that may trigger systemic collapse.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 29,
+      "front": "How does septicemia (تسمم الدم البكتيري) differ from simple bacteremia (تجرثم الدم)?",
+      "back": "Septicemia involves active bacterial multiplication and high virulence in blood causing clinical illness, whereas bacteremia refers strictly to bacterial presence.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 30,
+      "front": "What is sepsis (الإنتان)?",
+      "back": "Sepsis is a life-threatening systemic organ dysfunction caused by a dysregulated host response to infection.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 31,
+      "front": "What directly causes host tissue damage during sepsis (الإنتان)?",
+      "back": "Damage is caused by the host's own uncontrolled inflammatory immune response injuring its organs.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 32,
+      "front": "What is pyemia (قيام الدم / قيح الدم)?",
+      "back": "Pyemia is a specialized form of sepsis characterized by circulation of pyemic emboli causing multiple metastatic abscesses in various organs.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 33,
+      "front": "Which bacterial species is the most frequent cause of pyemia (قيام الدم)?",
+      "back": "Staphylococcus aureus (البكتيريا العنقودية الذهبية) is the predominant causative organism.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 34,
+      "front": "In systemic pyemia (قيام الدم الجهازي), which organ is most frequently affected by metastatic abscesses?",
+      "back": "The lungs (الرئتان) are the primary organ affected.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 35,
+      "front": "In portal pyemia (قيام الدم البابي), which organ receives the septic emboli and develops abscesses?",
+      "back": "The liver (الكبد) is the primary organ affected.",
+      "category": "كروت اس��ذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 36,
+      "front": "Through which vascular route do septic emboli travel to cause portal pyemia (قيام الدم البابي)?",
+      "back": "They travel through the portal venous system (الوريد البابي).",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 37,
+      "front": "Through which vascular route do septic emboli travel in systemic pyemia (قيام الدم الجهازي)?",
+      "back": "They travel through the systemic venous circulation returning to the right side of the heart and entering pulmonary capillaries.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
+    },
+    {
+      "id": 38,
+      "front": "What characterizes fibrinous inflammation (التهاب ليفينى)?",
+      "back": "It is an acute non-suppurative inflammation where large vascular leaks allow fibrinogen to enter tissue and precipitate as dense fibrin threads.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
+    },
+    {
+      "id": 39,
+      "front": "What characterizes membranous inflammation (التهاب غشائي / كاذب)?",
+      "back": "It is an acute inflammation of mucous membranes forming a coherent false membrane made of fibrin, necrotic cells, and leukocytes over eroded epithelium.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 40,
+      "front": "What characterizes allergic inflammation (التهاب تحسسي)?",
+      "back": "It is an acute non-suppurative inflammatory response initiated by immune hypersensitivity reactions.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 41,
+      "front": "Which white blood cell type accumulates heavily in allergic inflammation (التهاب تحسسي)?",
+      "back": "Eosinophils (الخلايا الحمضية) accumulate prominently in allergic inflammation.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 42,
+      "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نزفي)?",
+      "back": "It is a severe inflammatory response marked by extensive tissue necrosis and widespread vascular destruction causing hemorrhage.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
+    },
+    {
+      "id": 43,
+      "front": "What is cellulitis (التهاب الخلوي / التهاب صديدي منتشر)?",
+      "back": "Cellulitis is a diffuse, rapidly spreading acute suppurative inflammation of connective tissue and tissue spaces.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 44,
+      "front": "Why does cellulitis (التهاب خلوي) spread diffusely rather than localizing like an abscess?",
+      "back": "Bacteria produce spreading enzymes like hyaluronidase and fibrinolysins that break down intercellular matrix and prevent fibrin localization.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 45,
+      "front": "How do abscesses (خراج) and cellulitis (التهاب خلوي) compare regarding localization?",
+      "back": "Abscesses are circumscribed and localized by fibrin, whereas cellulitis is diffuse and unlocalized.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب الصديدي وال��ح (Suppurative Inflammation & Pus)"
+    },
+    {
+      "id": 46,
+      "front": "What defines chronic inflammation (التهاب مزمن)?",
+      "back": "It is a prolonged inflammatory reaction lasting weeks to years where tissue destruction, mononuclear cell infiltration, and repair attempts occur simultaneously.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+    },
+    {
+      "id": 47,
+      "front": "What is a granuloma (ورم حبيبي)?",
+      "back": "A granuloma is a focal microscopic aggregation of transformed activated macrophages (epitheloid cells) surrounded by lymphocytes and plasma cells.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+    },
+    {
+      "id": 48,
+      "front": "What cell type undergoes transformation to form epithelioid cells in a granuloma (ورم حبيبي)?",
+      "back": "Macrophages (الخلايا البلعمية) transform into epithelioid cells.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+    },
+    {
+      "id": 49,
+      "front": "Which mononuclear cell types form the peripheral rim of a granuloma (ورم حبيبي)?",
+      "back": "Lymphocytes (خلايا لمفاوية) and plasma cells (خلايا بلازمية) form the peripheral rim.",
+      "category": "كروت استذكار",
+      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+    },
+    {
+      "id": 50,
+      "front": "What constitutes a chronic abscess (��راج مزمن)?",
+      "back": "It is an abscess surrounded by a thick, dense fibrous wall formed due to long-standing unhealed suppurative inflammation.",
+      "category": "كروت است��كار",
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+    }
+  ],
+  "quiz": [],
+  "files": [
+    {
+      "type": "pdf",
+      "title": "Inflammation 2",
+      "fileSize": "رابط سحابي 🌐",
+      "downloadUrl": "https://drive.google.com/file/d/1o3PxtHmLeqyov4DHFTRZCVQAi163Buqy/view?usp=sharing",
+      "pageCount": "ملف PDF معتمد",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
+      "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+    },
+    {
+      "type": "ppt",
+      "title": "عروض بوربوينت - Inflammation 2",
+      "fileSize": "1.8 MB",
+      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657853103-hyadk2_المحاضرة_الثانية_باثولوجي_PowerPoint.pdf",
+      "pageCount": "سلايدات PowerPoint",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:��٤ م",
+      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
+    },
+    {
+      "type": "mindmap",
+      "title": "ال��ريطة الذهنية الشاملة - Inflammation 2",
+      "fileSize": "1.1 MB",
+      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
+      "pageCount": "خريطة ذهنية عالية الدقة",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
+    }
+  ],
+  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
+}
