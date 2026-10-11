@@ -16,6 +16,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 interface CmsStore {
   announcement: AnnouncementConfig;
   lectures: Lecture[];
+  deletedLectureIds?: string[];
   subjects?: Subject[];
   subjectQuizzes?: Record<string, SubjectQuizFile>;
   brokenLinks: BrokenLinkReport[];
@@ -79,9 +80,26 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
       const gist = await res.json();
       const file = gist.files?.['cms-store.json'];
       if (file && file.content) {
-        const parsed = JSON.parse(file.content);
+        const parsed = JSON.parse(file.content) as CmsStore;
         if (parsed && Array.isArray(parsed.lectures)) {
-          return parsed as CmsStore;
+          // Check if vault has additional lectures
+          const vaultFile = gist.files?.['lectures-vault.json'];
+          if (vaultFile && vaultFile.content) {
+            try {
+              const vaultLecs = JSON.parse(vaultFile.content) as Lecture[];
+              if (Array.isArray(vaultLecs)) {
+                const deletedSet = new Set(parsed.deletedLectureIds || []);
+                const curIds = new Set(parsed.lectures.map((l) => l.id));
+                for (const vL of vaultLecs) {
+                  if (!deletedSet.has(vL.id) && !curIds.has(vL.id)) {
+                    parsed.lectures.push(vL);
+                    curIds.add(vL.id);
+                  }
+                }
+              }
+            } catch {}
+          }
+          return parsed;
         }
       }
     }
@@ -121,22 +139,63 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
     return false;
   }
 
-  // 🛡️ CRITICAL ANTI-WIPE SAFEGUARD:
-  // If in-memory store has 0 lectures, verify against existing cloud database.
-  // Never allow cold starts or empty objects to accidentally erase existing lectures!
-  if (!store.lectures || store.lectures.length === 0) {
-    try {
-      const existing = await syncFromCloud(customToken);
-      if (existing && existing.lectures && existing.lectures.length > 0) {
-        console.warn(
-          `[CMS DB Safeguard] Blocked wiping cloud database (${existing.lectures.length} lectures preserved)!`
-        );
-        store.lectures = existing.lectures;
+  // 🛡️ CRITICAL INDESTRUCTIBLE MERGE SAFEGUARD:
+  // Never allow any deployment, script, or cold-start to erase existing lectures.
+  try {
+    const existing = await syncFromCloud(customToken);
+    if (existing && Array.isArray(existing.lectures)) {
+      const allDeleted = new Set<string>();
+      (store.deletedLectureIds || []).forEach((id) => allDeleted.add(id));
+      (existing.deletedLectureIds || []).forEach((id) => allDeleted.add(id));
+      store.deletedLectureIds = Array.from(allDeleted);
+
+      // Map existing lectures by ID
+      const lectureMap = new Map<string, Lecture>();
+
+      // 1. Existing cloud lectures (if not explicitly deleted)
+      for (const lec of existing.lectures) {
+        if (!allDeleted.has(lec.id)) {
+          lectureMap.set(lec.id, lec);
+        }
       }
-    } catch (safeErr) {
-      console.warn('[CMS DB Safeguard] Pre-check error:', safeErr);
+
+      // 2. Incoming store lectures (take precedence / newer updates)
+      for (const lec of (store.lectures || [])) {
+        if (!allDeleted.has(lec.id)) {
+          lectureMap.set(lec.id, lec);
+        }
+      }
+
+      store.lectures = Array.from(lectureMap.values());
     }
+  } catch (safeErr) {
+    console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
   }
+
+  // Also verify against local immutable vault file so nothing ever slips through
+  try {
+    const vaultPath = path.join(process.cwd(), 'data', 'lectures-vault.json');
+    if (fs.existsSync(vaultPath)) {
+      const vaultContent = fs.readFileSync(vaultPath, 'utf-8');
+      const vaultLectures = JSON.parse(vaultContent) as Lecture[];
+      if (Array.isArray(vaultLectures)) {
+        const deletedSet = new Set(store.deletedLectureIds || []);
+        const currentIds = new Set((store.lectures || []).map((l) => l.id));
+        for (const vLec of vaultLectures) {
+          if (!deletedSet.has(vLec.id) && !currentIds.has(vLec.id)) {
+            store.lectures.push(vLec);
+            currentIds.add(vLec.id);
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // Update local vault file synchronously
+  try {
+    const vaultPath = path.join(process.cwd(), 'data', 'lectures-vault.json');
+    fs.writeFileSync(vaultPath, JSON.stringify(store.lectures, null, 2), 'utf-8');
+  } catch {}
 
   try {
     const res = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -147,10 +206,13 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        description: `Nursing Study Hub CMS Store - Protected (${store.lectures.length} lectures) at ${new Date().toISOString()}`,
+        description: `Nursing Study Hub CMS Store & Vault - Protected (${store.lectures.length} lectures) at ${new Date().toISOString()}`,
         files: {
           'cms-store.json': {
             content: JSON.stringify(store, null, 2),
+          },
+          'lectures-vault.json': {
+            content: JSON.stringify(store.lectures, null, 2),
           },
         },
       }),
@@ -188,6 +250,9 @@ function initMemoryStore(): CmsStore {
 
   const tmpPath = getStoreFilePath();
   const rootDataPath = path.join(process.cwd(), 'data', 'cms-store.json');
+  const vaultPath = path.join(process.cwd(), 'data', 'lectures-vault.json');
+
+  let loadedStore: CmsStore | null = null;
 
   for (const candidate of [rootDataPath, tmpPath]) {
     try {
@@ -195,8 +260,8 @@ function initMemoryStore(): CmsStore {
         const content = fs.readFileSync(candidate, 'utf-8');
         const parsed = JSON.parse(content) as CmsStore;
         if (parsed && Array.isArray(parsed.lectures) && parsed.lectures.length > 0) {
-          memoryStore = parsed;
-          return memoryStore;
+          loadedStore = parsed;
+          break;
         }
       }
     } catch (err) {
@@ -204,10 +269,48 @@ function initMemoryStore(): CmsStore {
     }
   }
 
+  // Also check if vault has any lectures not present in loadedStore
+  try {
+    if (fs.existsSync(vaultPath)) {
+      const vContent = fs.readFileSync(vaultPath, 'utf-8');
+      const vLecs = JSON.parse(vContent) as Lecture[];
+      if (Array.isArray(vLecs) && vLecs.length > 0) {
+        if (!loadedStore) {
+          loadedStore = {
+            announcement: DEFAULT_ANNOUNCEMENT,
+            lectures: vLecs,
+            deletedLectureIds: [],
+            subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
+            subjectQuizzes: {},
+            brokenLinks: [],
+            complaints: [],
+            visitors: [],
+            downloads: [],
+          };
+        } else {
+          const deletedSet = new Set(loadedStore.deletedLectureIds || []);
+          const curIds = new Set(loadedStore.lectures.map((l) => l.id));
+          for (const vl of vLecs) {
+            if (!deletedSet.has(vl.id) && !curIds.has(vl.id)) {
+              loadedStore.lectures.push(vl);
+              curIds.add(vl.id);
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  if (loadedStore) {
+    memoryStore = loadedStore;
+    return memoryStore;
+  }
+
   // Pure clean store with curriculum subjects (fundamentals excluded)
   memoryStore = {
     announcement: DEFAULT_ANNOUNCEMENT,
     lectures: [],
+    deletedLectureIds: [],
     subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
     subjectQuizzes: {},
     brokenLinks: [],
@@ -216,16 +319,37 @@ function initMemoryStore(): CmsStore {
     downloads: [],
   };
 
-  // NOTE: Strictly NEVER call persistStore or syncToCloud here!
   return memoryStore;
 }
 
 async function getFreshStore(): Promise<CmsStore> {
   const cloudStore = await syncFromCloud();
+  const store = initMemoryStore();
+
   if (cloudStore && Array.isArray(cloudStore.lectures)) {
-    const store = initMemoryStore();
     store.announcement = cloudStore.announcement || store.announcement;
-    store.lectures = cloudStore.lectures;
+
+    // Merge deleted lecture IDs
+    const deletedSet = new Set<string>();
+    (store.deletedLectureIds || []).forEach((id) => deletedSet.add(id));
+    (cloudStore.deletedLectureIds || []).forEach((id) => deletedSet.add(id));
+    store.deletedLectureIds = Array.from(deletedSet);
+
+    // Merge lectures safely between cloud and local
+    const merged = new Map<string, Lecture>();
+
+    // 1. First add from memory / local store (if not deleted)
+    for (const l of (store.lectures || [])) {
+      if (!deletedSet.has(l.id)) merged.set(l.id, l);
+    }
+
+    // 2. Cloud store takes precedence / newer updates (if not deleted)
+    for (const l of (cloudStore.lectures || [])) {
+      if (!deletedSet.has(l.id)) merged.set(l.id, l);
+    }
+
+    store.lectures = Array.from(merged.values());
+
     if (cloudStore.subjects && Array.isArray(cloudStore.subjects)) {
       store.subjects = cloudStore.subjects.filter((s: any) => s.id !== 'fundamentals');
     } else if (!store.subjects || store.subjects.length === 0) {
@@ -254,34 +378,45 @@ async function getFreshStore(): Promise<CmsStore> {
     try {
       const candidates = [
         path.join(process.cwd(), 'data', 'cms-store.json'),
+        path.join(process.cwd(), 'data', 'lectures-vault.json'),
         getStoreFilePath(),
       ];
       for (const p of candidates) {
         const d = path.dirname(p);
         if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+        if (p.includes('lectures-vault.json')) {
+          fs.writeFileSync(p, JSON.stringify(store.lectures, null, 2), 'utf-8');
+        } else {
+          fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+        }
       }
     } catch {}
 
     return memoryStore;
   }
-  return initMemoryStore();
+  return store;
 }
 
 function persistStore(store: CmsStore, customToken?: string): void {
   try {
     const candidates = [
       path.join(process.cwd(), 'data', 'cms-store.json'),
+      path.join(process.cwd(), 'data', 'lectures-vault.json'),
       getStoreFilePath(),
     ];
     for (const p of candidates) {
       const d = path.dirname(p);
       if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-      fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+      if (p.includes('lectures-vault.json')) {
+        fs.writeFileSync(p, JSON.stringify(store.lectures, null, 2), 'utf-8');
+      } else {
+        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+      }
     }
   } catch (err) {
     try {
       fs.writeFileSync(path.join('/tmp', 'nursing-cms-store.json'), JSON.stringify(store, null, 2), 'utf-8');
+      fs.writeFileSync(path.join('/tmp', 'nursing-lectures-vault.json'), JSON.stringify(store.lectures, null, 2), 'utf-8');
     } catch {
       console.warn('[CMS DB] Persistence to disk skipped, kept in memory store.');
     }
@@ -503,6 +638,9 @@ export const CmsService = {
 
   async addOrUpdateLecture(lecture: Lecture, customToken?: string): Promise<Lecture> {
     const store = await getFreshStore();
+    if (store.deletedLectureIds) {
+      store.deletedLectureIds = store.deletedLectureIds.filter((id) => id !== lecture.id);
+    }
     const existingIndex = store.lectures.findIndex((l) => l.id === lecture.id);
 
     if (existingIndex >= 0) {
@@ -545,12 +683,14 @@ export const CmsService = {
 
   async deleteLecture(id: string, customToken?: string): Promise<boolean> {
     const store = await getFreshStore();
+    if (!store.deletedLectureIds) store.deletedLectureIds = [];
+    if (!store.deletedLectureIds.includes(id)) {
+      store.deletedLectureIds.push(id);
+    }
     const initialLen = store.lectures.length;
     store.lectures = store.lectures.filter((l) => l.id !== id);
-    if (store.lectures.length !== initialLen) {
-      persistStore(store, customToken);
-      await syncToCloud(store, customToken);
-    }
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
 
     if (isSupabaseConfigured) {
       const supabase = getSupabase();

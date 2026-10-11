@@ -325,9 +325,20 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success && data.lectures) {
         setLectures(data.lectures);
+        if (typeof window !== 'undefined' && data.lectures.length > 0) {
+          localStorage.setItem('nursing_lectures_backup', JSON.stringify(data.lectures));
+        }
       }
     } catch (e) {
       console.warn('Failed to load lectures:', e);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('nursing_lectures_backup');
+        if (saved) {
+          try {
+            setLectures(JSON.parse(saved));
+          } catch {}
+        }
+      }
     } finally {
       setIsLoadingLectures(false);
     }
