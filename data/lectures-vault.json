@@ -14,7 +14,7 @@
     "viewCount": 1,
     "readingMinutes": 10,
     "threeDModelType": "heart",
-    "overview": "علم التشريح (Anatomy) هو حجر الأساس لكل العلوم ال��بية وبدون فهمه يستحيل تشخيص الأمراض أو علاجها بدقة.\r\nتكمن أهمية هذا العلم في أنه يمنحك الخريطة الكاملة لجسد الإنسان لتفهم كيف ترتبط الأعضاء ببعضها ووظائفها.\r\nولأن الجسم ثلاثي الأبعاد، فإن أهم ما يميزه هو المصطلحات الاتجاهية (Directional Terms) التي توحد لغة الأطباء عالمياً.\r\nتساعدنا هذه الاتجاهات في تحديد موقع أي إصابة أو مرض بدقة متناهية داخل الجسم لمنع الأخطاء الطبية.\r\nفعندما نستخدم مصطلح Superior (علوي) و Inferior (سفلي) نحدد ما إذا كان العضو يقع في الأعلى أو الأسفل.\r\nومصطلحات مثل Anterior (أمامي) و Posterior (خلفي) تصف بدقة ما إذا كان الشيء في واجهة الجسم أو ظهره.\r\nبينما يوضح مصطلحا Medial (إنسي) و Lateral (وحشي) مدى قرب العضو أو بعده عن الخط المنصف لجسد الإنسان.\r\nأما في الأطراف، فنعتمد على Proximal (داني) و Distal (قاصي) لمعرفة القرب والبعد عن نقطة اتصال الطرف بالجذع.\r\nكما ن��تخدم Superficial (سطحي) و Deep (عميق) للتفريق بين الأنسجة القريبة من الجلد وتلك الغائرة في الداخل.\r\nباختصار، اتجاهات التشريح هي الـ GPS الطبي الذي يقود الجراح والمشخص للوصول إلى هدفهم بأمان وبأعلى دقة ممكنة",
+    "overview": "علم التشريح (Anatomy) هو حجر الأساس لكل العلوم ال��بية وبدون فهمه يستحيل تشخيص الأمراض أو علاجها بدقة.\r\nتكمن أهمية هذا العلم في أنه يمنحك الخريطة الكاملة لجسد الإنسان لتفهم كيف ترتبط الأعضاء ببعضها ووظائفها.\r\nولأن الجسم ثلاثي الأبعاد، فإن أهم ما يميزه هو المصطلحات الاتجاهية (Directional Terms) التي توحد لغة الأطباء عالمياً.\r\nتساعدنا هذه الاتجاهات في تحديد موقع أي إصابة أو مرض بدقة متناهية داخل الجسم لمنع الأخطاء الطبية.\r\nفعندما نستخدم مصطلح Superior (علوي) و Inferior (سفلي) نحدد ما إذا كان العضو يقع في الأعلى أو الأسفل.\r\nومصطلحات مثل Anterior (أمامي) و Posterior (خلفي) تصف بدقة ما إذا كان الشيء في واجهة الجسم أو ظهره.\r\nبينما يوضح مصطلحا Medial (إنسي) و Lateral (وحشي) مدى قرب العضو أو بعده عن الخط المنصف لجسد الإنسان.\r\nأما في الأطراف، فنعتمد على Proximal (داني) و Distal (قاصي) لمعرفة القرب والبعد عن نقطة اتصال الطرف بالجذع.\r\nكما ن��تخدم Superficial (سطح��) و Deep (عميق) للتفريق بين الأنسجة القريبة من الجلد وتلك الغائرة في الداخل.\r\nباختصار، اتجاهات التشريح هي الـ GPS الطبي الذي يقود الجراح والمشخص للوصول إلى هدفهم بأمان وبأعلى دقة ممكنة",
     "concepts": [],
     "terminology": [],
     "interventions": [],
@@ -51,7 +51,7 @@
       {
         "id": 5,
         "front": "صف كي��ية وضع المريض في وضع بضع المثانة (Lithotomy Position).",
-        "back": "يستلقي ��لمريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
+        "back": "يستلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
         "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
       },
@@ -107,7 +107,7 @@
       {
         "id": 13,
         "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير الشعاعي (Radiology)؟",
-        "back": "تساعد في ا��تغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
+        "back": "تسا��د في التغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
         "category": "كروت استذكار",
         "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
       },
@@ -226,7 +226,7 @@
       {
         "id": 30,
         "front": "ما هو التعريف التشريحي للمصطلح سطحي (Superficial)؟",
-        "back": "يشير إلى التركيب الأقرب إلى الجلد (Nearer to the skin) أو الحركة المتجهة نحو ا��جلد.",
+        "back": "يشير إلى التركيب الأقرب إلى الجلد (Nearer to the skin) أو الحركة المتجه�� نحو الجلد.",
         "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
       },
@@ -319,7 +319,7 @@
         "front": "إذا تحركت شحنة عصبية أو تدفق دموي باتجاه الرأس (Towards the head)، فما هو الاتجاه التشريحي لهذه الحركة؟",
         "back": "تعتبر حركة علوية / قحفية (Superior / Cranial movement).",
         "category": "كروت استذكار",
-        "clinicalPearl": "الجهاز العصبي (Nervous System)"
+        "clinicalPearl": "الج��از العصبي (Nervous System)"
       },
       {
         "id": 44,
@@ -339,7 +339,7 @@
         "id": 46,
         "front": "إذا ابتعدت الإشارة العصبية أو مجرى الدم عن السرة والحلمتين باتجاه الظهر، فماذا تسمى هذه الحركة؟",
         "back": "تعتبر حركة خلفية / ظهرية (Posterior / Dorsal movement).",
-        "category": "كروت استذكار",
+        "category": "كروت استذ��ار",
         "clinicalPearl": "الجهاز العصبي (Nervous System)"
       },
       {
@@ -379,7 +379,7 @@
       },
       {
         "id": 52,
-        "front": "ما هي الرؤية التي توفرها المستويات الإ��ليلية (Coronal planes) أثناء الفحص الشعاعي؟",
+        "front": "ما هي الرؤية التي توفرها المستويات الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
         "back": "تسمى أيضاً بالرؤية الجبهية (Frontal view) حيث تُفحص المنطقة كشرائح من الأمام نحو الخلف.",
         "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -396,7 +396,7 @@
         "front": "من خلال المحاور الظاهرة في الشكل، ما هو المحور الممتد بين Cranial و Caudal؟",
         "back": "هو المحور الرأسي العمودي الذي يربط الاتجاه العلوي والقحفي (Cranial) بالاتجاه السفلي والذنبي (Caudal).",
         "category": "كروت استذكار",
-        "clinicalPearl": "الت��ريح العام (General Anatomy)"
+        "clinicalPearl": "التشريح العام (General Anatomy)"
       },
       {
         "id": 55,
@@ -415,7 +415,7 @@
       {
         "id": 57,
         "front": "ما هو المصطلحان المقابلان لـ Ventral و Dorsal؟",
-        "back": "• Ventral = أ��امي (Anterior)\n• Dorsal = خلفي (Posterior)",
+        "back": "• Ventral = أمامي (Anterior)\n• Dorsal = خلفي (Posterior)",
         "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
       },
@@ -457,7 +457,7 @@
       {
         "id": 63,
         "front": "أكمل الفراغ: يُسمى المستوى الذي يمر شاقولياً بمنتصف الجسم تماماً بـ _____ بينما المستويات الموازية له تُسمى بـ _____.",
-        "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جنيبة ال��همية (Parasagittal planes).",
+        "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جنيبة السهمية (Parasagittal planes).",
         "category": "كروت استذكار",
         "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
       },
@@ -484,7 +484,7 @@
       },
       {
         "id": 67,
-        "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين أفراد الفريق الطبي؟",
+        "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين ��فراد الفريق الطبي؟",
         "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن موقع كل فرد في الفريق.",
         "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -501,7 +501,7 @@
         "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
         "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
         "category": "كروت استذكار",
-        "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
+        "clinicalPearl": "الجه��ز الدوري والقلب (Cardiovascular System)"
       },
       {
         "id": 70,
@@ -514,7 +514,7 @@
         "id": 71,
         "front": "ما المعيار التشريحي للتمييز بين المفاهيم: Proximal و Distal؟",
         "back": "المعيار هو مدى القرب أو الابتعاد عن الجذع (Trunk: Thorax + Abdomen) أو القلب.",
-        "category": "كروت استذك��ر",
+        "category": "كروت استذكار",
         "clinicalPearl": "التشريح العام (General Anatomy)"
       },
       {
@@ -625,7 +625,7 @@
         "front": "مما يتكون الدم بشكل رئيسي؟",
         "back": "يتكون الدم من جزأين رئيسيين:\n1. البلازما (Plasma): الجزء السائل من الدم.\n2. المكونات الخلوية (Cellular components / Formed elements): وتشمل خلايا الدم الحمراء، خلايا الدم البيضاء، والصفائح الدموية.",
         "category": "كروت استذكار",
-        "clinicalPearl": "فسيول����يا الدم (Blood Physiology)"
+        "clinicalPearl": "فسيول��جيا الدم (Blood Physiology)"
       },
       {
         "id": 2,
@@ -644,7 +644,7 @@
       {
         "id": 4,
         "front": "ما هي المواد غير العضوية (Inorganic substances) الموجودة في البلازما وما نسبتها؟",
-        "back": "تشكل المواد ��ير العضوية حوالي $0.9\\%$ من البلازما، وأهمها كلوريد الصوديوم ($NaCl$) وبكربونات الصوديوم ($HCO_3$).",
+        "back": "تشكل المواد غير العضوية حوالي $0.9\\%$ من البلازما، وأهمها كلوريد الصوديوم ($NaCl$) وبكربونات الصوديوم ($HCO_3$).",
         "category": "كروت استذكار",
         "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
       },
@@ -734,7 +734,7 @@
       },
       {
         "id": 17,
-        "front": "ما هو الضغط الأسموزي للبلازما و���� الفرق بين الضغط البلوراني (Crystalloid) والغطرواني (Colloids)؟",
+        "front": "ما هو الضغط الأسموزي للبلازما وم�� الفرق بين الضغط البلوراني (Crystalloid) والغطرواني (Colloids)؟",
         "back": "- الضغط الأسموزي الكلي: $290 \\text{ mOsmol}$.\n- ضغط الكريستالاويد (Crystalloid os.pr): $5000 \\text{ mmHg}$ (ناتج عن الأملاح الذائبة).\n- الضغط الغرواني/الغطرواني (Colloid os.pr): $25 \\text{ mmHg}$ (ناتج عن بروتينات البلازما).",
         "category": "كروت استذكار",
         "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -770,7 +770,7 @@
       {
         "id": 22,
         "front": "ما هو الوزن الجزيئي لبروتين الجلوبيولين (Globulin) وما هي أنواعه؟",
-        "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنواع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
+        "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنو��ع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
         "category": "كروت استذكار",
         "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
       },
@@ -818,7 +818,7 @@
       },
       {
         "id": 29,
-        "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى؟",
+        "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى��",
         "back": "لأن ارتباط المواد (مثل الهرمونات، $Fe^{++}, Cu, Ca$, الفيتامينات) ببروتينات البلازما يمنع فقدانها السريع ونفاذها عبر البول في الكلى.",
         "category": "كروت استذكار",
         "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -841,13 +841,13 @@
         "id": 32,
         "front": "ما هي أماكن تصنيع الدم (Hemopoiesis sites) في المراحل العمرية المختلفة (الجنين، الطفل، البالغ)؟",
         "back": "- الجنين (Fetus): الكبد والطحال (Liver & Spleen).\n- الرضيع/الطفل (Baby): نخاع العظام في جميع العظام.\n- البالغ (Adult): نخاع العظام للعظام المسطحة (Skull, Iliac bones, Sternum, Ribs).",
-        "category": "كروت ��ست��كار",
+        "category": "كروت است��كار",
         "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
       },
       {
         "id": 33,
         "front": "ما المقصود بتكون الدم خارج النخاع (Extramedullary erythropoiesis) ومقتا يحدث؟",
-        "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد لخلايا الدم.",
+        "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد ��خلايا الدم.",
         "category": "كروت استذكار",
         "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
       },
@@ -861,7 +861,7 @@
       {
         "id": 35,
         "front": "ما هو المحفز الرئيسي لفرز هرمون الإريثروبويتين (EPO)؟",
-        "back": "نق�� الأكسجين في الأنسجة (Hypoxia).",
+        "back": "نقص الأكسجين في الأنسجة (Hypoxia).",
         "category": "كروت استذكار",
         "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
       },
@@ -883,7 +883,7 @@
         "id": 38,
         "front": "مما يتكون جزيء ال��يموجلوبين (Hemoglobin)؟",
         "back": "يتكون من:\n- بروتوبورفيرين (Protoporphyrin) يحتوي على الحديد في الحالة حديدوزية ($Fe^{++}$).\n- جلوبين (Globin) يتكون من زوجين من السلاسل الببتيدية.",
-        "category": "كروت استذكار",
+        "category": "ك��وت استذكار",
         "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
       },
       {
@@ -895,7 +895,7 @@
       },
       {
         "id": 40,
-        "front": "ما هي الصورة التي يخزن بها الحديد ا��متاح في الجسم وأين يخزن؟",
+        "front": "ما هي الصورة التي يخزن بها الحديد المتاح في الجسم وأين يخزن؟",
         "back": "يخزن على شكل فيريتين (Ferritin) في الكبد والطحال ونخاع العظام.",
         "category": "كروت استذكار",
         "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
@@ -916,7 +916,7 @@
       },
       {
         "id": 43,
-        "front": "م�� نوع ��لأنيميا الناتج عن نقص فيتامين B12 أو حمض الفوليك؟",
+        "front": "ما نوع ��لأنيميا الناتج عن نقص فيتامين B12 أو حمض الفوليك؟",
         "back": "أنيميا خلايا الدم العملاقة (Megaloblastic Anemia) الناتجة عن فشل النضج (Maturation failure).",
         "category": "كروت استذكار",
         "clinicalPearl": "أنواع الأنيميا والعوامل (Anemia & Factors)"
@@ -931,7 +931,7 @@
       {
         "id": 45,
         "front": "ما هي المصادر الغذائية لفيتامين B12 وما هي أهميته الأخرى للجهاز العصبي؟",
-        "back": "- المصادر: المنتجات الحيوانية فقط (Animal products only).\n- ��لأهمية العصبية: ضروري لتكوين المايلين (Myelin formation)، لذا فإن نقصه يسبب أعراضًا عصبية.",
+        "back": "- المصادر: المنتجات الحيوانية فقط (Animal products only).\n- الأهمية العصبية: ضروري لتكوين المايلين (Myelin formation)، لذا فإن نقصه يسبب أعراضًا عصبية.",
         "category": "ك��وت استذكار",
         "clinicalPearl": "أنواع الأنيميا والعوامل (Anemia & Factors)"
       },
@@ -951,14 +951,14 @@
       },
       {
         "id": 48,
-        "front": "ما هي المعادن الدقيقة التي تع��ل كعوامل مساعدة (Cofactors) لتشكيل الهيموجلوبين؟",
+        "front": "ما هي المعادن الدقيقة التي تعمل كعوامل مساعدة (Cofactors) لتشكيل الهيموجلوبين؟",
         "back": "النحاس (Copper) والكوبالت (Cobalt).",
         "category": "كروت استذكار",
         "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
       },
       {
         "id": 49,
-        "front": "كيف تؤثر الهرمونات المختلفة على عملية تصنيع كرات الدم الحمراء (Erythropoiesis)؟",
+        "front": "كيف تؤثر الهرمونات المختلفة على عملية ت��نيع كرات الدم الحمراء (Erythropoiesis)؟",
         "back": "- الهرمونات المحفزة: الأندروجين (Androgen)، الثايروكسين (Thyroxine)، والجلوكوكورتيكويد (Glucocorticoids).\n- الهرمونات المبطئة/المانعة: الإستروجين (Estrogen) يثبط الإنتاج.",
         "category": "كروت استذكار",
         "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
@@ -1140,7 +1140,7 @@
         "id": 17,
         "front": "Why must the pyogenic membrane (الغشاء المولد للصديد) be excised during abscess surgery?",
         "back": "Removal prevents infection persistence, chronic abscess formation, and local recurrence.",
-        "category": "كروت استذكار",
+        "category": "كروت است��كار",
         "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
       },
       {
@@ -1155,7 +1155,7 @@
         "front": "What skin and tissue destruction complications can arise from an untreated abscess (خراج)?",
         "back": "It can lead to the formation of an ulcer, sinus, or fistula.",
         "category": "كروت استذكار",
-        "clinicalPearl": "الالتهاب الصديدي و��لقح (Suppurative Inflammation & Pus)"
+        "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
       },
       {
         "id": 20,
@@ -1201,7 +1201,7 @@
       },
       {
         "id": 26,
-        "front": "What type of tissue lines the tracks of both sinuses (جيوب صديد��ة) and fistulas (نواصير)?",
+        "front": "What type of tissue lines the tracks of both sinuses (جيوب صديدية) and fistulas (نواصير)?",
         "back": "Infected granulation tissue (نسيج حبيبي مخموج) lines these tracks.",
         "category": "كروت استذكار",
         "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -1371,7 +1371,7 @@
         "id": 50,
         "front": "What constitutes a chronic abscess (��راج مزمن)?",
         "back": "It is an abscess surrounded by a thick, dense fibrous wall formed due to long-standing unhealed suppurative inflammation.",
-        "category": "كروت است��كار",
+        "category": "كروت استذكار",
         "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
       }
     ],
@@ -1397,7 +1397,7 @@
       },
       {
         "type": "mindmap",
-        "title": "ال��ريطة الذهنية الشاملة - Inflammation 2",
+        "title": "الخريطة الذهنية الشاملة - Inflammation 2",
         "fileSize": "1.1 MB",
         "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
         "pageCount": "خريطة ذهنية عالية الدقة",
@@ -1422,7 +1422,7 @@
     "viewCount": 1,
     "readingMinutes": 10,
     "threeDModelType": "heart",
-    "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+    "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلا��ة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
     "concepts": [],
     "terminology": [],
     "interventions": [],
@@ -1466,7 +1466,7 @@
       {
         "id": 6,
         "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
-        "back": "The four components are the Cause (السبب), Immune cells (الخلايا ا��مناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
+        "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
         "category": "كروت استذكار",
         "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
       },
@@ -1486,7 +1486,7 @@
       },
       {
         "id": 9,
-        "front": "What factor produces Swelling (التورم) during acute inflammation?",
+        "front": "What factor produces Swelling (ا��تورم) during acute inflammation?",
         "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح السائلي الالتهابي).",
         "category": "كروت استذكار",
         "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -1507,7 +1507,7 @@
       },
       {
         "id": 12,
-        "front": "Which factors aid in driving Leukocyte Chemotaxis (الانجذاب الكيميائي للخلاي�� البيضاء)?",
+        "front": "Which factors aid in driving Leukocyte Chemotaxis (الانجذاب الكيميائي للخلايا البيضاء)?",
         "back": "Chemotaxis is driven by bacterial toxins, complement components (such as C5a), and substances from necrotic tissue.",
         "category": "كروت استذكار",
         "clinicalPearl": "التغيرات الخلوية وزيادة الهجرة (Cellular Events & Extravasation)"
@@ -1545,7 +1545,7 @@
         "front": "What is the initial step in the process of Phagocytosis (الخطوة الأولى للبلعمة)?",
         "back": "The initial step is Chemotaxis (الانجذاب الكيميائي), which brings phagocytes to the targeted pathogen.",
         "category": "كروت استذكار",
-        "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
+        "clinicalPearl": "عملي�� البلعمة (Phagocytosis Mechanism)"
       },
       {
         "id": 18,
@@ -1587,7 +1587,7 @@
         "front": "What is the Complement System (جهاز المتممة)?",
         "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
         "category": "كروت استذكار",
-        "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+        "clinicalPearl": "علم الأمراض وا��التهاب (Pathology & Inflammation)"
       },
       {
         "id": 24,
@@ -1776,7 +1776,7 @@
         "front": "What general role do Opsonins (الطاهيات) perform in immune defense?",
         "back": "Opsonins coat foreign particles to make them readily recognized and bound by phagocyte receptors.",
         "category": "كروت استذكار",
-        "clinicalPearl": "ع��م الأمراض والالتهاب (Pathology & Inflammation)"
+        "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
       }
     ],
     "quiz": [],

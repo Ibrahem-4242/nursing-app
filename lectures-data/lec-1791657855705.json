@@ -135,7 +135,7 @@
       "id": 17,
       "front": "Why must the pyogenic membrane (الغشاء المولد للصديد) be excised during abscess surgery?",
       "back": "Removal prevents infection persistence, chronic abscess formation, and local recurrence.",
-      "category": "كروت استذكار",
+      "category": "كروت است��كار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
@@ -150,7 +150,7 @@
       "front": "What skin and tissue destruction complications can arise from an untreated abscess (خراج)?",
       "back": "It can lead to the formation of an ulcer, sinus, or fistula.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي و��لقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 20,
@@ -196,7 +196,7 @@
     },
     {
       "id": 26,
-      "front": "What type of tissue lines the tracks of both sinuses (جيوب صديد��ة) and fistulas (نواصير)?",
+      "front": "What type of tissue lines the tracks of both sinuses (جيوب صديدية) and fistulas (نواصير)?",
       "back": "Infected granulation tissue (نسيج حبيبي مخموج) lines these tracks.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -366,7 +366,7 @@
       "id": 50,
       "front": "What constitutes a chronic abscess (��راج مزمن)?",
       "back": "It is an abscess surrounded by a thick, dense fibrous wall formed due to long-standing unhealed suppurative inflammation.",
-      "category": "كروت است��كار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     }
   ],
@@ -392,7 +392,7 @@
     },
     {
       "type": "mindmap",
-      "title": "ال��ريطة الذهنية الشاملة - Inflammation 2",
+      "title": "الخريطة الذهنية الشاملة - Inflammation 2",
       "fileSize": "1.1 MB",
       "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",

@@ -60,8 +60,13 @@ export interface DailySummaryInfo {
   }>;
 }
 
-export async function sendTelegramMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'): Promise<boolean> {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+export async function sendTelegramMessage(
+  text: string,
+  parseMode: 'HTML' | 'Markdown' = 'HTML',
+  targetChatId?: string | number
+): Promise<boolean> {
+  const chatId = targetChatId ? String(targetChatId) : TELEGRAM_CHAT_ID;
+  if (!TELEGRAM_BOT_TOKEN || !chatId) {
     console.warn('[Telegram] Missing BOT_TOKEN or CHAT_ID');
     return false;
   }
@@ -73,7 +78,7 @@ export async function sendTelegramMessage(text: string, parseMode: 'HTML' | 'Mar
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
+        chat_id: chatId,
         text,
         parse_mode: parseMode,
         disable_web_page_preview: true,
@@ -177,7 +182,7 @@ export async function notifyFlashcardSession(info: FlashcardSessionInfo): Promis
   return sendTelegramMessage(text);
 }
 
-export async function sendDailySummary(info: DailySummaryInfo): Promise<boolean> {
+export async function sendDailySummary(info: DailySummaryInfo, targetChatId?: string | number): Promise<boolean> {
   let breakdownLines = '';
 
   if (info.breakdown && info.breakdown.length > 0) {
@@ -214,5 +219,5 @@ export async function sendDailySummary(info: DailySummaryInfo): Promise<boolean>
 ━━━━━━━━━━━━━━━━━━━━
 <i>منصة ملخصات تمريض - الرعاية التعليمية المعتمدة 🩺</i>`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML', targetChatId);
 }
