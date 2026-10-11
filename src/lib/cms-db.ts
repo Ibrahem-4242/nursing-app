@@ -60,29 +60,7 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
   const { gistId, token } = getGistConfig(customToken);
   if (!gistId) return null;
 
-  // 1. Direct Gist Raw CDN fetch (Instant, zero rate limits!)
-  try {
-    const rawRes = await fetch(
-      `https://gist.githubusercontent.com/Ibrahem-4242/${gistId}/raw/cms-store.json?t=${Date.now()}`,
-      {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
-      }
-    );
-    if (rawRes.ok) {
-      const parsed = await rawRes.json();
-      if (parsed && Array.isArray(parsed.lectures)) {
-        return parsed as CmsStore;
-      }
-    }
-  } catch (rawErr) {
-    // Fallback to API
-  }
-
-  // 2. Authenticated GitHub Gist API fetch
+  // 1. Direct Authenticated GitHub Gist API fetch (Authoritative, 100% LIVE, zero CDN delay)
   try {
     const headers: Record<string, string> = {
       'User-Agent': 'NursingStudyHubApp',
@@ -107,9 +85,32 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
         }
       }
     }
-  } catch (err) {
-    console.warn('[CMS DB] Cloud sync API read error:', err);
+  } catch (apiErr) {
+    console.warn('[CMS DB] Cloud sync API fetch notice, trying CDN fallback:', apiErr);
   }
+
+  // 2. Direct Gist Raw CDN fetch fallback
+  try {
+    const rawRes = await fetch(
+      `https://gist.githubusercontent.com/Ibrahem-4242/${gistId}/raw/cms-store.json?t=${Date.now()}`,
+      {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      }
+    );
+    if (rawRes.ok) {
+      const parsed = await rawRes.json();
+      if (parsed && Array.isArray(parsed.lectures)) {
+        return parsed as CmsStore;
+      }
+    }
+  } catch (rawErr) {
+    // Fallback to local disk
+  }
+
   return null;
 }
 
@@ -118,6 +119,23 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
   if (!gistId || !token) {
     console.warn('[CMS DB] GITHUB_SYNC_TOKEN is not set; changes saved locally in memory.');
     return false;
+  }
+
+  // 🛡️ CRITICAL ANTI-WIPE SAFEGUARD:
+  // If in-memory store has 0 lectures, verify against existing cloud database.
+  // Never allow cold starts or empty objects to accidentally erase existing lectures!
+  if (!store.lectures || store.lectures.length === 0) {
+    try {
+      const existing = await syncFromCloud(customToken);
+      if (existing && existing.lectures && existing.lectures.length > 0) {
+        console.warn(
+          `[CMS DB Safeguard] Blocked wiping cloud database (${existing.lectures.length} lectures preserved)!`
+        );
+        store.lectures = existing.lectures;
+      }
+    } catch (safeErr) {
+      console.warn('[CMS DB Safeguard] Pre-check error:', safeErr);
+    }
   }
 
   try {
@@ -129,6 +147,7 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        description: `Nursing Study Hub CMS Store - Protected (${store.lectures.length} lectures) at ${new Date().toISOString()}`,
         files: {
           'cms-store.json': {
             content: JSON.stringify(store, null, 2),
@@ -170,12 +189,12 @@ function initMemoryStore(): CmsStore {
   const tmpPath = getStoreFilePath();
   const rootDataPath = path.join(process.cwd(), 'data', 'cms-store.json');
 
-  for (const candidate of [tmpPath, rootDataPath]) {
+  for (const candidate of [rootDataPath, tmpPath]) {
     try {
       if (fs.existsSync(candidate)) {
         const content = fs.readFileSync(candidate, 'utf-8');
         const parsed = JSON.parse(content) as CmsStore;
-        if (parsed && Array.isArray(parsed.lectures)) {
+        if (parsed && Array.isArray(parsed.lectures) && parsed.lectures.length > 0) {
           memoryStore = parsed;
           return memoryStore;
         }
@@ -197,7 +216,7 @@ function initMemoryStore(): CmsStore {
     downloads: [],
   };
 
-  persistStore(memoryStore);
+  // NOTE: Strictly NEVER call persistStore or syncToCloud here!
   return memoryStore;
 }
 
@@ -218,6 +237,20 @@ async function getFreshStore(): Promise<CmsStore> {
     if (cloudStore.visitors) store.visitors = cloudStore.visitors;
     if (cloudStore.downloads) store.downloads = cloudStore.downloads;
     memoryStore = store;
+
+    // Save a local disk backup copy silently so offline/cold-start has it
+    try {
+      const candidates = [
+        path.join(process.cwd(), 'data', 'cms-store.json'),
+        getStoreFilePath(),
+      ];
+      for (const p of candidates) {
+        const d = path.dirname(p);
+        if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+      }
+    } catch {}
+
     return memoryStore;
   }
   return initMemoryStore();
@@ -225,14 +258,15 @@ async function getFreshStore(): Promise<CmsStore> {
 
 function persistStore(store: CmsStore, customToken?: string): void {
   try {
-    const filePath = getStoreFilePath();
-    const dir = path.dirname(filePath);
-    try {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-    } catch {}
-    fs.writeFileSync(filePath, JSON.stringify(store, null, 2), 'utf-8');
+    const candidates = [
+      path.join(process.cwd(), 'data', 'cms-store.json'),
+      getStoreFilePath(),
+    ];
+    for (const p of candidates) {
+      const d = path.dirname(p);
+      if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+    }
   } catch (err) {
     try {
       fs.writeFileSync(path.join('/tmp', 'nursing-cms-store.json'), JSON.stringify(store, null, 2), 'utf-8');
