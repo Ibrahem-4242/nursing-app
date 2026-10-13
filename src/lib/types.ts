@@ -48,6 +48,7 @@ export interface SubjectQuizFile {
   explanationUrl?: string;
   explanationTitle?: string;
   explanationFileSize?: string;
+  lastModified?: number;
 }
 
 export interface MedicalTerm {
@@ -124,6 +125,7 @@ export interface Lecture {
   quiz: QuizQuestion[];
   files: LectureFile[];
   adminNote?: string;
+  lastModified?: number;
 }
 
 export interface QuizItem {

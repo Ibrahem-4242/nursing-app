@@ -495,9 +495,20 @@ async function getFreshStore(): Promise<CmsStore> {
       if (!deletedSet.has(l.id)) merged.set(l.id, l);
     }
 
-    // 2. Cloud store takes precedence / newer updates (if not deleted)
+    // 2. Cloud store merges in (only if local doesn't have a newer modification timestamp)
     for (const l of (cloudStore.lectures || [])) {
-      if (!deletedSet.has(l.id)) merged.set(l.id, l);
+      if (!deletedSet.has(l.id)) {
+        const local = merged.get(l.id);
+        if (local) {
+          const localTs = (local as any).lastModified || 0;
+          const cloudTs = (l as any).lastModified || 0;
+          if (localTs > cloudTs) {
+            // Keep local version because it was edited more recently
+            continue;
+          }
+        }
+        merged.set(l.id, l);
+      }
     }
 
     store.lectures = Array.from(merged.values());
@@ -526,6 +537,14 @@ async function getFreshStore(): Promise<CmsStore> {
       for (const [k, q] of Object.entries(cloudStore.subjectQuizzes)) {
         const qId = q.id || k;
         if (!deletedQuizSet.has(k) && !deletedQuizSet.has(qId)) {
+          const localQ = mergedQuizzes[k];
+          if (localQ) {
+            const localTs = (localQ as any).lastModified || 0;
+            const cloudTs = (q as any).lastModified || 0;
+            if (localTs > cloudTs) {
+              continue;
+            }
+          }
           mergedQuizzes[k] = { ...q, id: qId };
         }
       }
@@ -878,15 +897,22 @@ export const CmsService = {
     }
     const existingIndex = store.lectures.findIndex((l) => l.id === lecture.id);
 
+    const now = Date.now();
+    const updatedLecture: Lecture = {
+      ...lecture,
+      lastModified: now,
+    };
+
     if (existingIndex >= 0) {
       store.lectures[existingIndex] = {
         ...store.lectures[existingIndex],
-        ...lecture,
-        files: [...lecture.files],
-        flashcards: lecture.flashcards ? [...lecture.flashcards] : [],
+        ...updatedLecture,
+        files: [...updatedLecture.files],
+        flashcards: updatedLecture.flashcards ? [...updatedLecture.flashcards] : [],
+        lastModified: now,
       };
     } else {
-      store.lectures.unshift(lecture);
+      store.lectures.unshift(updatedLecture);
     }
 
     memoryStore = store;
@@ -1218,6 +1244,7 @@ export const CmsService = {
       ...quizFile,
       id,
       semester: quizFile.semester === '2' ? '2' : '1',
+      lastModified: Date.now(),
     };
     if (store.deletedQuizIds) {
       store.deletedQuizIds = store.deletedQuizIds.filter((dId) => dId !== id);
@@ -1250,6 +1277,7 @@ export const CmsService = {
       ...existing,
       ...updates,
       id: existing.id || targetKey,
+      lastModified: Date.now(),
     };
 
     if (

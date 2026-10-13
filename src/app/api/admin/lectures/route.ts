@@ -309,11 +309,11 @@ export async function PUT(req: NextRequest) {
 
   // Update or Remove PPT
   if (removePpt || (pptUrl !== undefined && !pptUrl.trim() && !pptFile)) {
-    existing.files = existing.files.filter((f: any) => f.type !== 'ppt' && f.fileType !== 'powerpoint');
+    existing.files = existing.files.filter((f: any) => f.type !== 'ppt' && f.fileType !== 'powerpoint' && f.fileType !== 'presentation');
   } else if (pptFile) {
     const buf = new Uint8Array(await pptFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, pptFile.name, customToken);
-    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint');
+    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint' || f.fileType === 'presentation');
     if (pptIdx >= 0) {
       existing.files[pptIdx].type = 'ppt';
       existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
@@ -333,7 +333,7 @@ export async function PUT(req: NextRequest) {
       });
     }
   } else if (pptUrl && pptUrl.trim()) {
-    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint');
+    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint' || f.fileType === 'presentation');
     if (pptIdx >= 0) {
       existing.files[pptIdx].type = 'ppt';
       existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
@@ -403,11 +403,11 @@ export async function PUT(req: NextRequest) {
 
   // Update or Remove Audio
   if (removeAudio || (audioUrl !== undefined && !audioUrl.trim() && !audioFile)) {
-    existing.files = existing.files.filter((f) => f.type !== 'audio');
+    existing.files = existing.files.filter((f: any) => f.type !== 'audio' && f.fileType !== 'audio');
   } else if (audioFile) {
     const buf = new Uint8Array(await audioFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, audioFile.name, customToken);
-    const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
+    const audioIdx = existing.files.findIndex((f: any) => f.type === 'audio' || f.fileType === 'audio');
     if (audioIdx >= 0) {
       existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = saved.url;
@@ -427,7 +427,7 @@ export async function PUT(req: NextRequest) {
       });
     }
   } else if (audioUrl && audioUrl.trim()) {
-    const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
+    const audioIdx = existing.files.findIndex((f: any) => f.type === 'audio' || f.fileType === 'audio');
     if (audioIdx >= 0) {
       existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = audioUrl.trim();
@@ -450,11 +450,11 @@ export async function PUT(req: NextRequest) {
 
   // Update or Remove Questions File
   if (removeQuestions || (questionsUrl !== undefined && !questionsUrl.trim() && !questionsFile)) {
-    existing.files = existing.files.filter((f: any) => f.type !== 'questions');
+    existing.files = existing.files.filter((f: any) => f.type !== 'questions' && f.fileType !== 'questions');
   } else if (questionsFile) {
     const buf = new Uint8Array(await questionsFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, questionsFile.name, customToken);
-    const qIdx = existing.files.findIndex((f) => f.type === 'questions');
+    const qIdx = existing.files.findIndex((f: any) => f.type === 'questions' || f.fileType === 'questions');
     if (qIdx >= 0) {
       existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
       existing.files[qIdx].downloadUrl = saved.url;
@@ -474,7 +474,7 @@ export async function PUT(req: NextRequest) {
       });
     }
   } else if (questionsUrl && questionsUrl.trim()) {
-    const qIdx = existing.files.findIndex((f) => f.type === 'questions');
+    const qIdx = existing.files.findIndex((f: any) => f.type === 'questions' || f.fileType === 'questions');
     if (qIdx >= 0) {
       existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
       existing.files[qIdx].downloadUrl = questionsUrl.trim();
@@ -500,16 +500,16 @@ export async function PUT(req: NextRequest) {
     if (f.type === 'pdf' || f.fileType === 'summary') {
       return { ...f, title: existing.title };
     }
-    if (f.type === 'ppt' || f.fileType === 'powerpoint') {
+    if (f.type === 'ppt' || f.fileType === 'powerpoint' || f.fileType === 'presentation') {
       return { ...f, title: `عروض بوربوينت - ${existing.title}` };
     }
     if (f.type === 'mindmap' || f.fileType === 'mindmap') {
       return { ...f, title: `الخريطة الذهنية - ${existing.title}` };
     }
-    if (f.type === 'audio') {
+    if (f.type === 'audio' || f.fileType === 'audio') {
       return { ...f, title: `التسجيل الصوتي للشرح - ${existing.title}` };
     }
-    if (f.type === 'questions') {
+    if (f.type === 'questions' || f.fileType === 'questions') {
       return { ...f, title: `أسئلة وتمارين المحاضرة - ${existing.title}` };
     }
     return f;
@@ -551,6 +551,7 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  existing.lastModified = Date.now();
   await CmsService.addOrUpdateLecture(existing, customToken);
 
   try {
