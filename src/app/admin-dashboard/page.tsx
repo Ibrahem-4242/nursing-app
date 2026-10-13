@@ -34,6 +34,7 @@ import {
   Lock,
   Gift,
   Headphones,
+  Plus,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
@@ -137,6 +138,17 @@ export default function AdminDashboardPage() {
   const [editSubSemester, setEditSubSemester] = useState<'1' | '2' | 'both'>('1');
   const [editSubDesc, setEditSubDesc] = useState('');
   const [isSavingSubjectEdit, setIsSavingSubjectEdit] = useState(false);
+
+  // Quick Add Subject Modal state (accessible directly from any dropdown or form)
+  const [isQuickAddSubOpen, setIsQuickAddSubOpen] = useState(false);
+  const [quickAddTarget, setQuickAddTarget] = useState<'lecture' | 'quiz' | 'editLecture' | 'editQuiz'>('lecture');
+  const [quickSubTitle, setQuickSubTitle] = useState('');
+  const [quickSubEnglishTitle, setQuickSubEnglishTitle] = useState('');
+  const [quickSubYearId, setQuickSubYearId] = useState('1');
+  const [quickSubSemester, setQuickSubSemester] = useState<'1' | '2' | 'both'>('1');
+  const [quickSubDesc, setQuickSubDesc] = useState('');
+  const [isSubmittingQuickSub, setIsSubmittingQuickSub] = useState(false);
+  const [quickSubFeedback, setQuickSubFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Lectures state
   const [lectures, setLectures] = useState<any[]>([]);
@@ -457,6 +469,95 @@ export default function AdminDashboardPage() {
     } catch {
       alert('فشل حذف المادة');
       loadSubjects();
+    }
+  };
+
+  // Quick Add Subject Modal Open Handler
+  const openQuickAddSubjectModal = (target: 'lecture' | 'quiz' | 'editLecture' | 'editQuiz') => {
+    setQuickAddTarget(target);
+    setQuickSubFeedback(null);
+    setQuickSubTitle('');
+    setQuickSubEnglishTitle('');
+    setQuickSubDesc('');
+    if (target === 'lecture') {
+      setQuickSubYearId(yearId);
+      setQuickSubSemester(semester);
+    } else if (target === 'quiz') {
+      setQuickSubYearId('1');
+      setQuickSubSemester(quizSemester);
+    } else if (target === 'editLecture') {
+      setQuickSubYearId(editingLecture?.yearId || '1');
+      setQuickSubSemester(editSemester || '1');
+    } else if (target === 'editQuiz') {
+      setQuickSubYearId('1');
+      setQuickSubSemester(editQuizSemester);
+    }
+    setIsQuickAddSubOpen(true);
+  };
+
+  // Quick Add Subject Submit Handler
+  const handleQuickAddSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickSubTitle.trim()) {
+      setQuickSubFeedback({ type: 'error', message: 'يرجى كتابة اسم المادة' });
+      return;
+    }
+    setIsSubmittingQuickSub(true);
+    setQuickSubFeedback(null);
+    try {
+      const res = await fetch('/api/admin/subjects', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          title: quickSubTitle.trim(),
+          yearId: quickSubYearId,
+          semester: quickSubSemester,
+          description: quickSubDesc.trim(),
+          englishTitle: quickSubEnglishTitle.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.subject) {
+        const createdSub = data.subject;
+        // Update local subjects list immediately
+        setSubjects((prev) => {
+          const filtered = prev.filter((s) => s.id !== createdSub.id);
+          return [...filtered, createdSub];
+        });
+
+        // Apply immediately to the active form where user clicked
+        if (quickAddTarget === 'lecture') {
+          setYearId(createdSub.yearId || '1');
+          setSubjectId(createdSub.id);
+          if (createdSub.semester === '2') setSemester('2');
+          else if (createdSub.semester === '1') setSemester('1');
+        } else if (quickAddTarget === 'quiz') {
+          setQuizSubjectId(createdSub.id);
+          if (createdSub.semester === '2') setQuizSemester('2');
+          else if (createdSub.semester === '1') setQuizSemester('1');
+        } else if (quickAddTarget === 'editLecture') {
+          setEditSubjectId(createdSub.id);
+          if (editingLecture) editingLecture.yearId = createdSub.yearId || '1';
+          if (createdSub.semester === '2') setEditSemester('2');
+          else if (createdSub.semester === '1') setEditSemester('1');
+        } else if (quickAddTarget === 'editQuiz') {
+          setEditQuizSubjectId(createdSub.id);
+          if (createdSub.semester === '2') setEditQuizSemester('2');
+          else if (createdSub.semester === '1') setEditQuizSemester('1');
+        }
+
+        setIsQuickAddSubOpen(false);
+        setQuickSubTitle('');
+        setQuickSubEnglishTitle('');
+        setQuickSubDesc('');
+        loadSubjects();
+      } else {
+        setQuickSubFeedback({ type: 'error', message: data.message || 'فشل إضافة المادة' });
+      }
+    } catch (err: any) {
+      setQuickSubFeedback({ type: 'error', message: err?.message || 'حدث خطأ أثناء إضافة المادة' });
+    } finally {
+      setIsSubmittingQuickSub(false);
     }
   };
 
@@ -1720,28 +1821,64 @@ export default function AdminDashboardPage() {
 
                 {/* Subject Selector */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    المادة الأكاديمية:
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      المادة الأكاديمية:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => openQuickAddSubjectModal('lecture')}
+                      className="text-[11px] font-black text-teal-700 dark:text-teal-300 hover:text-teal-800 bg-teal-50 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800 px-2.5 py-1 rounded-xl transition flex items-center gap-1 shadow-xs hover:bg-teal-100"
+                      title="أضف مادة دراسية جديدة من عندك وستظهر فوراً هنا وفي الموقع"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-teal-600" />
+                      <span>أضف مادة جديدة من عندك 📚</span>
+                    </button>
+                  </div>
                   <select
                     value={subjectId}
                     onChange={(e) => {
+                      if (e.target.value === '__NEW_SUBJECT__') {
+                        openQuickAddSubjectModal('lecture');
+                        return;
+                      }
                       const val = e.target.value;
                       setSubjectId(val);
                       const currentSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
                       const chosen = currentSubs.find((s) => s.id === val);
-                      if (chosen?.semester === '2') setSemester('2');
-                      else if (chosen?.semester === '1') setSemester('1');
+                      if (chosen) {
+                        if (chosen.yearId && chosen.yearId !== yearId) {
+                          setYearId(chosen.yearId);
+                        }
+                        if (chosen.semester === '2') setSemester('2');
+                        else if (chosen.semester === '1') setSemester('1');
+                      }
                     }}
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
-                    {(subjects.length > 0 ? subjects : MOCK_SUBJECTS)
-                      .filter((s) => s.yearId === yearId)
-                      .map((sub) => (
-                        <option key={sub.id} value={sub.id}>
-                          {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
-                        </option>
-                      ))}
+                    <option value="__NEW_SUBJECT__" className="font-black text-teal-600 bg-teal-50 dark:bg-teal-950">
+                      ➕ [ اضغط هنا لإضافة مادة جديدة من عندك 📚 ]
+                    </option>
+                    <optgroup label={`مواد السنة الحالية (${yearId === '1' ? 'السنة الأولى' : yearId === '2' ? 'السنة الثانية' : yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة'})`}>
+                      {(subjects.length > 0 ? subjects : MOCK_SUBJECTS)
+                        .filter((s) => s.yearId === yearId)
+                        .map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
+                          </option>
+                        ))}
+                    </optgroup>
+                    {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).some((s) => s.yearId !== yearId) && (
+                      <optgroup label="مواد من فرق دراسية أخرى (سيتم تحديد الفرقة تلقائياً)">
+                        {(subjects.length > 0 ? subjects : MOCK_SUBJECTS)
+                          .filter((s) => s.yearId !== yearId)
+                          .map((sub) => (
+                            <option key={sub.id} value={sub.id}>
+                              {sub.title} ({sub.yearName || `سنة ${sub.yearId}`}) {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
@@ -2833,14 +2970,33 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                          المادة الأكاديمية:
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                            المادة الأكاديمية:
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => openQuickAddSubjectModal('editLecture')}
+                            className="text-[10px] font-black text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>إضافة مادة</span>
+                          </button>
+                        </div>
                         <select
                           value={editSubjectId}
-                          onChange={(e) => setEditSubjectId(e.target.value)}
+                          onChange={(e) => {
+                            if (e.target.value === '__NEW_SUBJECT__') {
+                              openQuickAddSubjectModal('editLecture');
+                              return;
+                            }
+                            setEditSubjectId(e.target.value);
+                          }}
                           className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
                         >
+                          <option value="__NEW_SUBJECT__" className="font-bold text-teal-600">
+                            ➕ [ إضافة مادة جديدة... ]
+                          </option>
                           {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
                             <option key={sub.id} value={sub.id}>
                               {sub.title} ({sub.yearName || `فرقة ${sub.yearId}`})
@@ -3624,12 +3780,27 @@ export default function AdminDashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Subject Selector */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                      المادة الأكاديمية:
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                        المادة الأكاديمية:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openQuickAddSubjectModal('quiz')}
+                        className="text-[11px] font-black text-amber-700 dark:text-amber-300 hover:text-amber-800 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800 px-2.5 py-1 rounded-xl transition flex items-center gap-1 shadow-xs hover:bg-amber-100"
+                        title="أضف مادة دراسية جديدة من عندك وستظهر فوراً هنا وفي الموقع"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-amber-600" />
+                        <span>أضف مادة جديدة من عندك 📚</span>
+                      </button>
+                    </div>
                     <select
                       value={quizSubjectId}
                       onChange={(e) => {
+                        if (e.target.value === '__NEW_SUBJECT__') {
+                          openQuickAddSubjectModal('quiz');
+                          return;
+                        }
                         const val = e.target.value;
                         setQuizSubjectId(val);
                         const currentSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
@@ -3639,11 +3810,23 @@ export default function AdminDashboardPage() {
                       }}
                       className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
-                      {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
-                        <option key={sub.id} value={sub.id}>
-                          {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
-                        </option>
-                      ))}
+                      <option value="__NEW_SUBJECT__" className="font-black text-amber-600 bg-amber-50 dark:bg-amber-950">
+                        ➕ [ اضغط هنا لإضافة مادة جديدة من عندك 📚 ]
+                      </option>
+                      {['1', '2', '3', '4'].map((yr) => {
+                        const yrSubs = (subjects.length > 0 ? subjects : MOCK_SUBJECTS).filter((s) => s.yearId === yr);
+                        if (yrSubs.length === 0) return null;
+                        const yrName = yr === '1' ? 'السنة الأولى' : yr === '2' ? 'السنة الثانية' : yr === '3' ? 'السنة الثالثة' : 'السنة الرابعة';
+                        return (
+                          <optgroup key={yr} label={yrName}>
+                            {yrSubs.map((sub) => (
+                              <option key={sub.id} value={sub.id}>
+                                {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -4129,14 +4312,33 @@ export default function AdminDashboardPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                            المادة الأكاديمية:
-                          </label>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                              المادة الأكاديمية:
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => openQuickAddSubjectModal('editQuiz')}
+                              className="text-[10px] font-black text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>إضافة مادة</span>
+                            </button>
+                          </div>
                           <select
                             value={editQuizSubjectId}
-                            onChange={(e) => setEditQuizSubjectId(e.target.value)}
+                            onChange={(e) => {
+                              if (e.target.value === '__NEW_SUBJECT__') {
+                                openQuickAddSubjectModal('editQuiz');
+                                return;
+                              }
+                              setEditQuizSubjectId(e.target.value);
+                            }}
                             className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-amber-500"
                           >
+                            <option value="__NEW_SUBJECT__" className="font-bold text-amber-600">
+                              ➕ [ إضافة مادة جديدة... ]
+                            </option>
                             {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
                               <option key={sub.id} value={sub.id}>
                                 {sub.title}
@@ -4680,6 +4882,138 @@ export default function AdminDashboardPage() {
                   {telegramFeedback}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        {/* Quick Add Subject Modal (Interactive Modal callable from any form or dropdown) */}
+        {isQuickAddSubOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" dir="rtl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-teal-600" />
+                    <span>إضافة مادة دراسية جديدة فوراً 📚</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    أضف أي مادة من عندك وستظهر فوراً في القوائم والموقع بدون ما تفقد أي بيانات أدخلتها!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddSubOpen(false)}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleQuickAddSubject} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    اسم المادة بالعربي: <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={quickSubTitle}
+                    onChange={(e) => setQuickSubTitle(e.target.value)}
+                    placeholder="مثال: تمريض باطني وجراحي / كيمياء حيوية..."
+                    required
+                    autoFocus
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      الفرقة الدراسية:
+                    </label>
+                    <select
+                      value={quickSubYearId}
+                      onChange={(e) => setQuickSubYearId(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="1">السنة الأولى</option>
+                      <option value="2">السنة الثانية</option>
+                      <option value="3">السنة الثالثة</option>
+                      <option value="4">السنة الرابعة</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-teal-700 dark:text-teal-300 mb-1.5">
+                      الفصل الدراسي (السمستر):
+                    </label>
+                    <select
+                      value={quickSubSemester}
+                      onChange={(e) => setQuickSubSemester(e.target.value as '1' | '2' | 'both')}
+                      className="w-full px-3 py-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/50 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs font-black focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="1">🌱 سمستر 1 (الترم الأول)</option>
+                      <option value="2">⚡ سمستر 2 (الترم الثاني)</option>
+                      <option value="both">🔄 الترمين معاً (1 و 2)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    اسم المادة بالإنجليزي / رابط المادة (اختياري):
+                  </label>
+                  <input
+                    type="text"
+                    value={quickSubEnglishTitle}
+                    onChange={(e) => setQuickSubEnglishTitle(e.target.value)}
+                    placeholder="مثال: Biochemistry / med-surg"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    وصف مختصر للمادة (اختياري):
+                  </label>
+                  <input
+                    type="text"
+                    value={quickSubDesc}
+                    onChange={(e) => setQuickSubDesc(e.target.value)}
+                    placeholder="مثال: محاضرات وملخصات معتمدة لمنهج التمريض"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                {quickSubFeedback && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      quickSubFeedback.type === 'success'
+                        ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300'
+                        : 'bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300'
+                    }`}
+                  >
+                    {quickSubFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                    <span>{quickSubFeedback.message}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddSubOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingQuickSub || !quickSubTitle.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black flex items-center gap-2 shadow-md shadow-teal-600/20 disabled:opacity-50"
+                  >
+                    {isSubmittingQuickSub ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>إضافة المادة واختيارها فوراً 🚀</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
