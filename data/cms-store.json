@@ -1,11 +1,11 @@
 {
   "announcement": {
-    "id": "announcement-1791719153735",
-    "text": "شدوا حيلكم يا شباااااااااااااااب",
+    "id": "announcement-1791871865145",
+    "text": "اسئلة السوشيو هتنزل الساعة 2 يشباااااااااب",
     "isActive": true,
     "linkText": "انضم لجروب الواتساب",
     "linkUrl": "https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti",
-    "updatedAt": "2026-10-11T11:45:53.735Z"
+    "updatedAt": "2026-10-13T06:11:05.145Z"
   },
   "lectures": [
     {
@@ -23,7 +23,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "علم التشريح (Anatomy) هو حجر الأساس لكل العلوم ال��بية وبدون فهمه يست��يل تشخيص الأمراض أو علاجها بدقة.\r\nتكمن أهمية هذا العلم في أنه يمنحك الخريطة الكاملة لجسد الإنسان لتفهم كيف ترتبط الأعضاء ببعضها ووظائفها.\r\nولأن الجسم ثلاثي الأبعاد، فإن أهم ما يميزه هو المصطلحات الاتجاهية (Directional Terms) التي توحد لغة الأطباء عالمياً.\r\nتساعدنا هذه الاتجاهات في تحديد موقع أي إصابة أو مرض بدقة متناهية داخل الجسم لمنع الأخطاء الطبية.\r\nفعندما نستخدم مصطلح Superior (علوي) و Inferior (سفلي) نحدد ما إذا كان العضو يقع في الأعلى أو الأسفل.\r\nومصطلحات مثل Anterior (أمامي) و Posterior (خلفي) تصف بدقة ما إذا كان الشيء في واجهة الجسم أو ظهره.\r\nبينما يوضح مصطلحا Medial (إنسي) و Lateral (وحشي) مدى قرب العضو أو بعده عن الخط المنصف لجسد الإنسان.\r\nأما في الأطراف، فنعتمد على Proximal (داني) و Distal (قاصي) لمعرفة القرب والبعد عن نقطة اتصال الطرف بالجذع.\r\nكما ن��تخدم Superficial (سطحي) و Deep (عميق) للتفريق بين الأنسجة القريبة من الجلد وتلك الغائرة في الداخل.\r\nباختصار، اتجاهات التشريح هي الـ GPS الطبي الذي يقود الجراح والمشخص للوصول إلى هدفهم بأمان وبأعلى دقة ممكنة",
+      "overview": "علم التشريح (Anatomy) هو حجر الأساس لكل العلوم ال��بية وبدون فهمه يستحيل تشخيص الأمراض أو علاجها بدقة.\r\n��كمن أهمية هذا العلم في أنه يمنحك الخريطة الكاملة لجسد الإنسان لتفهم كيف ترتبط الأعضاء ببعضها ووظائفها.\r\nولأن الجسم ثلاثي الأبعاد، فإن أهم ما يميزه هو المصطلحات الاتجاهية (Directional Terms) التي توحد لغة الأطباء عالمياً.\r\nتساعدنا هذه الاتجاهات في تحديد موقع أي إصابة أو مرض بدقة متناهية داخل الجسم لمنع الأخطاء الطبية.\r\nفعندما نستخدم مصطلح Superior (علوي) و Inferior (سفلي) نحدد ما إذا كان العضو يقع في الأعلى أو الأسفل.\r\nومصطلحات مثل Anterior (أمامي) و Posterior (خلفي) تصف بدقة ما إذا كان الشيء في واجهة الجسم أو ظهره.\r\nبينما يوضح مصطلحا Medial (إنسي) و Lateral (وحشي) مدى قرب العضو أو بعده عن الخط المنصف لجسد الإنسان.\r\nأما في الأطراف، فنعتمد على Proximal (داني) و Distal (قاصي) لمعرفة القرب والبعد عن نقطة اتصال الطرف بالجذع.\r\nكما ن��تخدم Superficial (سطحي) و Deep (عميق) للتفريق بين الأنسجة القريبة من الجلد وتلك الغائرة في الداخل.\r\nباختصار، اتجاهات التشريح هي الـ GPS الطبي الذي يقود الجراح والمشخص للوصول إلى هدفهم بأمان وبأعلى دقة ممكنة",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -60,7 +60,7 @@
         {
           "id": 5,
           "front": "صف كي��ية وضع المريض في وضع بضع المثانة (Lithotomy Position).",
-          "back": "ي��تلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
+          "back": "يستلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -130,7 +130,7 @@
         {
           "id": 15,
           "front": "ما نوع الرؤية (View) التي يوفرها المستوى السهمي المتوسط (Median plane)؟",
-          "back": "يوفر رؤية جانبية (Side view) من الإنسي/الداخلي إلى الوحشي/الخارجي (From medial to lateral).",
+          "back": "يوفر رؤية جانبية (Side view) من الإنسي/الداخلي إلى الوحش��/الخارجي (From medial to lateral).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -164,7 +164,7 @@
         },
         {
           "id": 20,
-          "front": "عرف المستوى المستعرض / الأفقي / المحوري (Transverse / Horizontal / Axial Plane).",
+          "front": "عرف المستوى المستعرض / الأفقي / ا��محوري (Transverse / Horizontal / Axial Plane).",
           "back": "هو مستوى وهمي أفقي يقسم أي منطقة في الجسم إلى أجزاء علوية (Upper/Superior) وأجزاء سفليّة (Lower/Inferior).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -214,7 +214,7 @@
         {
           "id": 27,
           "front": "ما المصطلح المرادف للمصطلح التشريحي سفلي (Inferior)؟",
-          "back": "ذنبي (Caudal)، ويشير للتركيب الأقرب إلى أسفل الجسم/ال��دمين (Bottom of the body).",
+          "back": "ذنبي (Caudal)، ويشير للتركيب الأقرب إلى أسف�� الجسم/القدمين (Bottom of the body).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -235,7 +235,7 @@
         {
           "id": 30,
           "front": "ما هو التعريف التشريحي للمصطلح سطحي (Superficial)؟",
-          "back": "يشير إلى التركيب الأقرب إلى الجلد (Nearer to the skin) أو الحركة المتجهة نحو الجلد.",
+          "back": "يشير إلى التركيب الأقرب إلى الجلد (Nearer to the skin) أو الحر��ة المتجهة نحو الجلد.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -297,7 +297,7 @@
         },
         {
           "id": 39,
-          "front": "م�� هي الأنسجة أو الطبقات التشريحية الأكثر سطحية والأكثر عمقاً الموضحة في مقطع فروة الرأس؟",
+          "front": "ما هي الأنسجة أو الطبقات التشريحية الأكثر سطحية والأكثر عمقاً الموضحة في مقطع فروة الرأس؟",
           "back": "• الأكثر سطحية (Most superficial): الجلد (Skin).\n• الأكثر عمقاً في مقطع فروة الرأس (Deepest): العظم (Bone).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -311,7 +311,7 @@
         },
         {
           "id": 41,
-          "front": "أين يقف الجراح الرئيسي (Main Surgeon) ��الممرض ال��ئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
+          "front": "أين يقف الجراح الرئيسي (Main Surgeon) ��الممرض الرئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
           "back": "يقف الجراح الرئيسي والممرض الرئيسي على الجانب الأيمن من طاولة عمليات المريض (Right side of the patient's operative table).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -348,7 +348,7 @@
           "id": 46,
           "front": "إذا ابتعدت الإشارة العصبية أو مجرى الدم عن السرة والحلمتين باتجاه الظهر، فماذا تسمى هذه الحركة؟",
           "back": "تعتبر حركة خلفية / ظهرية (Posterior / Dorsal movement).",
-          "category": "كروت استذكار",
+          "category": "��روت استذكار",
           "clinicalPearl": "الجهاز العصبي (Nervous System)"
         },
         {
@@ -368,7 +368,7 @@
         {
           "id": 49,
           "front": "إذا تحرك سائل أو إشارة باتجاه الجلد، فكيف تُصنف هذه الحركة تشريحياً؟",
-          "back": "تُصنف بأنها حركة نحو السطح / سطحي�� (Moving superficially).",
+          "back": "تُصنف بأنها حركة نحو السطح / سطحي��� (Moving superficially).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -388,7 +388,7 @@
         },
         {
           "id": 52,
-          "front": "ما هي الرؤية التي توفرها المستوي��ت الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
+          "front": "ما هي الرؤية التي توفرها المستويات الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
           "back": "تسمى أيضاً بالرؤية الجبهية (Frontal view) حيث تُفحص المنطقة كشرائح من الأمام نحو الخلف.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -493,7 +493,7 @@
         },
         {
           "id": 67,
-          "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين ��فراد الفريق الطبي؟",
+          "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين أفراد الفريق الطبي؟",
           "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن موقع كل فرد في الفريق.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -510,7 +510,7 @@
           "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
           "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
           "category": "كروت استذكار",
-          "clinicalPearl": "الجه��ز الدوري والقلب (Cardiovascular System)"
+          "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
         },
         {
           "id": 70,
@@ -543,7 +543,7 @@
         {
           "id": 74,
           "front": "ما المعيار التشريحي للتمييز بين المفاهيم: Anterior و Posterior؟",
-          "back": "المعيار هو القرب من الجانب الأمامي/البطني (Front/Ventral) أو الجانب ال��لفي/الظهري (Back/Dorsal) للجسم.",
+          "back": "المعيار هو القرب من الجانب الأمامي/البطني (Front/Ventral) أو الجان�� ال��لفي/الظهري (Back/Dorsal) للجسم.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -564,7 +564,7 @@
         {
           "id": 77,
           "front": "ماذا تعني عبارة 'Anatomical Topography' في التشريح الشعاعي؟",
-          "back": "تعني التضاريس التشريحية واس��كشاف معالم المنطقة بالكامل من الأمام إلى الخلف ومن الأعلى إلى الأسفل ومن الإنسي إلى الوحشي.",
+          "back": "تعني التضاريس التشريح��ة واس��كشاف معالم المنطقة بالكامل من الأمام إلى الخلف ومن الأعلى إلى الأسفل ومن الإنسي إلى الوحشي.",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -623,7 +623,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "علم الفسيولوجي (علم وظائف الأعضاء) هو العلم الذي يدرس كيفية ع��ل الجسم البشري وجميع أجهزته الحيوية. يركز هذا العلم على فهم الآليات الميكانيكية والفيزيائية والكيميائية التي تبقينا على قيد الحياة. يبدأ الفسيولوجي من دراسة وظائف الخلايا الصغيرة والجزيئات وحتى تفاعل الأعضاء الكاملة معاً. يشرح العلم كيف تنبض قلوبنا، وكيف تتنفس رئاتنا، وكيف يحول الجهاز اله��مي الطعام إلى طاقة. كما يوضح كيف يتعامل الجسم مع التغيرات البيئية المحيطة به للحفاظ على توازنه الداخلي وثباته. يعتبر الفسيولوجي الحجر الأساس لجميع العلوم الطبية، وبدونه لا يمكن فهم الأمراض أو العلاج. باختصار، هو العلم الذي يجيب عن السؤال الجوهري: \"كيف تعمل الأجسام والكائنات الحية؟\". يساعدنا هذا التخصص في تطوير الأدوية الحديثة وتحسين الأداء الرياضي وفهم طبيعة الحياة",
+      "overview": "علم الفسيولوجي (علم وظائف الأعضاء) هو العلم الذي يدرس كيفية ع��ل الجسم البشري وجميع أجهزته الحيوية. يركز هذا العلم على فهم الآليات الميكانيكية والفيزيائية والكيميائية التي تبقينا على قيد الحياة. يبدأ الفسيولوجي من دراسة وظائف الخلايا الصغيرة والجزيئات وحتى تفاعل الأعضاء الكاملة معاً. يشرح العلم كيف تنبض قلوبنا، وكيف تتنفس رئاتنا، وكيف يحول ��لجهاز اله��مي الطعام إلى طاقة. كما يوضح كيف يتعامل الجسم مع التغيرات البيئية المحيطة به للحفاظ على توازنه الداخلي وثباته. يعتبر الفسيولوجي الحجر الأساس لجميع العلوم الطبية، وبدونه لا يمكن فهم الأمراض أو العلاج. باختصار، هو العلم الذي يجيب عن السؤال الجوهري: \"كيف تعمل الأجسام والكائنات الحية؟\". يساعدنا هذا التخصص في تطوير الأدوية الحديثة وتحسين الأداء الرياضي وفهم طبيعة الحياة",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -779,7 +779,7 @@
         {
           "id": 22,
           "front": "ما هو الوزن الجزيئي لبروتين الجلوبيولين (Globulin) وما هي أنواعه؟",
-          "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنو��ع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
+          "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنواع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
@@ -821,13 +821,13 @@
         {
           "id": 28,
           "front": "ما هي النسبة التي تقدمها بروتينات البلازما في السعة التدرجية/المقاومة للتغير في حموضة الدم (Buffering capacity)؟",
-          "back": "توفر بروتينات البلازما حوالي $15\\%$ من السعة المنظمة (Buffering capacity) للدم، مثل تنظيم حمض اللاكتيك الناتج عن التمارين العضلية.",
+          "back": "توفر بروت��نات البلازما حوالي $15\\%$ من السعة المنظمة (Buffering capacity) للدم، مثل تنظيم حمض اللاكتيك الناتج عن التمارين العضلية.",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
         {
           "id": 29,
-          "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى��",
+          "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى؟",
           "back": "لأن ارتباط المواد (مثل الهرمونات، $Fe^{++}, Cu, Ca$, الفيتامينات) ببروتينات البلازما يمنع فقدانها السريع ونفاذها عبر البول في الكلى.",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -835,7 +835,7 @@
         {
           "id": 30,
           "front": "اذكر المراحل التطورية لتكون خلايا الدم الحمراء بدءًا من الخلية الجذعية.",
-          "back": "الخلية الجذعية (Stem cell) $\\rightarrow$ الخلية الأرومية الحمراء المبكرة (Proerythroblast) $\\rightarrow$ خلية سوية التصبغ مبكرة ومتوسطة ومتأخرة (Early, Intermediate, Late Normoblast) $\\rightarrow$ الخلايا الشبكية (Reticulocytes) $\\rightarrow$ خلايا الدم الحمراء الناضجة (Erythrocytes).",
+          "back": "الخلية الجذعية (Stem cell) $\\rightarrow$ الخلية الأرومية الحمراء المبكرة (Proerythroblast) $\\rightarrow$ خلية سوية التصبغ مبكرة ومتو��طة ومتأخرة (Early, Intermediate, Late Normoblast) $\\rightarrow$ الخلايا الشبكية (Reticulocytes) $\\rightarrow$ خلايا الدم الحمراء الناضجة (Erythrocytes).",
           "category": "كروت استذكار",
           "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
         },
@@ -856,7 +856,7 @@
         {
           "id": 33,
           "front": "ما المقصود بتكون الدم خارج النخاع (Extramedullary erythropoiesis) ومقتا يحدث؟",
-          "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد ��خلايا الدم.",
+          "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد لخلايا الدم.",
           "category": "كروت استذكار",
           "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
         },
@@ -885,14 +885,14 @@
           "id": 37,
           "front": "ما أهمية البروتينات والأحماض الأمينية ذات القيمة البيولوجية العالية في عملية تصنيع كريات الدم الحمراء؟",
           "back": "تعتبر ضرورية لبناء جزء الجلوبين (Globin) في جزيء الهيموجلوبين؛ ونقص البروتين لدى الأطفال يسبب الأنيميا.",
-          "category": "كروت استذكار",
+          "category": "كر��ت استذكار",
           "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
         },
         {
           "id": 38,
           "front": "مما يتكون جزيء ال��يموجلوبين (Hemoglobin)؟",
           "back": "يتكون من:\n- بروتوبورفيرين (Protoporphyrin) يحتوي على الحديد في الحالة حديدوزية ($Fe^{++}$).\n- جلوبين (Globin) يتكون من زوجين من السلاسل الببتيدية.",
-          "category": "ك��وت استذكار",
+          "category": "كروت استذكار",
           "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
         },
         {
@@ -905,7 +905,7 @@
         {
           "id": 40,
           "front": "ما هي الصورة التي يخزن بها الحديد المتاح في الجسم وأين يخزن؟",
-          "back": "يخزن على شكل فيريتين (Ferritin) في الكبد والطحال ونخاع العظام.",
+          "back": "يخز�� على شكل فيريتين (Ferritin) في الكبد والطحال ونخاع العظام.",
           "category": "كروت استذكار",
           "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
         },
@@ -960,14 +960,14 @@
         },
         {
           "id": 48,
-          "front": "ما هي المعادن الدقيقة التي تعمل كعوامل مساعدة (Cofactors) لتشكيل الهيموجلوبين؟",
+          "front": "ما هي المعادن الدقيقة التي تعمل كعوامل م��اعدة (Cofactors) لتشكيل الهيموجلوبين؟",
           "back": "النحاس (Copper) والكوبالت (Cobalt).",
           "category": "كروت استذكار",
           "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
         },
         {
           "id": 49,
-          "front": "كيف تؤثر الهرمونات المختلفة على عملية ت��نيع كرات الدم الحمراء (Erythropoiesis)؟",
+          "front": "كيف تؤثر الهرمونات المختلفة على عملية تصنيع كرات الدم الحمراء (Erythropoiesis)؟",
           "back": "- الهرمونات المحفزة: الأندروجين (Androgen)، الثايروكسين (Thyroxine)، والجلوكوكورتيكويد (Glucocorticoids).\n- الهرمونات المبطئة/المانعة: الإستروجين (Estrogen) يثبط الإنتاج.",
           "category": "كروت استذكار",
           "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
@@ -1002,7 +1002,7 @@
         },
         {
           "type": "mindmap",
-          "title": "الخريطة الذهنية الشاملة - المحاضرة الاولي",
+          "title": "الخريطة الذهنية الشاملة - المحا��رة الاولي",
           "fileSize": "991 KB",
           "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657970574-gzt7e7_المحاضرة_الاولي_Physiology_Blood_Mind_map_.pdf",
           "pageCount": "خريطة ذهنية عالية الدقة",
@@ -1027,7 +1027,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
+      "overview": "الالتهاب الحاد وهو رد فعل سري�� ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -1149,7 +1149,7 @@
           "id": 17,
           "front": "Why must the pyogenic membrane (الغشاء المولد للصديد) be excised during abscess surgery?",
           "back": "Removal prevents infection persistence, chronic abscess formation, and local recurrence.",
-          "category": "كروت است��كار",
+          "category": "كروت استذكار",
           "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
         },
         {
@@ -1210,7 +1210,7 @@
         },
         {
           "id": 26,
-          "front": "What type of tissue lines the tracks of both sinuses (جيوب صديدية) and fistulas (نواصير)?",
+          "front": "What type of tissue lines the tracks of both sinuses (جيوب صديدية) and fistulas (��واصير)?",
           "back": "Infected granulation tissue (نسيج حبيبي مخموج) lines these tracks.",
           "category": "كروت استذكار",
           "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -1431,7 +1431,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة وم��ددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+      "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -1476,7 +1476,7 @@
           "id": 6,
           "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
           "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
-          "category": "��روت استذكار",
+          "category": "كروت استذكار",
           "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
         },
         {
@@ -1491,7 +1491,7 @@
           "front": "What vascular mechanism causes Redness (الحمرة) in acute inflammation?",
           "back": "Redness (الحمرة) is caused by Vasodilation (اتساع الأوعية الدموية).",
           "category": "كروت استذكار",
-          "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+          "clinicalPearl": "علم الأمر��ض والالتهاب (Pathology & Inflammation)"
         },
         {
           "id": 9,
@@ -1719,7 +1719,7 @@
         },
         {
           "id": 41,
-          "front": "What are the four primary Beneficial Effects of Inflammation (الآثار النافعة للالتهاب)?",
+          "front": "What are the four primary Beneficial Effects of Inflammation (ال��ثار النافعة للالتهاب)?",
           "back": "The beneficial effects are toxin dilution, phagocytosis of pathogens, injury localization by fibrin, and stimulation of immunity.",
           "category": "كروت استذكار",
           "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -1830,7 +1830,9 @@
       "fileSize": "رابط Google Drive 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1JmnZcrjzPpQLHQSqyUB0J_yNRsoXg7qD/view?usp=sharing",
       "questionsCount": 89,
-      "updatedAt": "تم التحديث في ١١‏/١٠‏/٢٠٢٦، ٤:٠٥ م"
+      "updatedAt": "تم التحديث في ١١‏/١٠‏/٢٠٢٦، ٤:٠٥ م",
+      "id": "pathology",
+      "semester": "2"
     }
   },
   "brokenLinks": [],
@@ -2042,7 +2044,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "��وبايل آيفون (iPhone)",
+      "deviceType": "موبايل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
       "isDailyUnique": true,
@@ -2465,7 +2467,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أن��رويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -2627,7 +2629,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أند��ويد (Android)",
+      "deviceType": "موبايل أندرويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -2834,7 +2836,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موب��يل آيفون (iPhone)",
+      "deviceType": "موبايل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
       "isDailyUnique": true,
@@ -3077,7 +3079,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبا��ل أندرويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -4823,7 +4825,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أن��رويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -5255,7 +5257,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أند��ويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -5372,7 +5374,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبا��ل أندرويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -6731,7 +6733,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أند��ويد (Android)",
       "page": "/subject/anatomy",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -7091,7 +7093,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "موبا��ل أندرويد (Android)",
+      "deviceType": "موبايل أندرويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; U; Android 15; en-eg; CPH2577 Build/AP3A.240617.008) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5970.168 Mobile Safari/537.36 HeyTapBrowser/45.14.8.1",
       "isDailyUnique": false,
@@ -7253,7 +7255,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "م��بايل آيفون (iPhone)",
+      "deviceType": "موبايل آيفون (iPhone)",
       "page": "/year/1",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1",
       "isDailyUnique": false,
@@ -7532,7 +7534,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أند��ويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -7673,6 +7675,123 @@
       "isDailyUnique": false,
       "id": "vis-1791870559403-xbwq",
       "timestamp": "2026-10-13T05:49:19.403Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791871655256-id9x",
+      "timestamp": "2026-10-13T06:07:35.256Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1791871685177-cfmq",
+      "timestamp": "2026-10-13T06:08:05.177Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1791871705063-918j",
+      "timestamp": "2026-10-13T06:08:25.063Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791871722381-b5h0",
+      "timestamp": "2026-10-13T06:08:42.381Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791871736609-ju4z",
+      "timestamp": "2026-10-13T06:08:56.609Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": true,
+      "id": "vis-1791873013956-yo4e",
+      "timestamp": "2026-10-13T06:30:13.956Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/year/1",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873042187-rue3",
+      "timestamp": "2026-10-13T06:30:42.187Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "مو��ايل آيفون (iPhone)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873048802-0i3g",
+      "timestamp": "2026-10-13T06:30:48.802Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/lecture/lec-1791713733553",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873056025-ltvt",
+      "timestamp": "2026-10-13T06:30:56.025Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/subject/anatomy",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873137433-qslp",
+      "timestamp": "2026-10-13T06:32:17.433Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/year/1",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873138786-7pbp",
+      "timestamp": "2026-10-13T06:32:18.786Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873151299-tagb",
+      "timestamp": "2026-10-13T06:32:31.299Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل آيفون (iPhone)",
+      "page": "/year/1",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
+      "isDailyUnique": false,
+      "id": "vis-1791873198161-3gw9",
+      "timestamp": "2026-10-13T06:33:18.161Z",
       "dateStr": "2026-10-13"
     }
   ],
@@ -7877,7 +7996,7 @@
     },
     {
       "lectureTitle": "الخر��طة الذهنية الشاملة - Inflammation 1",
-      "subjectTitle": "علم الأمراض (باثولوجي)",
+      "subjectTitle": "علم الأمراض (��اثولوجي)",
       "fileType": "خريطة ذهنية",
       "fileName": "الخر��طة الذهنية الشاملة - Inflammation 1",
       "id": "dl-1791718804144-c97k",
@@ -7939,7 +8058,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "lectureTitle": "الخريطة الذهنية الشاملة - المحاضرة الاولي",
+      "lectureTitle": "الخريطة الذهنية الشاملة - ال��حاضرة الاولي",
       "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
       "fileType": "خريطة ذهنية",
       "fileName": "الخريطة الذهنية الشاملة - المحاضرة الاولي",
@@ -8299,7 +8418,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
+      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باث��لوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
@@ -8389,7 +8508,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "lectureTitle": "عروض بوربوينت - المحاضرة الاولي",
+      "lectureTitle": "عروض بوربوينت - المحاضرة ا��اولي",
       "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
       "fileType": "عرض بوربوينت PPT",
       "fileName": "عروض بوربوينت - المحاضرة الاولي",
@@ -8524,7 +8643,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
+      "lectureTitle": "بنك أسئ��ة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
@@ -8652,7 +8771,7 @@
     {
       "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
-      "fileType": "ملف أسئلة ال��ويزات PDF",
+      "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
       "id": "dl-1791817453682-jn7f",
       "timestamp": "2026-10-12T15:04:13.682Z",
@@ -8689,7 +8808,7 @@
       "lectureTitle": "الخريطة الذهنية الشاملة - المحاضرة الاولي",
       "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
       "fileType": "خريطة ذهنية",
-      "fileName": "الخريطة الذهنية الشاملة - المحاضرة الاولي",
+      "fileName": "الخريطة الذهنية الشاملة - المحاض��ة الاولي",
       "id": "dl-1791822459570-5qey",
       "timestamp": "2026-10-12T16:27:39.570Z",
       "dateStr": "2026-10-12"
@@ -8704,7 +8823,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "lectureTitle": "بنك أسئلة الكويز��ت المجمعة - علم الأمراض (باثولوجي)",
+      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
@@ -8801,6 +8920,24 @@
       "id": "dl-1791870586906-dlwq",
       "timestamp": "2026-10-13T05:49:46.906Z",
       "dateStr": "2026-10-13"
+    },
+    {
+      "lectureTitle": "المحاضرة الاولي والتانية (الاتجاهات)",
+      "subjectTitle": "تشريح (اناتومي)",
+      "fileType": "ملخص PDF",
+      "fileName": "المحاضرة الاولي والتانية (الاتجاهات)",
+      "id": "dl-1791873069113-e1ux",
+      "timestamp": "2026-10-13T06:31:09.113Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "lectureTitle": "الخريطة الذهنية الشاملة - المحاضرة الاولي والتانية (الاتجاهات)",
+      "subjectTitle": "تشريح (اناتومي)",
+      "fileType": "خريطة ذهنية",
+      "fileName": "الخريطة الذهنية الشاملة - المحاضرة الاولي والتانية (الاتجاهات)",
+      "id": "dl-1791873108305-25bm",
+      "timestamp": "2026-10-13T06:31:48.305Z",
+      "dateStr": "2026-10-13"
     }
   ],
   "subjects": [
@@ -8846,7 +8983,7 @@
     {
       "id": "microbiology",
       "yearId": "2",
-      "yearName": "السنة الثان��ة",
+      "yearName": "السنة الثانية",
       "slug": "microbiology",
       "title": "الأحياء الدقيقة (ميكروبيولوجي)",
       "englishTitle": "Medical Microbiology",
@@ -8863,7 +9000,7 @@
       "slug": "pharmacology",
       "title": "علم الأدوية (فارماكولوجي)",
       "englishTitle": "Clinical Pharmacology",
-      "description": "تصنيف المجموعات الدوائية، حركية الدواء وتأثيراته، ح��اب الجرعات بدقة، والمسؤوليات التمريضية قبل إعطاء الدواء.",
+      "description": "تصنيف المجموعات الدوائية، حركية الدواء وتأثيراته، ح��اب الجرعات بدقة، والمسؤولي��ت التمريضية قبل إعطاء الدواء.",
       "icon": "Pill",
       "color": "sky",
       "totalLectures": 0,
@@ -8935,5 +9072,6 @@
       "totalQuizzes": 0
     }
   ],
-  "deletedLectureIds": []
+  "deletedLectureIds": [],
+  "deletedQuizIds": []
 }

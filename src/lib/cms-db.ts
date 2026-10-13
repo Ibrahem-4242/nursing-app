@@ -732,19 +732,38 @@ export const CmsService = {
     const index = store.subjects.findIndex((s) => s.id === subjectData.id);
     if (index === -1) return null;
 
-    const { syncItemsSemester, ...cleanData } = subjectData;
-    store.subjects[index] = { ...store.subjects[index], ...cleanData };
+    const yearNames: Record<string, string> = {
+      '1': 'السنة الأولى',
+      '2': 'السنة الثانية',
+      '3': 'السنة الثالثة',
+      '4': 'السنة الرابعة',
+    };
 
-    // If semester was explicitly set to '1' or '2' and syncItemsSemester is requested, update lectures & quizzes of this subject
-    if (syncItemsSemester && (cleanData.semester === '1' || cleanData.semester === '2')) {
-      for (const lec of store.lectures || []) {
-        if (lec.subjectId === subjectData.id) {
+    const { syncItemsSemester, ...cleanData } = subjectData;
+    if (cleanData.yearId) {
+      cleanData.yearName = yearNames[cleanData.yearId] || 'السنة الأولى';
+    }
+    store.subjects[index] = { ...store.subjects[index], ...cleanData };
+    const updatedSub = store.subjects[index];
+
+    // Sync title, yearId, and optionally semester across lectures & quizzes of this subject
+    for (const lec of store.lectures || []) {
+      if (lec.subjectId === subjectData.id) {
+        if (cleanData.title) lec.subjectTitle = updatedSub.title;
+        if (cleanData.yearId) {
+          lec.yearId = updatedSub.yearId;
+          lec.yearTitle = updatedSub.yearName;
+        }
+        if (syncItemsSemester && (cleanData.semester === '1' || cleanData.semester === '2')) {
           lec.semester = cleanData.semester;
         }
       }
-      if (store.subjectQuizzes) {
-        for (const q of Object.values(store.subjectQuizzes)) {
-          if (q.subjectId === subjectData.id) {
+    }
+    if (store.subjectQuizzes) {
+      for (const q of Object.values(store.subjectQuizzes)) {
+        if (q.subjectId === subjectData.id) {
+          if (cleanData.title) q.subjectTitle = updatedSub.title;
+          if (syncItemsSemester && (cleanData.semester === '1' || cleanData.semester === '2')) {
             q.semester = cleanData.semester;
           }
         }

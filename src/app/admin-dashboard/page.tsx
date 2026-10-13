@@ -59,6 +59,16 @@ export default function AdminDashboardPage() {
   const [quizzesList, setQuizzesList] = useState<any[]>([]);
   const [isLoadingSubjectQuizzes, setIsLoadingSubjectQuizzes] = useState(false);
 
+  // Edit Quiz Modal state
+  const [editingQuiz, setEditingQuiz] = useState<any | null>(null);
+  const [editQuizTitle, setEditQuizTitle] = useState('');
+  const [editQuizSubjectId, setEditQuizSubjectId] = useState('anatomy');
+  const [editQuizSemester, setEditQuizSemester] = useState<'1' | '2'>('1');
+  const [editQuizQuestionsCount, setEditQuizQuestionsCount] = useState(150);
+  const [editQuizDriveUrl, setEditQuizDriveUrl] = useState('');
+  const [editQuizFile, setEditQuizFile] = useState<File | null>(null);
+  const [isSavingQuizEdit, setIsSavingQuizEdit] = useState(false);
+
   // Stats
   const [stats, setStats] = useState({
     todayVisitors: 0,
@@ -78,7 +88,7 @@ export default function AdminDashboardPage() {
   const [adminNote, setAdminNote] = useState('');
   const [overview, setOverview] = useState('');
   const [isFree, setIsFree] = useState(true);
-  const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
+  const [uploadMode, setUploadMode] = useState<'file' | 'link' | 'none'>('file');
   const [externalPdfUrl, setExternalPdfUrl] = useState('');
   const [pptUploadMode, setPptUploadMode] = useState<'file' | 'link'>('file');
   const [externalPptUrl, setExternalPptUrl] = useState('');
@@ -109,6 +119,14 @@ export default function AdminDashboardPage() {
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectFeedback, setSubjectFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Edit Subject Modal state
+  const [editingSubject, setEditingSubject] = useState<any | null>(null);
+  const [editSubTitle, setEditSubTitle] = useState('');
+  const [editSubYearId, setEditSubYearId] = useState('1');
+  const [editSubSemester, setEditSubSemester] = useState<'1' | '2' | 'both'>('1');
+  const [editSubDesc, setEditSubDesc] = useState('');
+  const [isSavingSubjectEdit, setIsSavingSubjectEdit] = useState(false);
+
   // Lectures state
   const [lectures, setLectures] = useState<any[]>([]);
   const [lectureSemesterFilter, setLectureSemesterFilter] = useState<'all' | '1' | '2'>('all');
@@ -116,6 +134,7 @@ export default function AdminDashboardPage() {
   const [editingLecture, setEditingLecture] = useState<any | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [editSubjectId, setEditSubjectId] = useState('anatomy');
   const [editLectureNumber, setEditLectureNumber] = useState(1);
   const [editSemester, setEditSemester] = useState<'1' | '2'>('1');
   const [editAdminNote, setEditAdminNote] = useState('');
@@ -125,7 +144,11 @@ export default function AdminDashboardPage() {
   const [editPptUrl, setEditPptUrl] = useState('');
   const [editMindmapUrl, setEditMindmapUrl] = useState('');
   const [editAudioUrl, setEditAudioUrl] = useState('');
+  const [editRemovePdf, setEditRemovePdf] = useState(false);
+  const [editRemovePpt, setEditRemovePpt] = useState(false);
+  const [editRemoveMindmap, setEditRemoveMindmap] = useState(false);
   const [editRemoveAudio, setEditRemoveAudio] = useState(false);
+  const [editRemoveFlashcards, setEditRemoveFlashcards] = useState(false);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPptFile, setEditPptFile] = useState<File | null>(null);
   const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
@@ -364,6 +387,47 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const openEditSubjectModal = (sub: any) => {
+    setEditingSubject(sub);
+    setEditSubTitle(sub.title || '');
+    setEditSubYearId(sub.yearId || '1');
+    setEditSubSemester(sub.semester === '2' ? '2' : sub.semester === 'both' ? 'both' : '1');
+    setEditSubDesc(sub.description || '');
+  };
+
+  const handleSaveSubjectEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubject || !editSubTitle.trim()) return;
+    setIsSavingSubjectEdit(true);
+    try {
+      const res = await fetch('/api/admin/subjects', {
+        method: 'PUT',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          id: editingSubject.id,
+          title: editSubTitle.trim(),
+          yearId: editSubYearId,
+          semester: editSubSemester,
+          description: editSubDesc.trim(),
+          syncItemsSemester: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingSubject(null);
+        loadSubjects();
+        loadLectures();
+        loadSubjectQuizzes();
+      } else {
+        alert(data.message || 'فشل تعديل المادة');
+      }
+    } catch {
+      alert('حدث خطأ أثناء تعديل المادة');
+    } finally {
+      setIsSavingSubjectEdit(false);
+    }
+  };
+
   const handleDeleteSubject = async (id: string, title: string) => {
     if (!confirm(`هل أنت متأكد من حذف مادة "${title}" نهائياً من الموقع؟`)) return;
     setSubjects((prev) => prev.filter((s) => s.id !== id));
@@ -481,31 +545,39 @@ export default function AdminDashboardPage() {
   // Upload lecture handler
   const handleUploadLecture = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file && !externalPdfUrl.trim()) {
-      setUploadFeedback({ type: 'error', message: 'يرجى اختيار ملف PDF أو وضع رابط تحميل مباشر' });
-      return;
-    }
     if (!lectureTitle.trim()) {
       setUploadFeedback({ type: 'error', message: 'يرجى إدخال اسم المحاضرة' });
       return;
     }
 
-    // Validate non-audio upload payload size before sending to prevent serverless 413 drop
-    if (file) {
-      const nonAudioBytes =
-        (file?.size || 0) +
-        (ankiFile?.size || 0) +
-        (pptFile?.size || 0) +
-        (mindmapFile?.size || 0);
-      const nonAudioMb = nonAudioBytes / (1024 * 1024);
+    const hasPdf = (uploadMode === 'file' && !!file) || (uploadMode === 'link' && !!externalPdfUrl.trim());
+    const hasPpt = (pptUploadMode === 'file' && !!pptFile) || (pptUploadMode === 'link' && !!externalPptUrl.trim());
+    const hasMindmap = (mindmapUploadMode === 'file' && !!mindmapFile) || (mindmapUploadMode === 'link' && !!externalMindmapUrl.trim());
+    const hasAudio = (audioUploadMode === 'file' && !!audioFile) || (audioUploadMode === 'link' && !!externalAudioUrl.trim());
+    const hasAnki = !!ankiFile || !!parsedCardsJson;
 
-      if (nonAudioMb > 4.5) {
-        setUploadFeedback({
-          type: 'error',
-          message: `حجم ملفات الـ PDF والمرفقات (${nonAudioMb.toFixed(1)} MB) يتجاوز الحد الأقصى في الرفع المباشر (4.5 MB). يمكنك ضغط الـ PDF أو استخدام خيار "رابط خارجي مباشر (Google Drive)" لنشر الملف بدون أي حدود!`,
-        });
-        return;
-      }
+    if (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki) {
+      setUploadFeedback({
+        type: 'error',
+        message: 'يرجى رفع محتوى واحد على الأقل للمحاضرة (ملف PDF أو صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية)',
+      });
+      return;
+    }
+
+    // Validate non-audio upload payload size before sending to prevent serverless 413 drop
+    const nonAudioBytes =
+      (uploadMode === 'file' && file ? file.size : 0) +
+      (ankiFile?.size || 0) +
+      (pptUploadMode === 'file' && pptFile ? pptFile.size : 0) +
+      (mindmapUploadMode === 'file' && mindmapFile ? mindmapFile.size : 0);
+    const nonAudioMb = nonAudioBytes / (1024 * 1024);
+
+    if (nonAudioMb > 4.5) {
+      setUploadFeedback({
+        type: 'error',
+        message: `حجم ملفات الـ PDF والمرفقات (${nonAudioMb.toFixed(1)} MB) يتجاوز الحد الأقصى في الرفع المباشر (4.5 MB). يمكنك ضغط الـ PDF أو استخدام خيار "رابط خارجي مباشر (Google Drive)" لنشر الملف بدون أي حدود!`,
+      });
+      return;
     }
 
     if (audioUploadMode === 'file' && audioFile) {
@@ -524,8 +596,8 @@ export default function AdminDashboardPage() {
 
     try {
       const formData = new FormData();
-      if (file) formData.append('file', file);
-      if (externalPdfUrl.trim()) formData.append('externalPdfUrl', externalPdfUrl.trim());
+      if (uploadMode === 'file' && file) formData.append('file', file);
+      if (uploadMode === 'link' && externalPdfUrl.trim()) formData.append('externalPdfUrl', externalPdfUrl.trim());
       if (ankiFile) formData.append('ankiFile', ankiFile);
       if (parsedCardsJson) formData.append('flashcardsJson', parsedCardsJson);
       
@@ -542,12 +614,7 @@ export default function AdminDashboardPage() {
       }
 
       if (audioUploadMode === 'file' && audioFile) {
-        const currentPayloadBytes =
-          (file?.size || 0) +
-          (ankiFile?.size || 0) +
-          (pptFile?.size || 0) +
-          (mindmapFile?.size || 0) +
-          audioFile.size;
+        const currentPayloadBytes = nonAudioBytes + audioFile.size;
 
         // If audio file or total payload exceeds 3.2 MB, upload audio directly to GitHub Cloud from browser first
         if (currentPayloadBytes > 3.2 * 1024 * 1024 || audioFile.size > 2.5 * 1024 * 1024) {
@@ -611,7 +678,7 @@ export default function AdminDashboardPage() {
       if (data && data.success) {
         setUploadFeedback({
           type: 'success',
-          message: `تم رفع المحاضرة ووضع العلامة المائية ونشرها بنجاح! 🚀 ${
+          message: `تم رفع المحاضرة ونشر المحتوى المختار بنجاح! 🚀 ${
             data.flashcardsCount ? `(تم استخراج ${data.flashcardsCount} بطاقة فلاش كاردز 🎴)` : ''
           }`,
         });
@@ -788,6 +855,80 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Open Edit Quiz Modal
+  const openEditQuizModal = (quiz: any) => {
+    setEditingQuiz(quiz);
+    setEditQuizTitle(quiz.title || '');
+    setEditQuizSubjectId(quiz.subjectId || '');
+    setEditQuizSemester(quiz.semester === '2' ? '2' : '1');
+    setEditQuizQuestionsCount(quiz.questionsCount || 50);
+    setEditQuizDriveUrl(quiz.downloadUrl?.startsWith('http') ? quiz.downloadUrl : '');
+    setEditQuizFile(null);
+  };
+
+  // Save Quiz Edit (Supports Title, Subject, Semester, Questions Count, URL, or File replacement)
+  const handleSaveQuizEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuiz) return;
+
+    if (editQuizFile && editQuizFile.size > 4.5 * 1024 * 1024) {
+      alert('حجم ملف الكويز الجديد أكبر من 4.5 MB. يرجى ضغط الملف أو استخدام رابط Google Drive مباشر.');
+      return;
+    }
+
+    setIsSavingQuizEdit(true);
+    try {
+      const quizId = editingQuiz.id || editingQuiz.subjectId;
+      if (editQuizFile) {
+        const formData = new FormData();
+        formData.append('id', quizId);
+        formData.append('title', editQuizTitle.trim());
+        formData.append('subjectId', editQuizSubjectId);
+        formData.append('semester', editQuizSemester);
+        formData.append('questionsCount', String(editQuizQuestionsCount));
+        formData.append('file', editQuizFile);
+        formData.append('watermark', String(quizApplyWatermark));
+
+        const res = await fetch('/api/admin/upload-quiz-file', {
+          method: 'PUT',
+          headers: getAdminHeaders(),
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEditingQuiz(null);
+          loadSubjectQuizzes();
+        } else {
+          alert(data.message || 'فشل تعديل ملف الكويز');
+        }
+      } else {
+        const res = await fetch('/api/admin/upload-quiz-file', {
+          method: 'PATCH',
+          headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            id: quizId,
+            title: editQuizTitle.trim(),
+            subjectId: editQuizSubjectId,
+            semester: editQuizSemester,
+            questionsCount: Number(editQuizQuestionsCount) || 50,
+            downloadUrl: editQuizDriveUrl.trim() || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEditingQuiz(null);
+          loadSubjectQuizzes();
+        } else {
+          alert(data.message || 'فشل تعديل ملف الكويز');
+        }
+      }
+    } catch (err: any) {
+      alert(err?.message || 'حدث خطأ أثناء حفظ تعديلات ملف الكويز');
+    } finally {
+      setIsSavingQuizEdit(false);
+    }
+  };
+
   // 1-Click Toggle Quiz Semester ('1' <-> '2')
   const handleToggleQuizSemester = async (quizId: string, currentSem: string) => {
     const nextSem: '1' | '2' = currentSem === '2' ? '1' : '2';
@@ -943,19 +1084,24 @@ export default function AdminDashboardPage() {
     setEditingLecture(lec);
     setEditTitle(lec.title || '');
     setEditLectureNumber(lec.lectureNumber || 1);
+    setEditSubjectId(lec.subjectId || '');
     setEditSemester(lec.semester === '2' ? '2' : '1');
     setEditAdminNote(lec.adminNote || '');
     setEditOverview(lec.overview || '');
     setEditIsFree(lec.isFree !== false);
-    const pdf = lec.files?.find((f: any) => f.type === 'pdf') || lec.files?.[0];
-    const ppt = lec.files?.find((f: any) => f.type === 'ppt');
-    const mm = lec.files?.find((f: any) => f.type === 'mindmap');
-    const aud = lec.files?.find((f: any) => f.type === 'audio');
-    setEditPdfUrl(pdf?.downloadUrl?.startsWith('http') ? pdf.downloadUrl : '');
-    setEditPptUrl(ppt?.downloadUrl?.startsWith('http') ? ppt.downloadUrl : '');
-    setEditMindmapUrl(mm?.downloadUrl?.startsWith('http') ? mm.downloadUrl : '');
-    setEditAudioUrl(aud?.downloadUrl?.startsWith('http') ? aud.downloadUrl : '');
+    const pdf = lec.files?.find((f: any) => f.type === 'pdf' || f.fileType === 'summary');
+    const ppt = lec.files?.find((f: any) => f.type === 'ppt' || f.fileType === 'presentation');
+    const mm = lec.files?.find((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
+    const aud = lec.files?.find((f: any) => f.type === 'audio' || f.fileType === 'audio');
+    setEditPdfUrl((pdf?.downloadUrl || pdf?.fileUrl)?.startsWith('http') ? (pdf.downloadUrl || pdf.fileUrl) : '');
+    setEditPptUrl((ppt?.downloadUrl || ppt?.fileUrl)?.startsWith('http') ? (ppt.downloadUrl || ppt.fileUrl) : '');
+    setEditMindmapUrl((mm?.downloadUrl || mm?.fileUrl)?.startsWith('http') ? (mm.downloadUrl || mm.fileUrl) : '');
+    setEditAudioUrl((aud?.downloadUrl || aud?.fileUrl)?.startsWith('http') ? (aud.downloadUrl || aud.fileUrl) : '');
+    setEditRemovePdf(false);
+    setEditRemovePpt(false);
+    setEditRemoveMindmap(false);
     setEditRemoveAudio(false);
+    setEditRemoveFlashcards(false);
     setEditPdfFile(null);
     setEditPptFile(null);
     setEditMindmapFile(null);
@@ -965,7 +1111,7 @@ export default function AdminDashboardPage() {
     setEditParsedCardsCount(0);
   };
 
-  // Save Lecture Edit (Supports Text Fields + Replacing Files)
+  // Save Lecture Edit (Supports Text Fields + Replacing/Removing Files)
   const handleSaveLectureEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLecture) return;
@@ -999,6 +1145,7 @@ export default function AdminDashboardPage() {
         formData.append('id', editingLecture.id);
         formData.append('title', editTitle.trim());
         formData.append('lectureNumber', String(editLectureNumber));
+        if (editSubjectId) formData.append('subjectId', editSubjectId);
         formData.append('semester', editSemester);
         formData.append('adminNote', editAdminNote.trim());
         formData.append('overview', editOverview.trim());
@@ -1008,7 +1155,11 @@ export default function AdminDashboardPage() {
         if (editMindmapUrl.trim()) formData.append('mindmapUrl', editMindmapUrl.trim());
         if (resolvedAudioUrl) formData.append('audioUrl', resolvedAudioUrl);
         if (resolvedAudioSize) formData.append('audioFileSize', resolvedAudioSize);
+        if (editRemovePdf) formData.append('removePdf', 'true');
+        if (editRemovePpt) formData.append('removePpt', 'true');
+        if (editRemoveMindmap) formData.append('removeMindmap', 'true');
         if (editRemoveAudio) formData.append('removeAudio', 'true');
+        if (editRemoveFlashcards) formData.append('removeFlashcards', 'true');
         if (editPdfFile) formData.append('pdfFile', editPdfFile);
         if (editPptFile) formData.append('pptFile', editPptFile);
         if (editMindmapFile) formData.append('mindmapFile', editMindmapFile);
@@ -1037,6 +1188,7 @@ export default function AdminDashboardPage() {
             id: editingLecture.id,
             title: editTitle.trim(),
             lectureNumber: editLectureNumber,
+            subjectId: editSubjectId || undefined,
             semester: editSemester,
             adminNote: editAdminNote.trim(),
             overview: editOverview.trim(),
@@ -1046,7 +1198,11 @@ export default function AdminDashboardPage() {
             mindmapUrl: editMindmapUrl.trim() || undefined,
             audioUrl: resolvedAudioUrl || undefined,
             audioFileSize: resolvedAudioSize || undefined,
+            removePdf: editRemovePdf,
+            removePpt: editRemovePpt,
+            removeMindmap: editRemoveMindmap,
             removeAudio: editRemoveAudio,
+            removeFlashcards: editRemoveFlashcards,
             flashcardsJson: editParsedCardsJson || undefined,
           }),
         });
@@ -1533,9 +1689,9 @@ export default function AdminDashboardPage() {
               {/* PDF Upload Mode Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  طريقة إضافة ملف المحاضرة (PDF):
+                  طريقة إضافة ملف المحاضرة (PDF) — <span className="text-teal-600 dark:text-teal-400">اختياري لو بترفع صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية فقط</span>:
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
                   <button
                     type="button"
                     onClick={() => setUploadMode('file')}
@@ -1559,7 +1715,24 @@ export default function AdminDashboardPage() {
                     }`}
                   >
                     <ExternalLink className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    <span>رابط خارجي مباشر (Google Drive / سحابي) - بدون حد للحجم 🚀</span>
+                    <span>رابط خارجي مباشر (Google Drive) 🚀</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadMode('none');
+                      setFile(null);
+                      setExternalPdfUrl('');
+                    }}
+                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                      uploadMode === 'none'
+                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    <span>بدون ملف PDF (رفع صوت / PPT / كروت / خريطة فقط) ✨</span>
                   </button>
                 </div>
 
@@ -1593,9 +1766,21 @@ export default function AdminDashboardPage() {
                         <p className="text-xs text-slate-500">
                           الحجم: {(file.size / (1024 * 1024)).toFixed(2)} MB • جاهز للرفع والختم
                         </p>
-                        <span className="inline-block text-[11px] text-teal-600 dark:text-teal-400 font-bold underline">
-                          اضغط لتغيير الملف
-                        </span>
+                        <div className="flex items-center justify-center gap-4 pt-1">
+                          <span className="inline-block text-[11px] text-teal-600 dark:text-teal-400 font-bold underline">
+                            اضغط لتغيير الملف
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFile(null);
+                            }}
+                            className="text-[11px] text-rose-500 font-bold hover:underline"
+                          >
+                            إلغاء ملف الـ PDF
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -1604,16 +1789,16 @@ export default function AdminDashboardPage() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-900 dark:text-white">
-                            اضغط هنا لاختيار ملف PDF أو اسحبه وأفلته هنا
+                            اضغط هنا لاختيار ملف PDF أو اسحبه وأفلته هنا (أو اتركه فارغاً وارفع أي ملف بالأسفل)
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            الحد الأقصى للملف: 4.5 MB (لأفضل سرعة رفع وعرض) • تطبق العلامة المائية تلقائياً
+                            الحد الأقصى للملف المباشر: 4.5 MB • تطبق العلامة المائية تلقائياً
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : uploadMode === 'link' ? (
                   <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300 text-xs font-bold">
                       <ExternalLink className="w-4 h-4" />
@@ -1633,22 +1818,29 @@ export default function AdminDashboardPage() {
                       <p>3. انسخ الرابط والصقه هنا مباشرة. سيعمل للطلاب فوراً وبسرعة فائقة!</p>
                     </div>
                   </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/60 text-xs font-bold text-violet-800 dark:text-violet-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                    <span>تم اختيار نشر المحاضرة بدون ملف PDF — اختر أي محتوى بالأسفل (صوت 🎧 أو بوربوينت 📊 أو كروت Anki 🎴 أو خريطة ذهنية 🧠) وسيتم عرض ما ترفعه فقط للطلاب!</span>
+                  </div>
                 )}
               </div>
 
               {/* Watermark Checkbox */}
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60">
-                <input
-                  type="checkbox"
-                  id="watermark-toggle"
-                  checked={applyWatermark}
-                  onChange={(e) => setApplyWatermark(e.target.checked)}
-                  className="w-5 h-5 text-teal-600 rounded-lg border-slate-300 focus:ring-teal-500"
-                />
-                <label htmlFor="watermark-toggle" className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
-                  تطبيق علامة مائية تلقائية (Watermark) باسم "منصة ملخصات تمريض" على جميع صفحات الـ PDF لحفظ الحقوق الفكرية
-                </label>
-              </div>
+              {uploadMode === 'file' && (
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60">
+                  <input
+                    type="checkbox"
+                    id="watermark-toggle"
+                    checked={applyWatermark}
+                    onChange={(e) => setApplyWatermark(e.target.checked)}
+                    className="w-5 h-5 text-teal-600 rounded-lg border-slate-300 focus:ring-teal-500"
+                  />
+                  <label htmlFor="watermark-toggle" className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                    تطبيق علامة مائية تلقائية (Watermark) باسم "منصة ملخصات تمريض" على جميع صفحات الـ PDF لحفظ الحقوق الفكرية
+                  </label>
+                </div>
+              )}
 
               {/* Additional Study Materials (Anki .apkg, PowerPoint, Mindmap, Audio) */}
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
@@ -2124,7 +2316,22 @@ export default function AdminDashboardPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isUploading || (uploadMode === 'file' ? !file : !externalPdfUrl.trim()) || !lectureTitle.trim()}
+                disabled={
+                  isUploading ||
+                  !lectureTitle.trim() ||
+                  !(
+                    (uploadMode === 'file' && !!file) ||
+                    (uploadMode === 'link' && !!externalPdfUrl.trim()) ||
+                    (pptUploadMode === 'file' && !!pptFile) ||
+                    (pptUploadMode === 'link' && !!externalPptUrl.trim()) ||
+                    (mindmapUploadMode === 'file' && !!mindmapFile) ||
+                    (mindmapUploadMode === 'link' && !!externalMindmapUrl.trim()) ||
+                    (audioUploadMode === 'file' && !!audioFile) ||
+                    (audioUploadMode === 'link' && !!externalAudioUrl.trim()) ||
+                    !!ankiFile ||
+                    !!parsedCardsJson
+                  )
+                }
                 className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-base shadow-xl shadow-teal-600/25 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isUploading ? (
@@ -2153,7 +2360,7 @@ export default function AdminDashboardPage() {
                   <span>المحاضرات والمذكرات الحالية ({lectures.length})</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  يمكنك تحديد الفصل الدراسي (سمستر 1 أو سمستر 2) لأي محاضرة بضغطة زر واحدة، وسينعكس في الموقع فوراً!
+                  يمكنك تعديل أي تفصيلة في المحاضرة (الاسم، المادة، السمستر، أو إضافة/استبدال/حذف أي ملف داخلها) بضغطة زر!
                 </p>
               </div>
 
@@ -2233,6 +2440,18 @@ export default function AdminDashboardPage() {
                       .filter((lec) => lectureSemesterFilter === 'all' || (lec.semester || '1') === lectureSemesterFilter)
                       .map((lec) => {
                         const lecSem = lec.semester || '1';
+                        const hasPdfFile = lec.files?.some(
+                          (f: any) => (f.type === 'pdf' || f.fileType === 'summary') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
+                        );
+                        const hasPptFile = lec.files?.some(
+                          (f: any) => (f.type === 'ppt' || f.fileType === 'presentation' || f.fileType === 'powerpoint') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
+                        );
+                        const hasMindmapFile = lec.files?.some(
+                          (f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
+                        );
+                        const hasAudioFile = lec.files?.some(
+                          (f: any) => (f.type === 'audio' || f.fileType === 'audio') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
+                        );
                         return (
                           <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
                             <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
@@ -2255,7 +2474,7 @@ export default function AdminDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleLectureSemester(lec.id, lecSem)}
-                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border ${
+                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border whitespace-nowrap ${
                                   lecSem === '2'
                                     ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
                                     : 'bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100'
@@ -2268,31 +2487,29 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3.5 px-4">
                               <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px]">
-                                  PDF 📄
-                                </span>
-                                {lec.files?.some((f: any) => (f.fileType === 'powerpoint' || f.type === 'ppt') && f.fileUrl && f.fileUrl !== '#') && (
-                                  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]">
+                                {hasPdfFile && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px] whitespace-nowrap">
+                                    PDF 📄
+                                  </span>
+                                )}
+                                {hasPptFile && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] whitespace-nowrap">
                                     PPT 📊
                                   </span>
                                 )}
-                                {lec.files?.some((f: any) => (f.fileType === 'mindmap' || f.type === 'mindmap') && f.fileUrl && f.fileUrl !== '#') && (
-                                  <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+                                {hasMindmapFile && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] whitespace-nowrap">
                                     Mindmap 🧠
                                   </span>
                                 )}
-                                {lec.files?.some((f: any) => f.type === 'audio' && f.fileUrl && f.fileUrl !== '#') && (
-                                  <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px]">
+                                {hasAudioFile && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px] whitespace-nowrap">
                                     Audio 🎧
                                   </span>
                                 )}
-                                {lec.flashcards?.length > 0 ? (
-                                  <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
+                                {lec.flashcards?.length > 0 && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px] whitespace-nowrap">
                                     {lec.flashcards.length} كارت 🎴
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 font-normal text-[10px]">
-                                    بدون كروت
                                   </span>
                                 )}
                               </div>
@@ -2330,7 +2547,7 @@ export default function AdminDashboardPage() {
                                 <button
                                   onClick={() => openEditModal(lec)}
                                   className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition"
-                                  title="تعديل بيانات المحاضرة واستبدال الملفات"
+                                  title="تعديل بيانات المحاضرة واستبدال أو حذف الملفات"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
@@ -2387,10 +2604,10 @@ export default function AdminDashboardPage() {
             {/* Edit Lecture Modal */}
             {editingLecture && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" dir="rtl">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white">تعديل بيانات المحاضرة 📝</h3>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">تعديل شامل للمحاضرة ومحتوياتها 📝</h3>
                       <p className="text-xs text-slate-500">{editingLecture.subjectTitle}</p>
                     </div>
                     <button
@@ -2402,17 +2619,36 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <form onSubmit={handleSaveLectureEdit} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        اسم المحاضرة:
-                      </label>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          اسم المحاضرة:
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          المادة الأكاديمية:
+                        </label>
+                        <select
+                          value={editSubjectId}
+                          onChange={(e) => setEditSubjectId(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                        >
+                          {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
+                            <option key={sub.id} value={sub.id}>
+                              {sub.title} ({sub.yearName || `فرقة ${sub.yearId}`})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2476,31 +2712,49 @@ export default function AdminDashboardPage() {
                         نبذة وشرح مختصر للمحاضرة:
                       </label>
                       <textarea
-                        rows={3}
+                        rows={2}
                         value={editOverview}
                         onChange={(e) => setEditOverview(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
                       />
                     </div>
 
-                    {/* File Replacement Options */}
+                    {/* File Replacement & Removal Options */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                       <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                        <span>تحديث أو استبدال ملفات المحاضرة (اختياري)</span>
+                        <span>إدارة ملفات ومحتويات المحاضرة (إضافة / استبدال / حذف أي محتوى منفرداً)</span>
                       </h4>
 
-                      {/* PDF replacement */}
+                      {/* PDF replacement / removal */}
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                          رابط أو ملف PDF جديد:
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                            ملف الـ PDF (ملخص المحاضرة 📄):
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'pdf' || f.fileType === 'summary') || editPdfUrl || editPdfFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditPdfUrl('');
+                                setEditPdfFile(null);
+                                setEditRemovePdf(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemovePdf ? 'سيتم حذف الـ PDF عند الحفظ 🗑️' : 'حذف الـ PDF الحالي 🗑️'}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             value={editPdfUrl}
-                            onChange={(e) => setEditPdfUrl(e.target.value)}
-                            placeholder="رابط مباشر / Google Drive..."
+                            onChange={(e) => {
+                              setEditPdfUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemovePdf(false);
+                            }}
+                            placeholder="رابط مباشر / Google Drive لملف PDF..."
                             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
                           />
                           <label className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition flex items-center gap-1">
@@ -2511,23 +2765,44 @@ export default function AdminDashboardPage() {
                               accept=".pdf"
                               className="hidden"
                               onChange={(e) => {
-                                if (e.target.files?.[0]) setEditPdfFile(e.target.files[0]);
+                                if (e.target.files?.[0]) {
+                                  setEditPdfFile(e.target.files[0]);
+                                  setEditRemovePdf(false);
+                                }
                               }}
                             />
                           </label>
                         </div>
                       </div>
 
-                      {/* PPT replacement */}
+                      {/* PPT replacement / removal */}
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                          رابط أو ملف PowerPoint جديد:
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                            عرض البوربوينت (PowerPoint 📊):
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'ppt' || f.fileType === 'presentation') || editPptUrl || editPptFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditPptUrl('');
+                                setEditPptFile(null);
+                                setEditRemovePpt(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemovePpt ? 'سيتم حذف البوربوينت عند الحفظ 🗑️' : 'حذف البوربوينت الحالي 🗑️'}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             value={editPptUrl}
-                            onChange={(e) => setEditPptUrl(e.target.value)}
+                            onChange={(e) => {
+                              setEditPptUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemovePpt(false);
+                            }}
                             placeholder="رابط مباشر / Google Drive لسلايدات PPT..."
                             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
                           />
@@ -2539,23 +2814,44 @@ export default function AdminDashboardPage() {
                               accept=".pptx,.ppt"
                               className="hidden"
                               onChange={(e) => {
-                                if (e.target.files?.[0]) setEditPptFile(e.target.files[0]);
+                                if (e.target.files?.[0]) {
+                                  setEditPptFile(e.target.files[0]);
+                                  setEditRemovePpt(false);
+                                }
                               }}
                             />
                           </label>
                         </div>
                       </div>
 
-                      {/* Mindmap replacement */}
+                      {/* Mindmap replacement / removal */}
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                          رابط أو صورة الخريطة الذهنية:
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                            الخريطة الذهنية (Mindmap 🧠):
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap') || editMindmapUrl || editMindmapFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditMindmapUrl('');
+                                setEditMindmapFile(null);
+                                setEditRemoveMindmap(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveMindmap ? 'سيتم حذف الخريطة عند الحفظ 🗑️' : 'حذف الخريطة الحالية 🗑️'}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             value={editMindmapUrl}
-                            onChange={(e) => setEditMindmapUrl(e.target.value)}
+                            onChange={(e) => {
+                              setEditMindmapUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveMindmap(false);
+                            }}
                             placeholder="رابط مباشر / Google Drive للخريطة الذهنية..."
                             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
                           />
@@ -2567,20 +2863,23 @@ export default function AdminDashboardPage() {
                               accept=".png,.jpg,.jpeg,.webp,.pdf"
                               className="hidden"
                               onChange={(e) => {
-                                if (e.target.files?.[0]) setEditMindmapFile(e.target.files[0]);
+                                if (e.target.files?.[0]) {
+                                  setEditMindmapFile(e.target.files[0]);
+                                  setEditRemoveMindmap(false);
+                                }
                               }}
                             />
                           </label>
                         </div>
                       </div>
 
-                      {/* Audio Recording replacement */}
+                      {/* Audio Recording replacement / removal */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="block text-[11px] font-bold text-violet-700 dark:text-violet-300">
                             رابط أو ملف صوتي للمحاضرة (ريكورد الشرح 🎧):
                           </label>
-                          {(editingLecture?.files?.some((f: any) => f.type === 'audio') || editAudioUrl || editAudioFile) && (
+                          {(editingLecture?.files?.some((f: any) => f.type === 'audio' || f.fileType === 'audio') || editAudioUrl || editAudioFile) && (
                             <button
                               type="button"
                               onClick={() => {
@@ -2590,7 +2889,7 @@ export default function AdminDashboardPage() {
                               }}
                               className="text-[10px] font-bold text-rose-500 hover:underline"
                             >
-                              {editRemoveAudio ? 'سيتم حذف الصوت عند الحفظ 🗑️' : 'حذف الملف الصوتي الحالي'}
+                              {editRemoveAudio ? 'سيتم حذف الصوت عند الحفظ 🗑️' : 'حذف الملف الصوتي الحالي 🗑️'}
                             </button>
                           )}
                         </div>
@@ -2623,14 +2922,30 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Anki Package replacement */}
+                      {/* Anki Package replacement / removal */}
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                          استبدال كروت Anki (.apkg):
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                            كروت المراجعة الذكية (Anki .apkg 🎴):
+                          </label>
+                          {(editingLecture?.flashcards?.length > 0 || editAnkiFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditAnkiFile(null);
+                                setEditParsedCardsJson(null);
+                                setEditParsedCardsCount(0);
+                                setEditRemoveFlashcards(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveFlashcards ? 'سيتم حذف الكروت عند الحفظ 🗑️' : 'حذف كروت الفلاش كاردز الحالية 🗑️'}
+                            </button>
+                          )}
+                        </div>
                         <label className="w-full py-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-bold cursor-pointer transition flex items-center justify-center gap-2">
                           <Layers className="w-3.5 h-3.5" />
-                          <span>{editAnkiFile ? `تم اختيار: ${editAnkiFile.name}` : 'اختر ملف .apkg لتحديث الكروت'}</span>
+                          <span>{editAnkiFile ? `تم اختيار: ${editAnkiFile.name}` : 'اختر ملف .apkg لإضافة أو تحديث الكروت'}</span>
                           <input
                             type="file"
                             accept=".apkg"
@@ -2639,6 +2954,7 @@ export default function AdminDashboardPage() {
                               if (e.target.files?.[0]) {
                                 const chosen = e.target.files[0];
                                 setEditAnkiFile(chosen);
+                                setEditRemoveFlashcards(false);
                                 setIsEditParsingAnki(true);
                                 setEditParsedCardsJson(null);
                                 setEditParsedCardsCount(0);
@@ -2822,7 +3138,7 @@ export default function AdminDashboardPage() {
                     <span>المواد والمقررات الحالية ({subjects.length})</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    حدد الفصل الدراسي (سمستر 1 أو سمستر 2) لكل مادة من القائمة المنسدلة مباشرة، وسينتقل محتواها للترم المحدد فوراً!
+                    يمكنك تعديل اسم المادة أو وصفها أو فرقتها أو الفصل الدراسي بضغطة زر!
                   </p>
                 </div>
 
@@ -2868,7 +3184,7 @@ export default function AdminDashboardPage() {
                               {sub.title}
                             </td>
                             <td className="py-3.5 px-4">
-                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] whitespace-nowrap">
                                 {sub.yearName || (sub.yearId === '1' ? 'السنة الأولى' : sub.yearId === '2' ? 'السنة الثانية' : sub.yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة')}
                               </span>
                             </td>
@@ -2891,7 +3207,7 @@ export default function AdminDashboardPage() {
                                 <option value="both">🔄 الترمين معاً (1 و 2)</option>
                               </select>
                             </td>
-                            <td className="py-3.5 px-4 font-bold text-teal-600">
+                            <td className="py-3.5 px-4 font-bold text-teal-600 whitespace-nowrap">
                               {count} محاضرة
                             </td>
                             <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">
@@ -2899,10 +3215,19 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3.5 px-4 text-center">
                               <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditSubjectModal(sub)}
+                                  className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition inline-flex items-center"
+                                  title="تعديل بيانات المادة"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+
                                 <Link
                                   href={`/subject/${sub.id}`}
                                   target="_blank"
-                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition"
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition inline-flex items-center"
                                   title="معاينة صفحة المادة"
                                 >
                                   <ExternalLink className="w-4 h-4" />
@@ -2910,7 +3235,7 @@ export default function AdminDashboardPage() {
 
                                 <button
                                   onClick={() => handleDeleteSubject(sub.id, sub.title)}
-                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition inline-flex items-center"
                                   title="حذف المادة نهائياً"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -2922,6 +3247,104 @@ export default function AdminDashboardPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Edit Subject Modal */}
+              {editingSubject && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" dir="rtl">
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">تعديل بيانات المادة 📚</h3>
+                        <p className="text-xs text-slate-500">{editingSubject.title}</p>
+                      </div>
+                      <button
+                        onClick={() => setEditingSubject(null)}
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveSubjectEdit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          اسم المادة:
+                        </label>
+                        <input
+                          type="text"
+                          value={editSubTitle}
+                          onChange={(e) => setEditSubTitle(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            الفرقة الدراسية:
+                          </label>
+                          <select
+                            value={editSubYearId}
+                            onChange={(e) => setEditSubYearId(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                          >
+                            <option value="1">السنة الأولى</option>
+                            <option value="2">السنة الثانية</option>
+                            <option value="3">السنة الثالثة</option>
+                            <option value="4">السنة الرابعة</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-teal-700 dark:text-teal-300 mb-1.5">
+                            الفصل الدراسي:
+                          </label>
+                          <select
+                            value={editSubSemester}
+                            onChange={(e) => setEditSubSemester(e.target.value as '1' | '2' | 'both')}
+                            className="w-full px-3 py-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs font-black focus:ring-2 focus:ring-teal-500"
+                          >
+                            <option value="1">سمستر 1 (الأول)</option>
+                            <option value="2">سمستر 2 (الثاني)</option>
+                            <option value="both">الترمين معاً (1 و 2)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          وصف المادة:
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={editSubDesc}
+                          onChange={(e) => setEditSubDesc(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setEditingSubject(null)}
+                          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
+                        >
+                          إلغاء
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSavingSubjectEdit || !editSubTitle.trim()}
+                          className="px-6 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-teal-600/20"
+                        >
+                          {isSavingSubjectEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                          <span>حفظ التعديلات فوراً</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               )}
             </div>
@@ -3187,7 +3610,7 @@ export default function AdminDashboardPage() {
                     <span>ملفات أسئلة الكويزات المنشورة ({quizzesList.length})</span>
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    يمكنك رفع أكثر من ملف كويز لنفس المادة، وتغيير الفصل الدراسي (سمستر 1 / 2) أو حذف أي ملف كويز بضغطة زر!
+                    يمكنك تعديل اسم أي كويز، أو مادته، أو الفصل الدراسي، أو عدد الأسئلة، أو استبدال ملف الكويز بضغطة زر!
                   </p>
                 </div>
                 <button
@@ -3235,7 +3658,7 @@ export default function AdminDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleQuizSemester(qId, qSem)}
-                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border ${
+                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border whitespace-nowrap ${
                                   qSem === '2'
                                     ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
                                     : 'bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100'
@@ -3247,13 +3670,23 @@ export default function AdminDashboardPage() {
                               </button>
                             </td>
                             <td className="py-3.5 px-4">
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800">
-                                +{quiz.questionsCount} سؤال • {quiz.fileSize}
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800 whitespace-nowrap inline-flex items-center gap-1">
+                                <span>+{quiz.questionsCount} سؤال</span>
+                                <span>•</span>
+                                <span>{quiz.fileSize}</span>
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-slate-400">{quiz.updatedAt || 'معتمد'}</td>
+                            <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">{quiz.updatedAt || 'معتمد'}</td>
                             <td className="py-3.5 px-4 text-center">
                               <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditQuizModal(quiz)}
+                                  className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition inline-flex items-center"
+                                  title="تعديل اسم أو بيانات أو ملف الكويز"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
                                 <Link
                                   href={`/subject/${quiz.subjectId}`}
                                   target="_blank"
@@ -3277,6 +3710,133 @@ export default function AdminDashboardPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Edit Quiz Modal */}
+              {editingQuiz && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" dir="rtl">
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">تعديل بيانات وملف الكويز 📝</h3>
+                        <p className="text-xs text-slate-500">{editingQuiz.title}</p>
+                      </div>
+                      <button
+                        onClick={() => setEditingQuiz(null)}
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveQuizEdit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          عنوان ملف الكويز:
+                        </label>
+                        <input
+                          type="text"
+                          value={editQuizTitle}
+                          onChange={(e) => setEditQuizTitle(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            المادة الأكاديمية:
+                          </label>
+                          <select
+                            value={editQuizSubjectId}
+                            onChange={(e) => setEditQuizSubjectId(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-amber-500"
+                          >
+                            {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
+                              <option key={sub.id} value={sub.id}>
+                                {sub.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-amber-700 dark:text-amber-300 mb-1.5">
+                            الفصل الدراسي:
+                          </label>
+                          <select
+                            value={editQuizSemester}
+                            onChange={(e) => setEditQuizSemester(e.target.value as '1' | '2')}
+                            className="w-full px-3 py-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs font-black focus:ring-2 focus:ring-amber-500"
+                          >
+                            <option value="1">سمستر 1 (الأول)</option>
+                            <option value="2">سمستر 2 (الثاني)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            عدد الأسئلة:
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={editQuizQuestionsCount}
+                            onChange={(e) => setEditQuizQuestionsCount(Number(e.target.value))}
+                            required
+                            className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                          تحديث رابط الكويز أو استبدال ملف الـ PDF (اختياري):
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizDriveUrl}
+                            onChange={(e) => setEditQuizDriveUrl(e.target.value)}
+                            placeholder="رابط مباشر / Google Drive لملف الكويز..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <FileUp className="w-3.5 h-3.5" />
+                            <span>{editQuizFile ? editQuizFile.name.slice(0, 12) : 'استبدال PDF'}</span>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) setEditQuizFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setEditingQuiz(null)}
+                          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
+                        >
+                          إلغاء
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSavingQuizEdit || !editQuizTitle.trim()}
+                          className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-amber-600/20"
+                        >
+                          {isSavingQuizEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                          <span>حفظ التعديلات فوراً</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               )}
             </div>

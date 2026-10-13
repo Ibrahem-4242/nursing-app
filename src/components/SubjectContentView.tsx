@@ -420,10 +420,11 @@ export default function SubjectContentView({
           ) : (
             <div className="space-y-5">
               {curLectures.map((lec) => {
-                const hasPdf = lec.files?.some((f: any) => f.type === 'pdf');
-                const hasPpt = lec.files?.some((f: any) => f.type === 'ppt');
-                const hasMindmap = lec.files?.some((f: any) => f.type === 'mindmap');
-                const hasAudio = lec.files?.some((f: any) => f.type === 'audio');
+                const isValidFile = (f: any) => Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#');
+                const hasPdf = lec.files?.some((f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValidFile(f));
+                const hasPpt = lec.files?.some((f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValidFile(f));
+                const hasMindmap = lec.files?.some((f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValidFile(f));
+                const hasAudio = lec.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValidFile(f));
                 const hasFlashcards = (lec.flashcards?.length || 0) > 0;
 
                 return (

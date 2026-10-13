@@ -58,9 +58,20 @@ export async function POST(req: NextRequest) {
     const shouldWatermark = formData.get('watermark') !== 'false';
     const isFree = formData.get('isFree') !== 'false';
 
-    if ((!file && !externalPdfUrl) || !lectureTitle.trim()) {
+    const hasPdf = Boolean(file || externalPdfUrl);
+    const hasPpt = Boolean(pptFile || externalPptUrl);
+    const hasMindmap = Boolean(mindmapFile || externalMindmapUrl);
+    const hasAudio = Boolean(audioFile || externalAudioUrl);
+    const flashcardsJsonRaw = (formData.get('flashcardsJson') as string | null) || '';
+    const hasAnki = Boolean(ankiFile || (flashcardsJsonRaw && flashcardsJsonRaw !== '[]'));
+
+    if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki)) {
       return NextResponse.json(
-        { success: false, message: 'يرجى اختيار ملف PDF أو إدخال رابط تحميل وكتابة اسم المحاضرة' },
+        {
+          success: false,
+          message:
+            'يرجى كتابة اسم المحاضرة ورفع محتوى واحد على الأقل (ملف PDF أو ريكورد صوتي أو بوربوينت أو خريطة ذهنية أو كروت Anki)',
+        },
         { status: 400 }
       );
     }
@@ -72,7 +83,7 @@ export async function POST(req: NextRequest) {
         title: 'مقرر تمريض',
       };
 
-    // 2. Process & Watermark Primary PDF (or use direct external URL)
+    // 2. Process & Watermark Primary PDF (only if provided!)
     let savedPdf = { url: externalPdfUrl, sizeFormatted: 'رابط سحابي 🌐' };
 
     if (file) {
@@ -125,8 +136,10 @@ export async function POST(req: NextRequest) {
     // Zero fake cards - strictly uses what the user uploaded!
 
     // 4. Construct Files Array (PDF, PPT, Mindmap, Audio) - Only push resources that actually have content!
-    const filesList: LectureFile[] = [
-      {
+    const filesList: LectureFile[] = [];
+
+    if (hasPdf && savedPdf.url) {
+      filesList.push({
         type: 'pdf',
         title: lectureTitle.trim(),
         fileSize: savedPdf.sizeFormatted,
@@ -134,8 +147,8 @@ export async function POST(req: NextRequest) {
         pageCount: 'ملف PDF معتمد',
         updatedAt: getArabicFormattedDate(),
         customNote: 'ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة',
-      },
-    ];
+      });
+    }
 
     if (pptFile) {
       const pptBuffer = new Uint8Array(await pptFile.arrayBuffer());

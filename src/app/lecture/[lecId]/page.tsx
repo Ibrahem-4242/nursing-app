@@ -100,10 +100,22 @@ export default async function LecturePage({ params }: LecturePageProps) {
             <Eye className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             <span>شاهد هذه المحاضرة {lecture.viewCount} طالب</span>
           </span>
-          <span className="flex items-center gap-1.5 font-bold text-teal-600 dark:text-teal-400">
-            <Sparkles className="w-4 h-4 text-emerald-500" />
-            <span>متوفر الموارد الـ 4 الكاملة</span>
-          </span>
+          {(() => {
+            const avail: string[] = [];
+            const isValid = (f: any) => Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#');
+            if (lecture.files?.some((f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValid(f))) avail.push('ملف PDF');
+            if (lecture.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValid(f))) avail.push('ريكورد صوتي 🎧');
+            if (lecture.files?.some((f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValid(f))) avail.push('عرض بوربوينت 📊');
+            if (lecture.files?.some((f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValid(f))) avail.push('خريطة ذهنية 🧠');
+            if ((lecture.flashcards?.length || 0) > 0) avail.push(`${lecture.flashcards.length} كارت ذكي 🎴`);
+            if (avail.length === 0) return null;
+            return (
+              <span className="flex items-center gap-1.5 font-bold text-teal-600 dark:text-teal-400">
+                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <span>المتوفر بالمحاضرة: {avail.join(' • ')}</span>
+              </span>
+            );
+          })()}
         </div>
         {/* Lecture Overview Prominently placed right at the top */}
         {lecture.overview && (

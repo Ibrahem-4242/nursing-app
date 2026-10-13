@@ -40,24 +40,44 @@ export default function LectureContentTabs({
   isFree = true,
   isAdmin = false,
 }: LectureContentTabsProps) {
-  const pdfFile =
-    files.find((f) => f.type === 'pdf' && f.downloadUrl && f.downloadUrl !== '#') || null;
-  const pptFile =
-    files.find((f) => f.type === 'ppt' && f.downloadUrl && f.downloadUrl !== '#') || null;
-  const mindmapFile =
-    files.find((f) => f.type === 'mindmap' && f.downloadUrl && f.downloadUrl !== '#') || null;
-  const audioFile =
-    files.find((f) => f.type === 'audio' && f.downloadUrl && f.downloadUrl !== '#') || null;
+  const getFileUrl = (f: any) => (f?.downloadUrl || f?.fileUrl || '').trim();
+  const isValidUrl = (u: string) => Boolean(u && u !== '#');
+
+  const rawPdf = files.find(
+    (f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValidUrl(getFileUrl(f))
+  );
+  const rawPpt = files.find(
+    (f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValidUrl(getFileUrl(f))
+  );
+  const rawMindmap = files.find(
+    (f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValidUrl(getFileUrl(f))
+  );
+  const rawAudio = files.find(
+    (f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValidUrl(getFileUrl(f))
+  );
+
+  const pdfFile: LectureFile | null = rawPdf
+    ? { ...rawPdf, type: 'pdf', downloadUrl: getFileUrl(rawPdf) }
+    : null;
+  const pptFile: LectureFile | null = rawPpt
+    ? { ...rawPpt, type: 'ppt', downloadUrl: getFileUrl(rawPpt) }
+    : null;
+  const mindmapFile: LectureFile | null = rawMindmap
+    ? { ...rawMindmap, type: 'mindmap', downloadUrl: getFileUrl(rawMindmap) }
+    : null;
+  const audioFile: LectureFile | null = rawAudio
+    ? { ...rawAudio, type: 'audio', downloadUrl: getFileUrl(rawAudio) }
+    : null;
   const hasFlashcards = Array.isArray(flashcards) && flashcards.length > 0;
 
   const defaultTab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards' = pdfFile
     ? 'pdf'
+    : audioFile
+    ? 'audio'
     : pptFile
     ? 'ppt'
     : mindmapFile
     ? 'mindmap'
-    : audioFile
-    ? 'audio'
     : hasFlashcards
     ? 'flashcards'
     : 'pdf';
@@ -65,6 +85,18 @@ export default function LectureContentTabs({
   const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards'>(
     defaultTab
   );
+
+  React.useEffect(() => {
+    const currentValid =
+      (activeTab === 'pdf' && !!pdfFile) ||
+      (activeTab === 'ppt' && !!pptFile) ||
+      (activeTab === 'mindmap' && !!mindmapFile) ||
+      (activeTab === 'audio' && !!audioFile) ||
+      (activeTab === 'flashcards' && hasFlashcards);
+    if (!currentValid) {
+      setActiveTab(defaultTab);
+    }
+  }, [pdfFile, pptFile, mindmapFile, audioFile, hasFlashcards, activeTab, defaultTab]);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -94,7 +126,7 @@ export default function LectureContentTabs({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lectureTitle: pdfFile?.title || subjectTitle,
+          lectureTitle: pdfFile?.title || audioFile?.title || pptFile?.title || mindmapFile?.title || subjectTitle,
           subjectTitle,
           cardsCount: flashcards?.length || 0,
         }),
@@ -190,7 +222,7 @@ export default function LectureContentTabs({
 
   const activeFile = getActiveFile();
 
-  // Build visible tabs list: students only see non-empty tabs; admin sees all with badge
+  // Strictly display ONLY the tabs that actually have uploaded content in this lecture!
   const visibleTabs = [
     {
       id: 'pdf' as const,
@@ -198,6 +230,14 @@ export default function LectureContentTabs({
       hasContent: !!pdfFile,
       activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 scale-[1.02]',
       icon: FileText,
+    },
+    {
+      id: 'audio' as const,
+      label: 'ريكورد المحاضرة',
+      hasContent: !!audioFile,
+      activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-600/30 scale-[1.02]',
+      icon: Headphones,
+      pulseDot: !!audioFile,
     },
     {
       id: 'ppt' as const,
@@ -214,77 +254,60 @@ export default function LectureContentTabs({
       icon: GitFork,
     },
     {
-      id: 'audio' as const,
-      label: 'ريكورد المحاضرة',
-      hasContent: !!audioFile,
-      activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-600/30 scale-[1.02]',
-      icon: Headphones,
-      pulseDot: !!audioFile,
-    },
-    {
       id: 'flashcards' as const,
       label: 'كروت استذكار',
       hasContent: hasFlashcards,
       activeClass: 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 scale-[1.02]',
       icon: Layers,
     },
-  ].filter((t) => t.hasContent || isAdmin);
+  ].filter((t) => t.hasContent);
 
   return (
     <div className="w-full my-8 space-y-6" dir="rtl">
-      {/* 1. The Interactive Tabs Selector */}
-      <div className="bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">
-        <div className="flex flex-wrap gap-2">
-          {visibleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleSelectTab(tab.id)}
-                className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 relative ${
-                  isSelected
-                    ? tab.activeClass
-                    : !tab.hasContent
-                    ? 'bg-amber-50/60 dark:bg-amber-950/20 text-slate-500 dark:text-slate-400 border border-dashed border-amber-300 dark:border-amber-800'
-                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{tab.label}</span>
-                {tab.pulseDot && (
-                  <span
-                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                    title="متوفر تسجيل صوتي"
-                  />
-                )}
-                {isAdmin && !tab.hasContent && (
-                  <span
-                    className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-300 text-[10px] font-black flex items-center gap-0.5"
-                    title="مخفي عن الطلاب لأنه فارغ"
-                  >
-                    <EyeOff className="w-2.5 h-2.5" />
-                    <span>للأدمن</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* 1. The Interactive Tabs Selector (Only shown if at least 1 resource is available) */}
+      {visibleTabs.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">
+          <div className="flex flex-wrap gap-2">
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleSelectTab(tab.id)}
+                  className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 relative ${
+                    isSelected
+                      ? tab.activeClass
+                      : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{tab.label}</span>
+                  {tab.pulseDot && (
+                    <span
+                      className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                      title="متوفر تسجيل صوتي"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Empty State if an Admin selects a tab that has no file attached yet */}
-      {activeTab !== 'flashcards' && !activeFile && (
+      {/* Fallback only if a lecture has 0 resources at all */}
+      {visibleTabs.length === 0 && isAdmin && (
         <div className="bg-gradient-to-br from-amber-50/40 via-white to-slate-50 dark:from-slate-900 dark:via-slate-850 dark:to-amber-950/20 p-8 sm:p-10 rounded-3xl border border-dashed border-amber-300 dark:border-amber-800 shadow-lg text-center space-y-3">
           <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <EyeOff className="w-7 h-7" />
           </div>
           <h3 className="text-lg font-black text-slate-900 dark:text-white">
-            لا يتوفر ملف مرفق في هذا القسم حالياً (يظهر للأدمن فقط 👁️)
+            لا توجد ملفات مرفقة في هذه المحاضرة حالياً (يظهر للأدمن فقط 👁️)
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            هذا التبويب مخفي تلقائياً عن الطلاب لأنه لا يحتوي على ملف مرفوع حالياً. يمكنك إضافة أو تعديل ملفات المحاضرة من لوحة الإدارة في أي وقت.
+            يمكنك رفع أي ملف (PDF أو صوت أو بوربوينت أو خريطة ذهنية أو كروت Anki) من لوحة الإدارة.
           </p>
         </div>
       )}

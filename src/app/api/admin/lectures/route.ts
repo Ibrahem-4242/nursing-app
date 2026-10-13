@@ -125,6 +125,7 @@ export async function PUT(req: NextRequest) {
   const contentType = req.headers.get('content-type') || '';
   let id = '';
   let title: string | undefined;
+  let subjectId: string | undefined;
   let lectureNumber: number | undefined;
   let semester: '1' | '2' | undefined;
   let adminNote: string | undefined;
@@ -135,7 +136,11 @@ export async function PUT(req: NextRequest) {
   let mindmapUrl: string | undefined;
   let audioUrl: string | undefined;
   let audioFileSize: string | undefined;
+  let removePdf = false;
+  let removePpt = false;
+  let removeMindmap = false;
   let removeAudio = false;
+  let removeFlashcards = false;
   let pdfFile: File | null = null;
   let pptFile: File | null = null;
   let mindmapFile: File | null = null;
@@ -147,6 +152,7 @@ export async function PUT(req: NextRequest) {
     const formData = await req.formData();
     id = (formData.get('id') as string) || '';
     title = (formData.get('title') as string) || undefined;
+    subjectId = (formData.get('subjectId') as string) || undefined;
     lectureNumber = formData.get('lectureNumber') ? Number(formData.get('lectureNumber')) : undefined;
     const rawSem = formData.get('semester') as string | null;
     if (rawSem === '1' || rawSem === '2') semester = rawSem;
@@ -160,7 +166,11 @@ export async function PUT(req: NextRequest) {
     mindmapUrl = (formData.get('mindmapUrl') as string) || undefined;
     audioUrl = (formData.get('audioUrl') as string) || undefined;
     audioFileSize = (formData.get('audioFileSize') as string) || undefined;
+    removePdf = formData.get('removePdf') === 'true';
+    removePpt = formData.get('removePpt') === 'true';
+    removeMindmap = formData.get('removeMindmap') === 'true';
     removeAudio = formData.get('removeAudio') === 'true';
+    removeFlashcards = formData.get('removeFlashcards') === 'true';
     pdfFile = formData.get('pdfFile') as File | null;
     pptFile = formData.get('pptFile') as File | null;
     mindmapFile = formData.get('mindmapFile') as File | null;
@@ -171,6 +181,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     id = body.id;
     title = body.title;
+    subjectId = body.subjectId;
     lectureNumber = body.lectureNumber !== undefined ? Number(body.lectureNumber) : undefined;
     if (body.semester === '1' || body.semester === '2') semester = body.semester;
     adminNote = body.adminNote;
@@ -181,7 +192,11 @@ export async function PUT(req: NextRequest) {
     mindmapUrl = body.mindmapUrl;
     audioUrl = body.audioUrl;
     audioFileSize = body.audioFileSize;
+    removePdf = Boolean(body.removePdf);
+    removePpt = Boolean(body.removePpt);
+    removeMindmap = Boolean(body.removeMindmap);
     removeAudio = Boolean(body.removeAudio);
+    removeFlashcards = Boolean(body.removeFlashcards);
     if (body.flashcardsJson) {
       flashcardsJson = typeof body.flashcardsJson === 'string' ? body.flashcardsJson : JSON.stringify(body.flashcardsJson);
     }
@@ -200,97 +215,156 @@ export async function PUT(req: NextRequest) {
 
   if (!existing.files) existing.files = [];
 
-  // Update PDF
-  if (pdfFile) {
+  // Update Text Fields first so file titles use the updated title
+  if (title && title.trim()) {
+    existing.title = title.trim();
+  }
+  if (subjectId && subjectId.trim()) {
+    const allSubs = await CmsService.getAllSubjects();
+    const targetSub = allSubs.find((s) => s.id === subjectId.trim());
+    existing.subjectId = subjectId.trim();
+    if (targetSub) {
+      existing.subjectTitle = targetSub.title;
+      existing.yearId = targetSub.yearId;
+      existing.yearTitle =
+        targetSub.yearName ||
+        (targetSub.yearId === '1'
+          ? 'السنة الأولى'
+          : targetSub.yearId === '2'
+          ? 'السنة الثانية'
+          : targetSub.yearId === '3'
+          ? 'السنة الثالثة'
+          : 'السنة الرابعة');
+    }
+  }
+  if (lectureNumber) existing.lectureNumber = lectureNumber;
+  if (semester) existing.semester = semester;
+  if (adminNote !== undefined) existing.adminNote = adminNote.trim();
+  if (overview !== undefined) existing.overview = overview.trim();
+  if (isFree !== undefined) existing.isFree = isFree;
+
+  // Update or Remove PDF
+  if (removePdf) {
+    existing.files = existing.files.filter((f: any) => f.type !== 'pdf' && f.fileType !== 'summary');
+  } else if (pdfFile) {
     const buf = new Uint8Array(await pdfFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, pdfFile.name, customToken);
-    const pdfIdx = existing.files.findIndex((f) => f.type === 'pdf');
+    const pdfIdx = existing.files.findIndex((f: any) => f.type === 'pdf' || f.fileType === 'summary');
     if (pdfIdx >= 0) {
+      existing.files[pdfIdx].type = 'pdf';
+      existing.files[pdfIdx].title = existing.title;
       existing.files[pdfIdx].downloadUrl = saved.url;
       existing.files[pdfIdx].fileSize = saved.sizeFormatted;
+      existing.files[pdfIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.unshift({
         type: 'pdf',
         title: existing.title,
         downloadUrl: saved.url,
         fileSize: saved.sizeFormatted,
+        pageCount: 'ملف PDF معتمد',
         updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة',
       });
     }
   } else if (pdfUrl && pdfUrl.trim()) {
-    const pdfIdx = existing.files.findIndex((f) => f.type === 'pdf');
+    const pdfIdx = existing.files.findIndex((f: any) => f.type === 'pdf' || f.fileType === 'summary');
     if (pdfIdx >= 0) {
+      existing.files[pdfIdx].type = 'pdf';
+      existing.files[pdfIdx].title = existing.title;
       existing.files[pdfIdx].downloadUrl = pdfUrl.trim();
+      existing.files[pdfIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.unshift({
         type: 'pdf',
         title: existing.title,
         downloadUrl: pdfUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
+        pageCount: 'ملف PDF معتمد',
         updatedAt: getArabicFormattedDate(),
       });
     }
   }
 
-  // Update PPT
-  if (pptFile) {
+  // Update or Remove PPT
+  if (removePpt) {
+    existing.files = existing.files.filter((f: any) => f.type !== 'ppt' && f.fileType !== 'powerpoint');
+  } else if (pptFile) {
     const buf = new Uint8Array(await pptFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, pptFile.name, customToken);
-    const pptIdx = existing.files.findIndex((f) => f.type === 'ppt');
+    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint');
     if (pptIdx >= 0) {
+      existing.files[pptIdx].type = 'ppt';
+      existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
       existing.files[pptIdx].downloadUrl = saved.url;
       existing.files[pptIdx].fileSize = saved.sizeFormatted;
+      existing.files[pptIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'ppt',
         title: `عروض بوربوينت - ${existing.title}`,
         downloadUrl: saved.url,
         fileSize: saved.sizeFormatted,
+        pageCount: 'سلايدات PowerPoint',
         updatedAt: getArabicFormattedDate(),
       });
     }
   } else if (pptUrl && pptUrl.trim()) {
-    const pptIdx = existing.files.findIndex((f) => f.type === 'ppt');
+    const pptIdx = existing.files.findIndex((f: any) => f.type === 'ppt' || f.fileType === 'powerpoint');
     if (pptIdx >= 0) {
+      existing.files[pptIdx].type = 'ppt';
+      existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
       existing.files[pptIdx].downloadUrl = pptUrl.trim();
+      existing.files[pptIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'ppt',
         title: `عروض بوربوينت - ${existing.title}`,
         downloadUrl: pptUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
+        pageCount: 'سلايدات PowerPoint',
         updatedAt: getArabicFormattedDate(),
       });
     }
   }
 
-  // Update Mindmap
-  if (mindmapFile) {
+  // Update or Remove Mindmap
+  if (removeMindmap) {
+    existing.files = existing.files.filter((f: any) => f.type !== 'mindmap' && f.fileType !== 'mindmap');
+  } else if (mindmapFile) {
     const buf = new Uint8Array(await mindmapFile.arrayBuffer());
     const saved = await saveUploadedFile(buf, mindmapFile.name, customToken);
-    const mmIdx = existing.files.findIndex((f) => f.type === 'mindmap');
+    const mmIdx = existing.files.findIndex((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
     if (mmIdx >= 0) {
+      existing.files[mmIdx].type = 'mindmap';
+      existing.files[mmIdx].title = `الخريطة الذهنية - ${existing.title}`;
       existing.files[mmIdx].downloadUrl = saved.url;
       existing.files[mmIdx].fileSize = saved.sizeFormatted;
+      existing.files[mmIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'mindmap',
         title: `الخريطة الذهنية - ${existing.title}`,
         downloadUrl: saved.url,
         fileSize: saved.sizeFormatted,
+        pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
       });
     }
   } else if (mindmapUrl && mindmapUrl.trim()) {
-    const mmIdx = existing.files.findIndex((f) => f.type === 'mindmap');
+    const mmIdx = existing.files.findIndex((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
     if (mmIdx >= 0) {
+      existing.files[mmIdx].type = 'mindmap';
+      existing.files[mmIdx].title = `الخريطة الذهنية - ${existing.title}`;
       existing.files[mmIdx].downloadUrl = mindmapUrl.trim();
+      existing.files[mmIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'mindmap',
         title: `الخريطة الذهنية - ${existing.title}`,
         downloadUrl: mindmapUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
+        pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
       });
     }
@@ -304,6 +378,7 @@ export async function PUT(req: NextRequest) {
     const saved = await saveUploadedFile(buf, audioFile.name, customToken);
     const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
     if (audioIdx >= 0) {
+      existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = saved.url;
       existing.files[audioIdx].fileSize = saved.sizeFormatted;
       existing.files[audioIdx].updatedAt = getArabicFormattedDate();
@@ -321,6 +396,7 @@ export async function PUT(req: NextRequest) {
   } else if (audioUrl && audioUrl.trim()) {
     const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
     if (audioIdx >= 0) {
+      existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = audioUrl.trim();
       if (audioFileSize) existing.files[audioIdx].fileSize = audioFileSize;
       existing.files[audioIdx].updatedAt = getArabicFormattedDate();
@@ -337,45 +413,58 @@ export async function PUT(req: NextRequest) {
     }
   }
 
-  // Update Anki Flashcards
-  let updatedCards: Flashcard[] | null = null;
-  if (flashcardsJson) {
-    try {
-      const parsed = JSON.parse(flashcardsJson);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        updatedCards = parsed;
-      }
-    } catch {}
-  }
+  // Sync file titles whenever lecture title was edited
+  existing.files = existing.files.map((f: any) => {
+    if (f.type === 'pdf' || f.fileType === 'summary') {
+      return { ...f, title: existing.title };
+    }
+    if (f.type === 'ppt' || f.fileType === 'powerpoint') {
+      return { ...f, title: `عروض بوربوينت - ${existing.title}` };
+    }
+    if (f.type === 'mindmap' || f.fileType === 'mindmap') {
+      return { ...f, title: `الخريطة الذهنية - ${existing.title}` };
+    }
+    if (f.type === 'audio') {
+      return { ...f, title: `التسجيل الصوتي للشرح - ${existing.title}` };
+    }
+    return f;
+  });
 
-  if (!updatedCards && ankiFile) {
-    try {
-      const buf = await ankiFile.arrayBuffer();
-      const cards = await parseAnkiPackage(buf);
-      if (cards && cards.length > 0) {
-        updatedCards = cards;
+  // Update or Remove Anki Flashcards
+  if (removeFlashcards) {
+    existing.flashcards = [];
+  } else {
+    let updatedCards: Flashcard[] | null = null;
+    if (flashcardsJson) {
+      try {
+        const parsed = JSON.parse(flashcardsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          updatedCards = parsed;
+        }
+      } catch {}
+    }
+
+    if (!updatedCards && ankiFile) {
+      try {
+        const buf = await ankiFile.arrayBuffer();
+        const cards = await parseAnkiPackage(buf);
+        if (cards && cards.length > 0) {
+          updatedCards = cards;
+        }
+      } catch (e: any) {
+        console.warn('[Lectures PUT] Anki parsing error:', e.message);
       }
-    } catch (e: any) {
-      console.warn('[Lectures PUT] Anki parsing error:', e.message);
+    }
+
+    if (updatedCards && updatedCards.length > 0) {
+      existing.flashcards = updatedCards.map((c) => ({
+        ...c,
+        front: cleanLatexMath(c.front),
+        back: cleanLatexMath(c.back),
+        clinicalPearl: c.clinicalPearl ? cleanLatexMath(c.clinicalPearl) : undefined,
+      }));
     }
   }
-
-  if (updatedCards && updatedCards.length > 0) {
-    existing.flashcards = updatedCards.map((c) => ({
-      ...c,
-      front: cleanLatexMath(c.front),
-      back: cleanLatexMath(c.back),
-      clinicalPearl: c.clinicalPearl ? cleanLatexMath(c.clinicalPearl) : undefined,
-    }));
-  }
-
-  // Update Text Fields
-  if (title) existing.title = title.trim();
-  if (lectureNumber) existing.lectureNumber = lectureNumber;
-  if (semester) existing.semester = semester;
-  if (adminNote !== undefined) existing.adminNote = adminNote.trim();
-  if (overview !== undefined) existing.overview = overview.trim();
-  if (isFree !== undefined) existing.isFree = isFree;
 
   await CmsService.addOrUpdateLecture(existing, customToken);
 

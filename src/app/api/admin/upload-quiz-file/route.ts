@@ -173,26 +173,92 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { id, semester, title, questionsCount, downloadUrl } = body;
+    const contentType = req.headers.get('content-type') || '';
+    let id = '';
+    let semester: '1' | '2' | undefined;
+    let title: string | undefined;
+    let subjectId: string | undefined;
+    let questionsCount: number | undefined;
+    let downloadUrl: string | undefined;
+    let fileSize: string | undefined;
+    let file: File | null = null;
+    let shouldWatermark = true;
+    let customToken =
+      req.headers.get('x-github-token') ||
+      cookieStore.get('nursing_sync_token')?.value ||
+      '';
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      id = ((formData.get('id') as string) || '').trim();
+      const rawSem = formData.get('semester') as string | null;
+      if (rawSem === '1' || rawSem === '2') semester = rawSem;
+      if (formData.get('title') !== null) title = ((formData.get('title') as string) || '').trim();
+      if (formData.get('subjectId') !== null) subjectId = ((formData.get('subjectId') as string) || '').trim();
+      if (formData.get('questionsCount') !== null) {
+        questionsCount = Number(formData.get('questionsCount')) || 100;
+      }
+      if (formData.get('downloadUrl') !== null) {
+        downloadUrl = ((formData.get('downloadUrl') as string) || '').trim();
+      }
+      file = formData.get('file') as File | null;
+      shouldWatermark = formData.get('watermark') !== 'false';
+      const fToken = ((formData.get('githubToken') as string) || '').trim();
+      if (fToken) customToken = fToken;
+    } else {
+      const body = await req.json();
+      id = body.id;
+      if (body.semester === '1' || body.semester === '2') semester = body.semester;
+      if (body.title !== undefined) title = String(body.title).trim();
+      if (body.subjectId !== undefined) subjectId = String(body.subjectId).trim();
+      if (body.questionsCount !== undefined) questionsCount = Number(body.questionsCount);
+      if (body.downloadUrl !== undefined) downloadUrl = String(body.downloadUrl).trim();
+      if (body.token) customToken = body.token;
+    }
 
     if (!id) {
       return NextResponse.json({ success: false, message: 'معرف الكويز مطلوب' }, { status: 400 });
     }
 
-    const customToken =
-      req.headers.get('x-github-token') ||
-      cookieStore.get('nursing_sync_token')?.value ||
-      body.token ||
-      '';
+    if (file) {
+      const originalBuffer = await file.arrayBuffer();
+      let processedBytes = new Uint8Array(originalBuffer);
+      if (shouldWatermark) {
+        try {
+          processedBytes = await applyWatermarkToPdf(originalBuffer);
+        } catch (watermarkErr) {
+          console.warn('[EditQuizFile] Watermark fallback:', watermarkErr);
+        }
+      }
+      const savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
+      downloadUrl = savedPdf.url;
+      fileSize = savedPdf.sizeFormatted;
+    } else if (downloadUrl && downloadUrl.startsWith('http')) {
+      fileSize = 'رابط Google Drive 🌐';
+    }
+
+    let subjectTitle: string | undefined;
+    if (subjectId) {
+      const allSubjects = await CmsService.getAllSubjects();
+      const subObj =
+        allSubjects.find((s) => s.id === subjectId) ||
+        MOCK_SUBJECTS.find((s) => s.id === subjectId);
+      if (subObj) {
+        subjectTitle = subObj.title;
+      }
+    }
 
     const updated = await CmsService.updateSubjectQuizFile(
       id,
       {
-        ...(semester === '1' || semester === '2' ? { semester } : {}),
-        ...(title ? { title: title.trim() } : {}),
-        ...(questionsCount !== undefined ? { questionsCount: Number(questionsCount) } : {}),
-        ...(downloadUrl ? { downloadUrl: downloadUrl.trim() } : {}),
+        ...(semester ? { semester } : {}),
+        ...(title ? { title } : {}),
+        ...(subjectId ? { subjectId } : {}),
+        ...(subjectTitle ? { subjectTitle } : {}),
+        ...(questionsCount !== undefined ? { questionsCount } : {}),
+        ...(downloadUrl ? { downloadUrl } : {}),
+        ...(fileSize ? { fileSize } : {}),
+        updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
       },
       customToken
     );
@@ -204,11 +270,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       success: !!updated,
       quizFile: updated,
-      message: updated ? 'تم تحديث ملف الكويز بنجاح' : 'لم يتم العثور على ملف الكويز',
+      message: updated ? 'تم تحديث بيانات وملف الكويز بنجاح ✅' : 'لم يتم العثور على ملف الكويز',
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
+}
+
+export async function PUT(req: NextRequest) {
+  return PATCH(req);
 }
 
 export async function DELETE(req: NextRequest) {
