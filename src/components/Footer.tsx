@@ -4,7 +4,13 @@ import { Stethoscope, MessageCircle, Heart } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import SecretAdminTrigger from './SecretAdminTrigger';
 
-export default function Footer() {
+interface FooterProps {
+  activeYears?: { id: string; title: string }[];
+}
+
+export default function Footer({
+  activeYears = [{ id: '1', title: 'السنة الأولى' }],
+}: FooterProps) {
   return (
     <footer className="w-full bg-slate-900 dark:bg-slate-950 text-slate-300 dark:text-slate-400 pt-16 pb-12 border-t border-slate-800 dark:border-slate-900" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,28 +42,20 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 2: Academic Years & Semesters */}
+          {/* Col 2: Academic Years Only */}
           <div>
             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-              المقررات والفصول الدراسية
+              السنوات الدراسية
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
-              <li>
-                <Link href="/year/1" className="hover:text-teal-400 transition">
-                  السنة الأولى (جميع المقررات المعتمدة)
-                </Link>
-              </li>
-              <li>
-                <Link href="/year/1?semester=1" className="hover:text-teal-400 transition">
-                  الفصل الدراسي الأول (سمستر 1)
-                </Link>
-              </li>
-              <li>
-                <Link href="/year/1?semester=2" className="hover:text-teal-400 transition">
-                  الفصل الدراسي الثاني (سمستر 2)
-                </Link>
-              </li>
+              {activeYears.map((yr) => (
+                <li key={yr.id}>
+                  <Link href={`/year/${yr.id}`} className="hover:text-teal-400 transition font-bold">
+                    {yr.title}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

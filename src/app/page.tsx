@@ -38,11 +38,25 @@ export default async function HomePage({
   const allSubjects = isAdmin
     ? await CmsService.getAllSubjects()
     : await CmsService.getLiveSubjects();
-  const year1Subjects = allSubjects.filter((s) => s.yearId === '1');
   const liveLectures = await CmsService.getLiveLectures();
   const quizzesList = await CmsService.getAllSubjectQuizFilesList();
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
+
+  const subjectYearMap = new Map<string, string>();
+  allSubjects.forEach((s) => subjectYearMap.set(s.id, s.yearId));
+
+  const allYears = DataService.getAcademicYears();
+  const activeYears = allYears.filter((yr) => {
+    if (yr.id === '1') return true;
+    const hasLec = liveLectures.some(
+      (l) => (l.yearId || subjectYearMap.get(l.subjectId) || '1') === yr.id
+    );
+    const hasQuiz = quizzesList.some(
+      (q) => (subjectYearMap.get(q.subjectId) || '1') === yr.id
+    );
+    return hasLec || hasQuiz;
+  });
 
   return (
     <div className="w-full pb-20">
@@ -70,13 +84,16 @@ export default async function HomePage({
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-                <Link
-                  href="/year/1"
-                  className="px-7 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-lg shadow-teal-600/25 active:scale-95 transition flex items-center gap-2"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>تصفح مواد السنة الأولى</span>
-                </Link>
+                {activeYears.map((yr) => (
+                  <Link
+                    key={yr.id}
+                    href={`/year/${yr.id}`}
+                    className="px-7 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-lg shadow-teal-600/25 active:scale-95 transition flex items-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>تصفح مواد {yr.title}</span>
+                  </Link>
+                ))}
 
                 <a
                   href={BOT_CONFIG.whatsappGroupLink}
@@ -119,41 +136,45 @@ export default async function HomePage({
         <AdSenseBanner position="header" slotId="9876543210" label="إعلان ممول - منصة ملخصات تمريض" />
       </div>
 
-      {/* 3. Primary Feature: Year 1 Subjects Grid (السنة الأولى هي البطل الأساسي) */}
-      <section id="year-1-subjects" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-bold mb-2 border border-teal-200 dark:border-teal-800">
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>مقررات الفرقة الأولى المعتمدة</span>
+      {/* 3. Academic Years Sections (Only years with content are displayed) */}
+      {activeYears.map((yr) => {
+        const yrSubjects = allSubjects.filter((s) => s.yearId === yr.id);
+        return (
+          <section key={yr.id} id={`year-${yr.id}-subjects`} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-bold mb-2 border border-teal-200 dark:border-teal-800">
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>مقررات {yr.badge} المعتمدة</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                  مواد {yr.title} ({yr.stageName})
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  اختر المادة لتصفح المحاضرات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز
+                </p>
+              </div>
+
+              <Link
+                href={`/year/${yr.id}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition self-start md:self-auto shadow-sm"
+              >
+                <span>عرض كل مقررات {yr.title}</span>
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-              مواد السنة الأولى (العلوم الطبية والتمريضية)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              اختر المادة لتصفح المحاضرات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز
-            </p>
-          </div>
 
-          <Link
-            href="/year/1"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition self-start md:self-auto shadow-sm"
-          >
-            <span>عرض كل مقررات السنة الأولى</span>
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Year 1 Subject Cards grouped by Semester 1 & Semester 2 */}
-        <SemesterSubjectsBrowser
-          subjects={year1Subjects}
-          lectures={liveLectures}
-          quizzesList={quizzesList}
-          isAdmin={isAdmin}
-          initialSemester={initialSemester}
-          gridCols={4}
-        />
-      </section>
+            <SemesterSubjectsBrowser
+              subjects={yrSubjects}
+              lectures={liveLectures}
+              quizzesList={quizzesList}
+              isAdmin={isAdmin}
+              initialSemester={initialSemester}
+              gridCols={4}
+            />
+          </section>
+        );
+      })}
 
       {/* 4. Pedagogical 4-Resource Breakdown */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

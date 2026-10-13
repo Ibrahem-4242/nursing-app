@@ -54,11 +54,43 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { ACADEMIC_YEARS } from '@/lib/mock-data';
+import { CmsService } from '@/lib/cms-db';
+
+export const dynamic = 'force-dynamic';
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  let activeYears = [{ id: '1', title: 'السنة الأولى' }];
+  try {
+    const [liveLectures, quizzesList, allSubjects] = await Promise.all([
+      CmsService.getLiveLectures(),
+      CmsService.getAllSubjectQuizFilesList(),
+      CmsService.getAllSubjects(),
+    ]);
+    const subjectYearMap = new Map<string, string>();
+    allSubjects.forEach((s) => subjectYearMap.set(s.id, s.yearId));
+
+    const yearsWithContent = ACADEMIC_YEARS.filter((yr) => {
+      const hasLec = liveLectures.some(
+        (l) => (l.yearId || subjectYearMap.get(l.subjectId) || '1') === yr.id
+      );
+      const hasQuiz = quizzesList.some(
+        (q) => (subjectYearMap.get(q.subjectId) || '1') === yr.id
+      );
+      return hasLec || hasQuiz;
+    }).map((yr) => ({ id: yr.id, title: yr.title }));
+
+    if (yearsWithContent.length > 0) {
+      activeYears = yearsWithContent;
+    }
+  } catch {
+    activeYears = [{ id: '1', title: 'السنة الأولى' }];
+  }
+
   return (
     <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
       <head>
@@ -85,9 +117,9 @@ export default function RootLayout({
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
         <AnnouncementBar />
-        <Navbar />
+        <Navbar activeYears={activeYears} />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <Footer activeYears={activeYears} />
         <VisitorTracker />
         <Analytics />
       </body>

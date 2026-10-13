@@ -6,7 +6,13 @@ import { Stethoscope, Menu, X, MessageCircle } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import ThemeToggle from '@/components/ThemeToggle';
 
-export default function Navbar() {
+interface NavbarProps {
+  activeYears?: { id: string; title: string }[];
+}
+
+export default function Navbar({
+  activeYears = [{ id: '1', title: 'السنة الأولى' }],
+}: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -22,22 +28,25 @@ export default function Navbar() {
               ملخصات تمريض
             </span>
             <span className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mt-0.5">
-              مقررات وملخصات السنة الأولى
+              {activeYears.length === 1 ? `مقررات وملخصات ${activeYears[0].title}` : 'المنصة الأكاديمية لطلاب التمريض'}
             </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation Links - Focused on Year 1 */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
           <Link href="/" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
             الرئيسية
           </Link>
-          <Link
-            href="/year/1"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-bold hover:bg-teal-600 hover:text-white transition"
-          >
-            <span>🩺 مواد السنة الأولى</span>
-          </Link>
+          {activeYears.map((yr) => (
+            <Link
+              key={yr.id}
+              href={`/year/${yr.id}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-bold hover:bg-teal-600 hover:text-white transition"
+            >
+              <span>🩺 {yr.title}</span>
+            </Link>
+          ))}
           <Link href="/about" className="hover:text-teal-600 dark:hover:text-teal-400 transition py-1">
             عن المنصة
           </Link>
@@ -84,13 +93,16 @@ export default function Navbar() {
           >
             🏠 الرئيسية
           </Link>
-          <Link
-            href="/year/1"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-950 text-sm font-bold text-teal-700 dark:text-teal-300"
-          >
-            🩺 مواد السنة الأولى (الفرقة الأولى)
-          </Link>
+          {activeYears.map((yr) => (
+            <Link
+              key={yr.id}
+              href={`/year/${yr.id}`}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-950 text-sm font-bold text-teal-700 dark:text-teal-300"
+            >
+              🩺 {yr.title}
+            </Link>
+          ))}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
             <Link
               href="/about"
