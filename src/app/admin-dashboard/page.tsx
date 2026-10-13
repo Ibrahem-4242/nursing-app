@@ -33,6 +33,7 @@ import {
   BookOpen,
   Lock,
   Gift,
+  Headphones,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
@@ -41,6 +42,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'announcement' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
   // Subject Quizzes Form state
   const [quizSubjectId, setQuizSubjectId] = useState('anatomy');
@@ -78,11 +80,14 @@ export default function AdminDashboardPage() {
   const [externalPptUrl, setExternalPptUrl] = useState('');
   const [mindmapUploadMode, setMindmapUploadMode] = useState<'file' | 'link'>('file');
   const [externalMindmapUrl, setExternalMindmapUrl] = useState('');
+  const [audioUploadMode, setAudioUploadMode] = useState<'file' | 'link'>('file');
+  const [externalAudioUrl, setExternalAudioUrl] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [ankiFile, setAnkiFile] = useState<File | null>(null);
   const [pptFile, setPptFile] = useState<File | null>(null);
   const [mindmapFile, setMindmapFile] = useState<File | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isImportingAnki, setIsImportingAnki] = useState<string | null>(null);
   const [parsedCardsJson, setParsedCardsJson] = useState<string | null>(null);
   const [parsedCardsCount, setParsedCardsCount] = useState<number>(0);
@@ -112,9 +117,12 @@ export default function AdminDashboardPage() {
   const [editPdfUrl, setEditPdfUrl] = useState('');
   const [editPptUrl, setEditPptUrl] = useState('');
   const [editMindmapUrl, setEditMindmapUrl] = useState('');
+  const [editAudioUrl, setEditAudioUrl] = useState('');
+  const [editRemoveAudio, setEditRemoveAudio] = useState(false);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPptFile, setEditPptFile] = useState<File | null>(null);
   const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
+  const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
   const [editAnkiFile, setEditAnkiFile] = useState<File | null>(null);
   const [editParsedCardsJson, setEditParsedCardsJson] = useState<string | null>(null);
   const [editParsedCardsCount, setEditParsedCardsCount] = useState<number>(0);
@@ -194,6 +202,9 @@ export default function AdminDashboardPage() {
           router.replace('/');
         } else {
           setIsAuthenticated(true);
+          if (data.cloudToken) {
+            setServerCloudToken(data.cloudToken);
+          }
           loadAllData();
         }
       })
@@ -202,6 +213,60 @@ export default function AdminDashboardPage() {
         router.replace('/');
       });
   }, [router]);
+
+  // Direct client-to-GitHub uploader for audio/files up to 24 MB (bypasses Vercel 4.5MB serverless body limit!)
+  const uploadFileDirectlyToCloud = async (
+    targetFile: File
+  ): Promise<{ url: string; sizeFormatted: string } | null> => {
+    const activeToken =
+      (typeof window !== 'undefined' && localStorage.getItem('nursing_sync_token')) ||
+      syncToken ||
+      serverCloudToken;
+    if (!activeToken) return null;
+
+    const sizeKb = Math.round(targetFile.size / 1024);
+    const sizeFormatted =
+      sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+
+    const base64Content = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = String(reader.result || '');
+        const commaIdx = res.indexOf(',');
+        resolve(commaIdx >= 0 ? res.slice(commaIdx + 1) : res);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(targetFile);
+    });
+
+    const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    const cleanFilename = targetFile.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+    const safeName = `${fileId}_${cleanFilename}`;
+
+    const ghRes = await fetch(
+      `https://api.github.com/repos/Ibrahem-4242/nursing-app/contents/public/uploads/${encodeURIComponent(safeName)}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${activeToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Upload ${cleanFilename} via admin direct cloud`,
+          content: base64Content,
+        }),
+      }
+    );
+
+    if (ghRes.ok) {
+      const ghData = await ghRes.json();
+      const rawUrl =
+        ghData.content?.download_url ||
+        `https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/${encodeURIComponent(safeName)}`;
+      return { url: rawUrl, sizeFormatted };
+    }
+    return null;
+  };
 
   const loadAllData = () => {
     loadStats();
@@ -392,19 +457,30 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    // Validate total upload payload size before sending to prevent serverless 413 drop
+    // Validate non-audio upload payload size before sending to prevent serverless 413 drop
     if (file) {
-      const totalBytes =
+      const nonAudioBytes =
         (file?.size || 0) +
         (ankiFile?.size || 0) +
         (pptFile?.size || 0) +
         (mindmapFile?.size || 0);
-      const totalMb = totalBytes / (1024 * 1024);
+      const nonAudioMb = nonAudioBytes / (1024 * 1024);
 
-      if (totalMb > 4.5) {
+      if (nonAudioMb > 4.5) {
         setUploadFeedback({
           type: 'error',
-          message: `حجم الملفات الإجمالي (${totalMb.toFixed(1)} MB) يتجاوز الحد الأقصى في الرفع المباشر (4.5 MB). يمكنك ضغط الـ PDF أو استخدام خيار "رابط خارجي مباشر (Google Drive)" لنشر الملف بدون أي حدود!`,
+          message: `حجم ملفات الـ PDF والمرفقات (${nonAudioMb.toFixed(1)} MB) يتجاوز الحد الأقصى في الرفع المباشر (4.5 MB). يمكنك ضغط الـ PDF أو استخدام خيار "رابط خارجي مباشر (Google Drive)" لنشر الملف بدون أي حدود!`,
+        });
+        return;
+      }
+    }
+
+    if (audioUploadMode === 'file' && audioFile) {
+      const audioMb = audioFile.size / (1024 * 1024);
+      if (audioMb > 24) {
+        setUploadFeedback({
+          type: 'error',
+          message: `حجم الملف الصوتي (${audioMb.toFixed(1)} MB) أكبر من 24 MB. للملفات الصوتية الضخمة، يرجى رفعها على Google Drive واختيار "رابط درايف" لرفعها بأي حجم بدون قيود!`,
         });
         return;
       }
@@ -430,6 +506,32 @@ export default function AdminDashboardPage() {
         formData.append('mindmapFile', mindmapFile);
       } else if (mindmapUploadMode === 'link' && externalMindmapUrl.trim()) {
         formData.append('externalMindmapUrl', externalMindmapUrl.trim());
+      }
+
+      if (audioUploadMode === 'file' && audioFile) {
+        const currentPayloadBytes =
+          (file?.size || 0) +
+          (ankiFile?.size || 0) +
+          (pptFile?.size || 0) +
+          (mindmapFile?.size || 0) +
+          audioFile.size;
+
+        // If audio file or total payload exceeds 3.2 MB, upload audio directly to GitHub Cloud from browser first
+        if (currentPayloadBytes > 3.2 * 1024 * 1024 || audioFile.size > 2.5 * 1024 * 1024) {
+          const directUploaded = await uploadFileDirectlyToCloud(audioFile);
+          if (directUploaded) {
+            formData.append('externalAudioUrl', directUploaded.url);
+            formData.append('audioFileSize', directUploaded.sizeFormatted);
+          } else {
+            throw new Error(
+              'تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام خيار "رابط درايف" للملفات الصوتية الكبيرة.'
+            );
+          }
+        } else {
+          formData.append('audioFile', audioFile);
+        }
+      } else if (audioUploadMode === 'link' && externalAudioUrl.trim()) {
+        formData.append('externalAudioUrl', externalAudioUrl.trim());
       }
 
       formData.append('subjectId', subjectId);
@@ -459,7 +561,7 @@ export default function AdminDashboardPage() {
           data = JSON.parse(text);
         } catch {
           if (res.status === 413) {
-            throw new Error('حجم الملف كبير جداً وتجاوز الحد الأقصى المسموح به (4.5 MB). يرجى ضغط الـ PDF قبل رفعه.');
+            throw new Error('حجم الملف كبير جداً وتجاوز الحد الأقصى المسموح به (4.5 MB). يرجى ضغط الملف أو استخدام رابط Google Drive.');
           } else if (res.status === 401) {
             throw new Error('انتهت صلاحية جلسة الأدمن. يرجى إعادة تسجيل الدخول عبر زر الفوتر السري.');
           } else if (res.status === 504) {
@@ -494,6 +596,9 @@ export default function AdminDashboardPage() {
         setMindmapFile(null);
         setExternalMindmapUrl('');
         setMindmapUploadMode('file');
+        setAudioFile(null);
+        setExternalAudioUrl('');
+        setAudioUploadMode('file');
         setExternalPdfUrl('');
         loadLectures();
         loadStats();
@@ -735,23 +840,51 @@ export default function AdminDashboardPage() {
     const pdf = lec.files?.find((f: any) => f.type === 'pdf') || lec.files?.[0];
     const ppt = lec.files?.find((f: any) => f.type === 'ppt');
     const mm = lec.files?.find((f: any) => f.type === 'mindmap');
+    const aud = lec.files?.find((f: any) => f.type === 'audio');
     setEditPdfUrl(pdf?.downloadUrl?.startsWith('http') ? pdf.downloadUrl : '');
     setEditPptUrl(ppt?.downloadUrl?.startsWith('http') ? ppt.downloadUrl : '');
     setEditMindmapUrl(mm?.downloadUrl?.startsWith('http') ? mm.downloadUrl : '');
+    setEditAudioUrl(aud?.downloadUrl?.startsWith('http') ? aud.downloadUrl : '');
+    setEditRemoveAudio(false);
     setEditPdfFile(null);
     setEditPptFile(null);
     setEditMindmapFile(null);
+    setEditAudioFile(null);
     setEditAnkiFile(null);
+    setEditParsedCardsJson(null);
+    setEditParsedCardsCount(0);
   };
 
   // Save Lecture Edit (Supports Text Fields + Replacing Files)
   const handleSaveLectureEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLecture) return;
+
+    if (editAudioFile && editAudioFile.size > 24 * 1024 * 1024) {
+      alert('حجم الملف الصوتي أكبر من 24 MB. يرجى رفعه على Google Drive ووضع الرابط في خانة رابط الملف الصوتي.');
+      return;
+    }
+
     setIsSavingEdit(true);
 
     try {
-      if (editPdfFile || editPptFile || editMindmapFile || editAnkiFile) {
+      let resolvedAudioUrl = editAudioUrl.trim();
+      let resolvedAudioSize = '';
+      let audioFileToSend: File | null = editAudioFile;
+
+      // If audio file is > 2.5 MB, upload directly to GitHub Cloud from browser to bypass Vercel 4.5MB limit
+      if (editAudioFile && editAudioFile.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(editAudioFile);
+        if (directUploaded) {
+          resolvedAudioUrl = directUploaded.url;
+          resolvedAudioSize = directUploaded.sizeFormatted;
+          audioFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      if (editPdfFile || editPptFile || editMindmapFile || audioFileToSend || editAnkiFile) {
         const formData = new FormData();
         formData.append('id', editingLecture.id);
         formData.append('title', editTitle.trim());
@@ -762,9 +895,13 @@ export default function AdminDashboardPage() {
         if (editPdfUrl.trim()) formData.append('pdfUrl', editPdfUrl.trim());
         if (editPptUrl.trim()) formData.append('pptUrl', editPptUrl.trim());
         if (editMindmapUrl.trim()) formData.append('mindmapUrl', editMindmapUrl.trim());
+        if (resolvedAudioUrl) formData.append('audioUrl', resolvedAudioUrl);
+        if (resolvedAudioSize) formData.append('audioFileSize', resolvedAudioSize);
+        if (editRemoveAudio) formData.append('removeAudio', 'true');
         if (editPdfFile) formData.append('pdfFile', editPdfFile);
         if (editPptFile) formData.append('pptFile', editPptFile);
         if (editMindmapFile) formData.append('mindmapFile', editMindmapFile);
+        if (audioFileToSend) formData.append('audioFile', audioFileToSend);
         if (editAnkiFile) formData.append('ankiFile', editAnkiFile);
         if (editParsedCardsJson) formData.append('flashcardsJson', editParsedCardsJson);
 
@@ -795,6 +932,10 @@ export default function AdminDashboardPage() {
             pdfUrl: editPdfUrl.trim() || undefined,
             pptUrl: editPptUrl.trim() || undefined,
             mindmapUrl: editMindmapUrl.trim() || undefined,
+            audioUrl: resolvedAudioUrl || undefined,
+            audioFileSize: resolvedAudioSize || undefined,
+            removeAudio: editRemoveAudio,
+            flashcardsJson: editParsedCardsJson || undefined,
           }),
         });
 
@@ -1373,7 +1514,7 @@ export default function AdminDashboardPage() {
                 </label>
               </div>
 
-              {/* Additional Study Materials (Anki .apkg, PowerPoint, Mindmap) */}
+              {/* Additional Study Materials (Anki .apkg, PowerPoint, Mindmap, Audio) */}
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1382,12 +1523,12 @@ export default function AdminDashboardPage() {
                       <span>الملفات الإضافية والمواد التفاعلية (اختياري)</span>
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      يمكنك إرفاق حزمة Anki، وسلايدات بوربوينت، وخريطة ذهنية لتوفير تجربة تعليمية متكاملة للطلاب.
+                      يمكنك إرفاق حزمة Anki، وسلايدات بوربوينت، وخريطة ذهنية، وملف صوتي (ريكورد المحاضرة) لتوفير تجربة تعليمية متكاملة.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* 1. Anki Package (.apkg) */}
                   <div className="p-4 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
                     <div className="flex items-center justify-between">
@@ -1666,6 +1807,106 @@ export default function AdminDashboardPage() {
                       />
                     )}
                   </div>
+
+                  {/* 4. Audio Recording (.mp3, .m4a, .wav, .ogg, Google Drive) */}
+                  <div className="p-4 rounded-2xl bg-violet-50/40 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-900/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-violet-800 dark:text-violet-300 flex items-center gap-1.5">
+                        <Headphones className="w-4 h-4" />
+                        <span>ريكورد المحاضرة (صوت)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
+                        موجة صوتية 🎧
+                      </span>
+                    </div>
+
+                    {/* Mode Selector: File vs Drive Link */}
+                    <div className="flex rounded-xl bg-violet-100/70 dark:bg-violet-950 p-1 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setAudioUploadMode('file')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          audioUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-violet-900 dark:text-white shadow-sm'
+                            : 'text-violet-600 dark:text-violet-400 hover:text-violet-800'
+                        }`}
+                      >
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع ملف</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAudioUploadMode('link')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          audioUploadMode === 'link'
+                            ? 'bg-white dark:bg-slate-800 text-violet-900 dark:text-white shadow-sm'
+                            : 'text-violet-600 dark:text-violet-400 hover:text-violet-800'
+                        }`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>رابط درايف</span>
+                      </button>
+                    </div>
+
+                    {audioUploadMode === 'file' ? (
+                      <>
+                        <input
+                          type="file"
+                          id="audio-file-input"
+                          accept="audio/*,.mp3,.m4a,.wav,.ogg,.opus,.aac,.webm,.flac,.mp4"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setAudioFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('audio-file-input')?.click()}
+                          className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            audioFile
+                              ? 'bg-violet-600 text-white border-violet-600'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-violet-500'
+                          }`}
+                        >
+                          {audioFile ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[140px]">{audioFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Headphones className="w-3.5 h-3.5" />
+                              <span>اختر ملف صوتي 🎵</span>
+                            </>
+                          )}
+                        </button>
+                        {audioFile && (
+                          <div className="flex items-center justify-between text-[10px] px-1">
+                            <span className="text-violet-600 dark:text-violet-400 font-bold">
+                              {(audioFile.size / (1024 * 1024)).toFixed(1)} MB
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAudioFile(null)}
+                              className="text-rose-500 hover:underline"
+                            >
+                              إلغاء الملف
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="url"
+                        value={externalAudioUrl}
+                        onChange={(e) => setExternalAudioUrl(e.target.value)}
+                        placeholder="ضع رابط Google Drive للملف الصوتي..."
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 text-right dir-rtl"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1844,6 +2085,11 @@ export default function AdminDashboardPage() {
                             {lec.files?.some((f: any) => f.fileType === 'mindmap' || f.type === 'mindmap') && (
                               <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
                                 Mindmap 🧠
+                              </span>
+                            )}
+                            {lec.files?.some((f: any) => f.type === 'audio') && (
+                              <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px]">
+                                Audio 🎧
                               </span>
                             )}
                             {lec.flashcards?.length > 0 ? (
@@ -2113,6 +2359,55 @@ export default function AdminDashboardPage() {
                               className="hidden"
                               onChange={(e) => {
                                 if (e.target.files?.[0]) setEditMindmapFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Audio Recording replacement */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-violet-700 dark:text-violet-300">
+                            رابط أو ملف صوتي للمحاضرة (ريكورد الشرح 🎧):
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'audio') || editAudioUrl || editAudioFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditAudioUrl('');
+                                setEditAudioFile(null);
+                                setEditRemoveAudio(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveAudio ? 'سيتم حذف الصوت عند الحفظ 🗑️' : 'حذف الملف الصوتي الحالي'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editAudioUrl}
+                            onChange={(e) => {
+                              setEditAudioUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveAudio(false);
+                            }}
+                            placeholder="رابط Google Drive أو رابط مباشر للملف الصوتي..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <Headphones className="w-3.5 h-3.5" />
+                            <span>{editAudioFile ? editAudioFile.name.slice(0, 10) : 'رفع صوت'}</span>
+                            <input
+                              type="file"
+                              accept="audio/*,.mp3,.m4a,.wav,.ogg,.opus,.aac,.webm,.flac,.mp4"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditAudioFile(e.target.files[0]);
+                                  setEditRemoveAudio(false);
+                                }
                               }}
                             />
                           </label>

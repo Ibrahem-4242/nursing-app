@@ -81,7 +81,7 @@ export interface QuizQuestion {
 }
 
 export interface LectureFile {
-  type: 'pdf' | 'ppt' | 'mindmap' | 'cards';
+  type: 'pdf' | 'ppt' | 'mindmap' | 'cards' | 'audio';
   title: string;
   fileSize: string;
   downloadUrl: string;

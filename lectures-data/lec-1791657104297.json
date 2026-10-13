@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلا��ة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النس��ية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -43,7 +43,7 @@
     {
       "id": 4,
       "front": "Which standard medical suffix denotes Inflammation (الالتهاب) in tissue terminology?",
-      "back": "The suffix '-itis' (اللاحقة إيتس) is added to tissue names to indicate inflammation.",
+      "back": "The suffix '-itis' (ا��لاحقة إيتس) is added to tissue names to indicate inflammation.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -77,7 +77,7 @@
     },
     {
       "id": 9,
-      "front": "What factor produces Swelling (ا��تورم) during acute inflammation?",
+      "front": "What factor produces Swelling (التورم) during acute inflammation?",
       "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح السائلي الالتهابي).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -136,7 +136,7 @@
       "front": "What is the initial step in the process of Phagocytosis (الخطوة الأولى للبلعمة)?",
       "back": "The initial step is Chemotaxis (الانجذاب الكيميائي), which brings phagocytes to the targeted pathogen.",
       "category": "كروت استذكار",
-      "clinicalPearl": "عملي�� البلعمة (Phagocytosis Mechanism)"
+      "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
     },
     {
       "id": 18,
@@ -178,7 +178,7 @@
       "front": "What is the Complement System (جهاز المتممة)?",
       "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض وا��التهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
       "id": 24,
@@ -353,7 +353,7 @@
       "front": "What is Pavementing or Margination (التهميش / الترصيف) in leukocyte extravasation?",
       "back": "Pavementing is the accumulation and lining up of white blood cells along the vascular endothelial surface.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأم��اض والالتهاب (Pathology & Inflammation)"
     },
     {
       "id": 49,

@@ -43,6 +43,13 @@ function getContentTypeForExt(ext: string): string {
   if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
   if (ext === '.webp') return 'image/webp';
   if (ext === '.svg') return 'image/svg+xml';
+  if (ext === '.mp3') return 'audio/mpeg';
+  if (ext === '.m4a' || ext === '.mp4') return 'audio/mp4';
+  if (ext === '.wav') return 'audio/wav';
+  if (ext === '.ogg' || ext === '.oga' || ext === '.opus') return 'audio/ogg';
+  if (ext === '.aac') return 'audio/aac';
+  if (ext === '.webm') return 'audio/webm';
+  if (ext === '.flac') return 'audio/flac';
   return 'application/octet-stream';
 }
 
@@ -196,15 +203,7 @@ export function getUploadedFile(fileId: string): { buffer: Buffer; filename: str
 
   const originalName = safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'file';
   const ext = path.extname(originalName).toLowerCase();
-
-  let contentType = 'application/octet-stream';
-  if (ext === '.pdf') contentType = 'application/pdf';
-  else if (ext === '.pptx') contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-  else if (ext === '.ppt') contentType = 'application/vnd.ms-powerpoint';
-  else if (ext === '.png') contentType = 'image/png';
-  else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-  else if (ext === '.webp') contentType = 'image/webp';
-  else if (ext === '.svg') contentType = 'image/svg+xml';
+  const contentType = getContentTypeForExt(ext);
 
   return {
     buffer,

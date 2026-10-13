@@ -18,6 +18,7 @@ import {
   Presentation,
   GitFork,
   Layers,
+  Headphones,
   HelpCircle,
 } from 'lucide-react';
 
@@ -174,8 +175,8 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
                     {lec.subtitle || lec.overview}
                   </p>
 
-                  {/* The 4-Resource Badges inside each lecture card */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300">
+                  {/* The Resource Badges inside each lecture card */}
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-5 mb-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300">
                     <span className="flex items-center gap-1.5 font-medium">
                       <FileText className="w-3.5 h-3.5 text-rose-500" />
                       <span>ملف PDF</span>
@@ -188,6 +189,12 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
                       <GitFork className="w-3.5 h-3.5 text-sky-500" />
                       <span>خريطة ذهنية</span>
                     </span>
+                    {lec.files?.some((f: any) => f.type === 'audio') && (
+                      <span className="flex items-center gap-1.5 font-bold text-violet-600 dark:text-violet-400">
+                        <Headphones className="w-3.5 h-3.5" />
+                        <span>ريكورد صوتي 🎧</span>
+                      </span>
+                    )}
                     <span className="flex items-center gap-1.5 font-medium font-bold text-teal-600 dark:text-teal-400">
                       <Layers className="w-3.5 h-3.5" />
                       <span>فلاش كاردز تفاعلية</span>
@@ -245,6 +252,10 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
               <li className="flex items-start gap-2.5">
                 <GitFork className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
                 <span><strong>خرائط ذهنية:</strong> تشجير بصري شامل لكافة عناصر المحاضرة.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Headphones className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                <span><strong>ريكوردات صوتية:</strong> استماع مباشر لشرح المحاضرة بموجة صوتية تفاعلية وتحكم بالسرعة.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Layers className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />

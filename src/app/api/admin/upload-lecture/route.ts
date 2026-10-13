@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     const ankiFile = formData.get('ankiFile') as File | null;
     const pptFile = formData.get('pptFile') as File | null;
     const mindmapFile = formData.get('mindmapFile') as File | null;
+    const audioFile = formData.get('audioFile') as File | null;
 
     const customToken =
       req.headers.get('x-github-token') ||
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
     const externalPdfUrl = ((formData.get('externalPdfUrl') as string) || '').trim();
     const externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
     const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
+    const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
+    const audioFileSize = ((formData.get('audioFileSize') as string) || '').trim();
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const yearId = (formData.get('yearId') as string) || '1';
@@ -200,6 +203,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (audioFile) {
+      const audioBuffer = new Uint8Array(await audioFile.arrayBuffer());
+      const savedAudio = await saveUploadedFile(audioBuffer, audioFile.name, customToken);
+      filesList.push({
+        type: 'audio',
+        title: `التسجيل الصوتي للشرح - ${lectureTitle.trim()}`,
+        fileSize: savedAudio.sizeFormatted,
+        downloadUrl: savedAudio.url,
+        pageCount: 'ريكورد شرح المحاضرة 🎧',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل',
+      });
+    } else if (externalAudioUrl) {
+      filesList.push({
+        type: 'audio',
+        title: `التسجيل الصوتي للشرح - ${lectureTitle.trim()}`,
+        fileSize: audioFileSize || 'ملف صوتي سحابي 🎧',
+        downloadUrl: externalAudioUrl,
+        pageCount: 'ريكورد شرح المحاضرة 🎧',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل',
+      });
+    }
+
     // 5. Construct New Lecture Record
     const lectureId = `lec-${Date.now()}`;
     const newLecture: Lecture = {
@@ -242,8 +269,9 @@ export async function POST(req: NextRequest) {
 📚 <b>المادة:</b> ${subjectObj.title}
 🔢 <b>رقم المحاضرة:</b> ${lectureNumber}
 📄 <b>ملف الـ PDF:</b> (${savedPdf.sizeFormatted}) ${shouldWatermark ? '🛡️ مع العلامة المائية' : ''}
-🖥️ <b>ملف البوربوينت:</b> ${pptFile ? 'مرفوع جاهز ✅' : 'قالب مدمج ⚡'}
-🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile ? 'مرفوعة جاهزة ✅' : 'قالب مدمج ⚡'}
+🖥️ <b>ملف البوربوينت:</b> ${pptFile || externalPptUrl ? 'مرفوع جاهز ✅' : 'قالب مدمج ⚡'}
+🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile || externalMindmapUrl ? 'مرفوعة جاهزة ✅' : 'قالب مدمج ⚡'}
+🎧 <b>الملف الصوتي (الريكورد):</b> ${audioFile || externalAudioUrl ? 'مرفوع جاهز للاستماع 🎵✅' : 'غير مرفق'}
 🃏 <b>كروت الفلاش كاردز:</b> ${flashcards.length} بطاقة استذكار داخلية تفاعلية ${ankiFile ? '(مستخرجة من Anki .apkg 🎴)' : ''}
 ⏰ <b>التوقيت:</b> ${getArabicFormattedDate()}
 ━━━━━━━━━━━━━━━━━━━━

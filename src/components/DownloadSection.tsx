@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { LectureFile } from '@/lib/types';
-import { FileText, Presentation, GitFork, Download, CheckCircle, ExternalLink, Info } from 'lucide-react';
+import { FileText, Presentation, GitFork, Headphones, Download, CheckCircle, ExternalLink, Info } from 'lucide-react';
 
 interface DownloadSectionProps {
   files: LectureFile[];
@@ -30,6 +30,8 @@ export default function DownloadSection({ files, adminNote, lectureTitle }: Down
         return <Presentation className="w-6 h-6 text-amber-600 dark:text-amber-400" />;
       case 'mindmap':
         return <GitFork className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />;
+      case 'audio':
+        return <Headphones className="w-6 h-6 text-violet-600 dark:text-violet-400" />;
       default:
         return <FileText className="w-6 h-6 text-teal-600 dark:text-teal-400" />;
     }
@@ -43,6 +45,8 @@ export default function DownloadSection({ files, adminNote, lectureTitle }: Down
         return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
       case 'mindmap':
         return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
+      case 'audio':
+        return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50';
       default:
         return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900/50';
     }

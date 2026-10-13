@@ -129,9 +129,13 @@ export async function PUT(req: NextRequest) {
   let pdfUrl: string | undefined;
   let pptUrl: string | undefined;
   let mindmapUrl: string | undefined;
+  let audioUrl: string | undefined;
+  let audioFileSize: string | undefined;
+  let removeAudio = false;
   let pdfFile: File | null = null;
   let pptFile: File | null = null;
   let mindmapFile: File | null = null;
+  let audioFile: File | null = null;
   let ankiFile: File | null = null;
   let flashcardsJson: string | null = null;
 
@@ -148,9 +152,13 @@ export async function PUT(req: NextRequest) {
     pdfUrl = (formData.get('pdfUrl') as string) || undefined;
     pptUrl = (formData.get('pptUrl') as string) || undefined;
     mindmapUrl = (formData.get('mindmapUrl') as string) || undefined;
+    audioUrl = (formData.get('audioUrl') as string) || undefined;
+    audioFileSize = (formData.get('audioFileSize') as string) || undefined;
+    removeAudio = formData.get('removeAudio') === 'true';
     pdfFile = formData.get('pdfFile') as File | null;
     pptFile = formData.get('pptFile') as File | null;
     mindmapFile = formData.get('mindmapFile') as File | null;
+    audioFile = formData.get('audioFile') as File | null;
     ankiFile = formData.get('ankiFile') as File | null;
     flashcardsJson = (formData.get('flashcardsJson') as string) || null;
   } else {
@@ -164,6 +172,9 @@ export async function PUT(req: NextRequest) {
     pdfUrl = body.pdfUrl;
     pptUrl = body.pptUrl;
     mindmapUrl = body.mindmapUrl;
+    audioUrl = body.audioUrl;
+    audioFileSize = body.audioFileSize;
+    removeAudio = Boolean(body.removeAudio);
     if (body.flashcardsJson) {
       flashcardsJson = typeof body.flashcardsJson === 'string' ? body.flashcardsJson : JSON.stringify(body.flashcardsJson);
     }
@@ -274,6 +285,47 @@ export async function PUT(req: NextRequest) {
         downloadUrl: mindmapUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
         updatedAt: getArabicFormattedDate(),
+      });
+    }
+  }
+
+  // Update or Remove Audio
+  if (removeAudio) {
+    existing.files = existing.files.filter((f) => f.type !== 'audio');
+  } else if (audioFile) {
+    const buf = new Uint8Array(await audioFile.arrayBuffer());
+    const saved = await saveUploadedFile(buf, audioFile.name, customToken);
+    const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
+    if (audioIdx >= 0) {
+      existing.files[audioIdx].downloadUrl = saved.url;
+      existing.files[audioIdx].fileSize = saved.sizeFormatted;
+      existing.files[audioIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'audio',
+        title: `التسجيل الصوتي للشرح - ${existing.title}`,
+        downloadUrl: saved.url,
+        fileSize: saved.sizeFormatted,
+        pageCount: 'ريكورد شرح المحاضرة 🎧',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل',
+      });
+    }
+  } else if (audioUrl && audioUrl.trim()) {
+    const audioIdx = existing.files.findIndex((f) => f.type === 'audio');
+    if (audioIdx >= 0) {
+      existing.files[audioIdx].downloadUrl = audioUrl.trim();
+      if (audioFileSize) existing.files[audioIdx].fileSize = audioFileSize;
+      existing.files[audioIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'audio',
+        title: `التسجيل الصوتي للشرح - ${existing.title}`,
+        downloadUrl: audioUrl.trim(),
+        fileSize: audioFileSize || 'ملف صوتي سحابي 🎧',
+        pageCount: 'ريكورد شرح المحاضرة 🎧',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل',
       });
     }
   }

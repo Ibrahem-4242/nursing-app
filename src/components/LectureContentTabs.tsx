@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { LectureFile, Flashcard } from '@/lib/types';
 import Flashcards3D from '@/components/Flashcards3D';
+import AudioWavePlayer from '@/components/AudioWavePlayer';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
 import {
@@ -10,6 +11,7 @@ import {
   Presentation,
   GitFork,
   Layers,
+  Headphones,
   CheckCircle2,
   Info,
   ArrowDownCircle,
@@ -35,7 +37,7 @@ export default function LectureContentTabs({
   lectureId,
   isFree = true,
 }: LectureContentTabsProps) {
-  const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'flashcards'>('pdf');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards'>('pdf');
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -43,6 +45,7 @@ export default function LectureContentTabs({
   const pdfFile = files.find((f) => f.type === 'pdf') || files[0];
   const pptFile = files.find((f) => f.type === 'ppt') || files[1] || files[0];
   const mindmapFile = files.find((f) => f.type === 'mindmap') || files[2] || files[0];
+  const audioFile = files.find((f) => f.type === 'audio') || null;
 
   const getActiveFile = () => {
     switch (activeTab) {
@@ -52,6 +55,8 @@ export default function LectureContentTabs({
         return pptFile;
       case 'mindmap':
         return mindmapFile;
+      case 'audio':
+        return audioFile;
       default:
         return null;
     }
@@ -59,7 +64,7 @@ export default function LectureContentTabs({
 
   const hasTrackedFlashcards = React.useRef(false);
 
-  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'flashcards') => {
+  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards') => {
     setActiveTab(tab);
     if (tab === 'flashcards' && !hasTrackedFlashcards.current) {
       hasTrackedFlashcards.current = true;
@@ -78,6 +83,16 @@ export default function LectureContentTabs({
   const getExtension = (file: LectureFile) => {
     if (file.type === 'pdf') return 'pdf';
     if (file.type === 'ppt') return 'pptx';
+    if (file.type === 'audio') {
+      const lower = (file.downloadUrl || '').toLowerCase();
+      if (lower.includes('.m4a')) return 'm4a';
+      if (lower.includes('.wav')) return 'wav';
+      if (lower.includes('.ogg')) return 'ogg';
+      if (lower.includes('.opus')) return 'opus';
+      if (lower.includes('.aac')) return 'aac';
+      if (lower.includes('.webm')) return 'webm';
+      return 'mp3';
+    }
     if (file.downloadUrl?.endsWith('.png')) return 'png';
     if (file.downloadUrl?.endsWith('.jpg') || file.downloadUrl?.endsWith('.jpeg')) return 'jpg';
     return 'pdf';
@@ -92,7 +107,14 @@ export default function LectureContentTabs({
         body: JSON.stringify({
           lectureTitle: file.title,
           subjectTitle,
-          fileType: file.type === 'pdf' ? 'ملخص PDF' : file.type === 'ppt' ? 'عرض بوربوينت PPT' : 'خريطة ذهنية',
+          fileType:
+            file.type === 'pdf'
+              ? 'ملخص PDF'
+              : file.type === 'ppt'
+              ? 'عرض بوربوينت PPT'
+              : file.type === 'audio'
+              ? 'تسجيل صوتي 🎧'
+              : 'خريطة ذهنية',
           fileName: file.title,
         }),
       }).catch((e) => console.warn('Tracking download non-blocking notice:', e));
@@ -148,9 +170,9 @@ export default function LectureContentTabs({
 
   return (
     <div className="w-full my-8 space-y-6" dir="rtl">
-      {/* 1. The 4 Main Interactive Tabs Selector */}
+      {/* 1. The Interactive Tabs Selector */}
       <div className="bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {/* Tab 1: PDF */}
           <button
             onClick={() => handleSelectTab('pdf')}
@@ -190,10 +212,26 @@ export default function LectureContentTabs({
             <span>خريطة ذهنية</span>
           </button>
 
-          {/* Tab 4: Flashcards */}
+          {/* Tab 4: Audio Recording */}
+          <button
+            onClick={() => handleSelectTab('audio')}
+            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 relative ${
+              activeTab === 'audio'
+                ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30 scale-[1.02]'
+                : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Headphones className="w-4 h-4 flex-shrink-0" />
+            <span>ريكورد المحاضرة</span>
+            {audioFile && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="متوفر تسجيل صوتي" />
+            )}
+          </button>
+
+          {/* Tab 5: Flashcards */}
           <button
             onClick={() => handleSelectTab('flashcards')}
-            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
+            className={`col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 ${
               activeTab === 'flashcards'
                 ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 scale-[1.02]'
                 : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -205,7 +243,22 @@ export default function LectureContentTabs({
         </div>
       </div>
 
-      {/* 2. File Download Box (for PDF, PPT, Mindmap) */}
+      {/* Empty State if Audio Tab is selected but lecture has no audio attached yet */}
+      {activeTab === 'audio' && !audioFile && (
+        <div className="bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-violet-950/20 p-8 sm:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center mx-auto">
+            <Headphones className="w-7 h-7" />
+          </div>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            لا يتوفر تسجيل صوتي مرفق لهذه المحاضرة حالياً 🎧
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            سيتم إرفاق الريكورد الصوتي فور توفره. يمكنك الآن المذاكرة من ملخص الـ PDF أو عروض البوربوينت أو الخريطة الذهنية والكروت التفاعلية.
+          </p>
+        </div>
+      )}
+
+      {/* 2. File Download & Player Box (for PDF, PPT, Mindmap, Audio) */}
       {activeTab !== 'flashcards' && activeFile && (
         <div className="bg-gradient-to-br from-slate-50 via-white to-teal-50/20 dark:from-slate-900 dark:via-slate-850 dark:to-teal-950/20 p-6 sm:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 transition-all duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
@@ -216,12 +269,15 @@ export default function LectureContentTabs({
                     ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
                     : activeTab === 'ppt'
                     ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
+                    : activeTab === 'audio'
+                    ? 'bg-violet-100 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400'
                     : 'bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400'
                 }`}
               >
                 {activeTab === 'pdf' && <FileText className="w-8 h-8" />}
                 {activeTab === 'ppt' && <Presentation className="w-8 h-8" />}
                 {activeTab === 'mindmap' && <GitFork className="w-8 h-8" />}
+                {activeTab === 'audio' && <Headphones className="w-8 h-8" />}
               </div>
 
               <div>
@@ -229,6 +285,7 @@ export default function LectureContentTabs({
                   {activeTab === 'pdf' && 'ملخص المحاضرة المعتمد (PDF)'}
                   {activeTab === 'ppt' && 'سلايدات الشرح الجامعي (PowerPoint)'}
                   {activeTab === 'mindmap' && 'الخريطة الذهنية التفاعلية الشاملة'}
+                  {activeTab === 'audio' && 'التسجيل الصوتي لشرح المحاضرة (Audio Record)'}
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
                   {activeFile.title}
@@ -236,7 +293,7 @@ export default function LectureContentTabs({
                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-2">
                   <span>الحجم: {activeFile.fileSize}</span>
                   {activeFile.pageCount && <span>• {activeFile.pageCount}</span>}
-                  <span>• جاهز للتنزيل الفوري</span>
+                  <span>• {activeTab === 'audio' ? 'جاهز للاستماع والتحميل الفوري' : 'جاهز للتنزيل الفوري'}</span>
                 </div>
               </div>
             </div>
@@ -253,6 +310,15 @@ export default function LectureContentTabs({
               </span>
             )}
           </div>
+
+          {/* Interactive Animated Sound Wave Player when Audio Tab is active & free */}
+          {activeTab === 'audio' && isFree && activeFile.downloadUrl && (
+            <AudioWavePlayer
+              audioUrl={activeFile.downloadUrl}
+              title={activeFile.title}
+              subjectTitle={subjectTitle}
+            />
+          )}
 
           {/* Description or custom note */}
           {activeFile.customNote && (
