@@ -136,15 +136,18 @@ export async function PUT(req: NextRequest) {
   let mindmapUrl: string | undefined;
   let audioUrl: string | undefined;
   let audioFileSize: string | undefined;
+  let questionsUrl: string | undefined;
   let removePdf = false;
   let removePpt = false;
   let removeMindmap = false;
   let removeAudio = false;
+  let removeQuestions = false;
   let removeFlashcards = false;
   let pdfFile: File | null = null;
   let pptFile: File | null = null;
   let mindmapFile: File | null = null;
   let audioFile: File | null = null;
+  let questionsFile: File | null = null;
   let ankiFile: File | null = null;
   let flashcardsJson: string | null = null;
 
@@ -166,15 +169,18 @@ export async function PUT(req: NextRequest) {
     mindmapUrl = (formData.get('mindmapUrl') as string) || undefined;
     audioUrl = (formData.get('audioUrl') as string) || undefined;
     audioFileSize = (formData.get('audioFileSize') as string) || undefined;
+    questionsUrl = (formData.get('questionsUrl') as string) || undefined;
     removePdf = formData.get('removePdf') === 'true';
     removePpt = formData.get('removePpt') === 'true';
     removeMindmap = formData.get('removeMindmap') === 'true';
     removeAudio = formData.get('removeAudio') === 'true';
+    removeQuestions = formData.get('removeQuestions') === 'true';
     removeFlashcards = formData.get('removeFlashcards') === 'true';
     pdfFile = formData.get('pdfFile') as File | null;
     pptFile = formData.get('pptFile') as File | null;
     mindmapFile = formData.get('mindmapFile') as File | null;
     audioFile = formData.get('audioFile') as File | null;
+    questionsFile = formData.get('questionsFile') as File | null;
     ankiFile = formData.get('ankiFile') as File | null;
     flashcardsJson = (formData.get('flashcardsJson') as string) || null;
   } else {
@@ -192,10 +198,12 @@ export async function PUT(req: NextRequest) {
     mindmapUrl = body.mindmapUrl;
     audioUrl = body.audioUrl;
     audioFileSize = body.audioFileSize;
+    questionsUrl = body.questionsUrl;
     removePdf = Boolean(body.removePdf);
     removePpt = Boolean(body.removePpt);
     removeMindmap = Boolean(body.removeMindmap);
     removeAudio = Boolean(body.removeAudio);
+    removeQuestions = Boolean(body.removeQuestions);
     removeFlashcards = Boolean(body.removeFlashcards);
     if (body.flashcardsJson) {
       flashcardsJson = typeof body.flashcardsJson === 'string' ? body.flashcardsJson : JSON.stringify(body.flashcardsJson);
@@ -413,6 +421,48 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  // Update or Remove Questions File
+  if (removeQuestions) {
+    existing.files = existing.files.filter((f: any) => f.type !== 'questions');
+  } else if (questionsFile) {
+    const buf = new Uint8Array(await questionsFile.arrayBuffer());
+    const saved = await saveUploadedFile(buf, questionsFile.name, customToken);
+    const qIdx = existing.files.findIndex((f) => f.type === 'questions');
+    if (qIdx >= 0) {
+      existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
+      existing.files[qIdx].downloadUrl = saved.url;
+      existing.files[qIdx].fileSize = saved.sizeFormatted;
+      existing.files[qIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'questions',
+        title: `أسئلة وتمارين المحاضرة - ${existing.title}`,
+        downloadUrl: saved.url,
+        fileSize: saved.sizeFormatted,
+        pageCount: 'بنك أسئلة وتدريبات PDF',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف أسئلة وتدريبات واختبارات لتقييم فهم المحاضرة',
+      });
+    }
+  } else if (questionsUrl && questionsUrl.trim()) {
+    const qIdx = existing.files.findIndex((f) => f.type === 'questions');
+    if (qIdx >= 0) {
+      existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
+      existing.files[qIdx].downloadUrl = questionsUrl.trim();
+      existing.files[qIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'questions',
+        title: `أسئلة وتمارين المحاضرة - ${existing.title}`,
+        downloadUrl: questionsUrl.trim(),
+        fileSize: 'رابط درايف 🌐',
+        pageCount: 'بنك أسئلة وتدريبات PDF',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف أسئلة وتدريبات واختبارات لتقييم فهم المحاضرة عبر رابط مباشر',
+      });
+    }
+  }
+
   // Sync file titles whenever lecture title was edited
   existing.files = existing.files.map((f: any) => {
     if (f.type === 'pdf' || f.fileType === 'summary') {
@@ -426,6 +476,9 @@ export async function PUT(req: NextRequest) {
     }
     if (f.type === 'audio') {
       return { ...f, title: `التسجيل الصوتي للشرح - ${existing.title}` };
+    }
+    if (f.type === 'questions') {
+      return { ...f, title: `أسئلة وتمارين المحاضرة - ${existing.title}` };
     }
     return f;
   });

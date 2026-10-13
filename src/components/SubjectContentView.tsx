@@ -22,6 +22,7 @@ import {
   EyeOff,
   Sparkles,
   LayoutGrid,
+  HelpCircle,
 } from 'lucide-react';
 
 interface SubjectContentViewProps {
@@ -425,6 +426,7 @@ export default function SubjectContentView({
                 const hasPpt = lec.files?.some((f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValidFile(f));
                 const hasMindmap = lec.files?.some((f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValidFile(f));
                 const hasAudio = lec.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValidFile(f));
+                const hasQuestions = lec.files?.some((f: any) => (f.type === 'questions' || f.fileType === 'questions') && isValidFile(f));
                 const hasFlashcards = (lec.flashcards?.length || 0) > 0;
 
                 return (
@@ -474,6 +476,18 @@ export default function SubjectContentView({
                           <span>ملف PDF</span>
                         </span>
                       )}
+                      {hasAudio && (
+                        <span className="flex items-center gap-1.5 font-bold text-violet-600 dark:text-violet-400">
+                          <Headphones className="w-3.5 h-3.5" />
+                          <span>ريكورد صوتي 🎧</span>
+                        </span>
+                      )}
+                      {hasQuestions && (
+                        <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                          <HelpCircle className="w-3.5 h-3.5" />
+                          <span>أسئلة ❓</span>
+                        </span>
+                      )}
                       {hasPpt && (
                         <span className="flex items-center gap-1.5 font-medium">
                           <Presentation className="w-3.5 h-3.5 text-amber-500" />
@@ -484,12 +498,6 @@ export default function SubjectContentView({
                         <span className="flex items-center gap-1.5 font-medium">
                           <GitFork className="w-3.5 h-3.5 text-sky-500" />
                           <span>خريطة ذهنية</span>
-                        </span>
-                      )}
-                      {hasAudio && (
-                        <span className="flex items-center gap-1.5 font-bold text-violet-600 dark:text-violet-400">
-                          <Headphones className="w-3.5 h-3.5" />
-                          <span>ريكورد صوتي 🎧</span>
                         </span>
                       )}
                       {hasFlashcards && (

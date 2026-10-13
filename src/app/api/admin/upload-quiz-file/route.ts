@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const externalDriveUrl = ((formData.get('externalDriveUrl') as string) || '').trim();
+    const explanationFile = formData.get('explanationFile') as File | null;
+    const externalExplanationUrl = ((formData.get('externalExplanationUrl') as string) || '').trim();
+    const explanationTitle = ((formData.get('explanationTitle') as string) || '').trim();
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const rawSemester = ((formData.get('semester') as string) || '').trim();
     const semester: '1' | '2' = rawSemester === '2' ? '2' : '1';
@@ -78,6 +81,24 @@ export async function POST(req: NextRequest) {
       savedPdf = await saveUploadedFile(processedBytes, file.name, customToken);
     }
 
+    // Process Explanation File / URL (ملف الشرح وتوضيح الإجابات)
+    let savedExplanation: { url: string; sizeFormatted: string } | null = null;
+    if (explanationFile) {
+      const expBuffer = await explanationFile.arrayBuffer();
+      let processedExpBytes = new Uint8Array(expBuffer);
+      if (shouldWatermark && (explanationFile.type === 'application/pdf' || explanationFile.name.endsWith('.pdf'))) {
+        try {
+          processedExpBytes = await applyWatermarkToPdf(expBuffer);
+        } catch (expWmErr) {
+          console.warn('[UploadQuizFile] Explanation watermark fallback:', expWmErr);
+        }
+      }
+      const savedExp = await saveUploadedFile(processedExpBytes, explanationFile.name, customToken);
+      savedExplanation = { url: savedExp.url, sizeFormatted: savedExp.sizeFormatted };
+    } else if (externalExplanationUrl) {
+      savedExplanation = { url: externalExplanationUrl, sizeFormatted: 'رابط خارجي 🌐' };
+    }
+
     // Check existing quizzes for this subject to auto-number if no custom title provided
     const existingForSub = await CmsService.getSubjectQuizFiles(subjectId);
     const defaultTitle =
@@ -99,6 +120,9 @@ export async function POST(req: NextRequest) {
         downloadUrl: savedPdf.url,
         questionsCount,
         updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
+        explanationUrl: savedExplanation?.url || undefined,
+        explanationTitle: explanationTitle || (savedExplanation?.url ? 'ملف الشرح وتوضيح الإجابات' : undefined),
+        explanationFileSize: savedExplanation?.sizeFormatted || undefined,
       },
       customToken
     );
@@ -111,6 +135,7 @@ export async function POST(req: NextRequest) {
     const time = getArabicFormattedDate();
     const fileNameDisplay = file ? `<code>${file.name}</code>` : 'رابط Google Drive خارجي 🌐';
     const watermarkDisplay = file && shouldWatermark ? 'تم التطبيق بنجاح ✅' : file ? 'بدون علامة' : 'ملف سحابي خارجي';
+    const explanationDisplay = savedExplanation?.url ? 'مرفق ملف شرح 📖' : 'بدون ملف شرح';
 
     const telegramMsg = `📝 <b>تم إضافة ملف أسئلة كويزات جديد!</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -119,6 +144,7 @@ export async function POST(req: NextRequest) {
 🏷️ <b>العنوان:</b> ${finalTitle}
 📄 <b>الملف:</b> ${fileNameDisplay}
 💾 <b>الحجم / المصدر:</b> ${savedPdf.sizeFormatted}
+📖 <b>الشرح:</b> ${explanationDisplay}
 ❓ <b>عدد الأسئلة:</b> +${questionsCount} سؤال
 ⏰ <b>التوقيت:</b> ${time}
 🛡️ <b>العلامة المائية:</b> ${watermarkDisplay}`;
@@ -182,6 +208,10 @@ export async function PATCH(req: NextRequest) {
     let downloadUrl: string | undefined;
     let fileSize: string | undefined;
     let file: File | null = null;
+    let explanationFile: File | null = null;
+    let externalExplanationUrl: string | undefined;
+    let explanationTitle: string | undefined;
+    let removeExplanation = false;
     let shouldWatermark = true;
     let customToken =
       req.headers.get('x-github-token') ||
@@ -202,6 +232,14 @@ export async function PATCH(req: NextRequest) {
         downloadUrl = ((formData.get('downloadUrl') as string) || '').trim();
       }
       file = formData.get('file') as File | null;
+      explanationFile = formData.get('explanationFile') as File | null;
+      if (formData.get('externalExplanationUrl') !== null) {
+        externalExplanationUrl = ((formData.get('externalExplanationUrl') as string) || '').trim();
+      }
+      if (formData.get('explanationTitle') !== null) {
+        explanationTitle = ((formData.get('explanationTitle') as string) || '').trim();
+      }
+      removeExplanation = formData.get('removeExplanation') === 'true';
       shouldWatermark = formData.get('watermark') !== 'false';
       const fToken = ((formData.get('githubToken') as string) || '').trim();
       if (fToken) customToken = fToken;
@@ -213,6 +251,9 @@ export async function PATCH(req: NextRequest) {
       if (body.subjectId !== undefined) subjectId = String(body.subjectId).trim();
       if (body.questionsCount !== undefined) questionsCount = Number(body.questionsCount);
       if (body.downloadUrl !== undefined) downloadUrl = String(body.downloadUrl).trim();
+      if (body.externalExplanationUrl !== undefined) externalExplanationUrl = String(body.externalExplanationUrl).trim();
+      if (body.explanationTitle !== undefined) explanationTitle = String(body.explanationTitle).trim();
+      removeExplanation = Boolean(body.removeExplanation);
       if (body.token) customToken = body.token;
     }
 
@@ -237,6 +278,42 @@ export async function PATCH(req: NextRequest) {
       fileSize = 'رابط Google Drive 🌐';
     }
 
+    let updatedExplanationUrl: string | undefined = undefined;
+    let updatedExplanationSize: string | undefined = undefined;
+    let updatedExplanationTitle: string | undefined = undefined;
+
+    if (removeExplanation) {
+      updatedExplanationUrl = '';
+      updatedExplanationSize = '';
+      updatedExplanationTitle = '';
+    } else if (explanationFile) {
+      const expBuffer = await explanationFile.arrayBuffer();
+      let processedExpBytes = new Uint8Array(expBuffer);
+      if (shouldWatermark && (explanationFile.type === 'application/pdf' || explanationFile.name.endsWith('.pdf'))) {
+        try {
+          processedExpBytes = await applyWatermarkToPdf(expBuffer);
+        } catch (expWmErr) {
+          console.warn('[EditQuizFile] Explanation watermark fallback:', expWmErr);
+        }
+      }
+      const savedExp = await saveUploadedFile(processedExpBytes, explanationFile.name, customToken);
+      updatedExplanationUrl = savedExp.url;
+      updatedExplanationSize = savedExp.sizeFormatted;
+      updatedExplanationTitle = explanationTitle || 'ملف الشرح وتوضيح الإجابات';
+    } else if (externalExplanationUrl !== undefined) {
+      if (externalExplanationUrl) {
+        updatedExplanationUrl = externalExplanationUrl;
+        updatedExplanationSize = 'رابط خارجي 🌐';
+        updatedExplanationTitle = explanationTitle || 'ملف الشرح وتوضيح الإجابات';
+      } else {
+        updatedExplanationUrl = '';
+        updatedExplanationSize = '';
+        updatedExplanationTitle = '';
+      }
+    } else if (explanationTitle !== undefined) {
+      updatedExplanationTitle = explanationTitle;
+    }
+
     let subjectTitle: string | undefined;
     if (subjectId) {
       const allSubjects = await CmsService.getAllSubjects();
@@ -258,6 +335,9 @@ export async function PATCH(req: NextRequest) {
         ...(questionsCount !== undefined ? { questionsCount } : {}),
         ...(downloadUrl ? { downloadUrl } : {}),
         ...(fileSize ? { fileSize } : {}),
+        ...(updatedExplanationUrl !== undefined ? { explanationUrl: updatedExplanationUrl || undefined } : {}),
+        ...(updatedExplanationSize !== undefined ? { explanationFileSize: updatedExplanationSize || undefined } : {}),
+        ...(updatedExplanationTitle !== undefined ? { explanationTitle: updatedExplanationTitle || undefined } : {}),
         updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
       },
       customToken

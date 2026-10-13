@@ -19,6 +19,7 @@ import {
   Lock,
   MessageCircle,
   EyeOff,
+  HelpCircle,
 } from 'lucide-react';
 
 interface LectureContentTabsProps {
@@ -55,6 +56,9 @@ export default function LectureContentTabs({
   const rawAudio = files.find(
     (f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValidUrl(getFileUrl(f))
   );
+  const rawQuestions = files.find(
+    (f: any) => (f.type === 'questions' || f.fileType === 'questions') && isValidUrl(getFileUrl(f))
+  );
 
   const pdfFile: LectureFile | null = rawPdf
     ? { ...rawPdf, type: 'pdf', downloadUrl: getFileUrl(rawPdf) }
@@ -68,12 +72,17 @@ export default function LectureContentTabs({
   const audioFile: LectureFile | null = rawAudio
     ? { ...rawAudio, type: 'audio', downloadUrl: getFileUrl(rawAudio) }
     : null;
+  const questionsFile: LectureFile | null = rawQuestions
+    ? { ...rawQuestions, type: 'questions', downloadUrl: getFileUrl(rawQuestions) }
+    : null;
   const hasFlashcards = Array.isArray(flashcards) && flashcards.length > 0;
 
-  const defaultTab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards' = pdfFile
+  const defaultTab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards' = pdfFile
     ? 'pdf'
     : audioFile
     ? 'audio'
+    : questionsFile
+    ? 'questions'
     : pptFile
     ? 'ppt'
     : mindmapFile
@@ -82,7 +91,7 @@ export default function LectureContentTabs({
     ? 'flashcards'
     : 'pdf';
 
-  const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards'>(
+  const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards'>(
     defaultTab
   );
 
@@ -92,11 +101,12 @@ export default function LectureContentTabs({
       (activeTab === 'ppt' && !!pptFile) ||
       (activeTab === 'mindmap' && !!mindmapFile) ||
       (activeTab === 'audio' && !!audioFile) ||
+      (activeTab === 'questions' && !!questionsFile) ||
       (activeTab === 'flashcards' && hasFlashcards);
     if (!currentValid) {
       setActiveTab(defaultTab);
     }
-  }, [pdfFile, pptFile, mindmapFile, audioFile, hasFlashcards, activeTab, defaultTab]);
+  }, [pdfFile, pptFile, mindmapFile, audioFile, questionsFile, hasFlashcards, activeTab, defaultTab]);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -111,6 +121,8 @@ export default function LectureContentTabs({
         return mindmapFile;
       case 'audio':
         return audioFile;
+      case 'questions':
+        return questionsFile;
       default:
         return null;
     }
@@ -118,7 +130,7 @@ export default function LectureContentTabs({
 
   const hasTrackedFlashcards = React.useRef(false);
 
-  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'flashcards') => {
+  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards') => {
     setActiveTab(tab);
     if (tab === 'flashcards' && !hasTrackedFlashcards.current) {
       hasTrackedFlashcards.current = true;
@@ -126,7 +138,7 @@ export default function LectureContentTabs({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lectureTitle: pdfFile?.title || audioFile?.title || pptFile?.title || mindmapFile?.title || subjectTitle,
+          lectureTitle: pdfFile?.title || audioFile?.title || questionsFile?.title || pptFile?.title || mindmapFile?.title || subjectTitle,
           subjectTitle,
           cardsCount: flashcards?.length || 0,
         }),
@@ -135,7 +147,7 @@ export default function LectureContentTabs({
   };
 
   const getExtension = (file: LectureFile) => {
-    if (file.type === 'pdf') return 'pdf';
+    if (file.type === 'pdf' || file.type === 'questions') return 'pdf';
     if (file.type === 'ppt') return 'pptx';
     if (file.type === 'audio') {
       const lower = (file.downloadUrl || '').toLowerCase();
@@ -168,6 +180,8 @@ export default function LectureContentTabs({
               ? 'عرض بوربوينت PPT'
               : file.type === 'audio'
               ? 'تسجيل صوتي 🎧'
+              : file.type === 'questions'
+              ? 'أسئلة وتدريبات المحاضرة ❓'
               : 'خريطة ذهنية',
           fileName: file.title,
         }),
@@ -238,6 +252,13 @@ export default function LectureContentTabs({
       activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-600/30 scale-[1.02]',
       icon: Headphones,
       pulseDot: !!audioFile,
+    },
+    {
+      id: 'questions' as const,
+      label: 'أسئلة المحاضرة',
+      hasContent: !!questionsFile,
+      activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-[1.02]',
+      icon: HelpCircle,
     },
     {
       id: 'ppt' as const,
@@ -312,7 +333,7 @@ export default function LectureContentTabs({
         </div>
       )}
 
-      {/* 2. File Download & Player Box (for PDF, PPT, Mindmap, Audio) */}
+      {/* 2. File Download & Player Box (for PDF, PPT, Mindmap, Audio, Questions) */}
       {activeTab !== 'flashcards' && activeFile && (
         <div className="bg-gradient-to-br from-slate-50 via-white to-teal-50/20 dark:from-slate-900 dark:via-slate-850 dark:to-teal-950/20 p-6 sm:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 transition-all duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
@@ -325,6 +346,8 @@ export default function LectureContentTabs({
                     ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
                     : activeTab === 'audio'
                     ? 'bg-violet-100 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400'
+                    : activeTab === 'questions'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
                     : 'bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400'
                 }`}
               >
@@ -332,6 +355,7 @@ export default function LectureContentTabs({
                 {activeTab === 'ppt' && <Presentation className="w-8 h-8" />}
                 {activeTab === 'mindmap' && <GitFork className="w-8 h-8" />}
                 {activeTab === 'audio' && <Headphones className="w-8 h-8" />}
+                {activeTab === 'questions' && <HelpCircle className="w-8 h-8" />}
               </div>
 
               <div>
@@ -340,6 +364,7 @@ export default function LectureContentTabs({
                   {activeTab === 'ppt' && 'سلايدات الشرح الجامعي (PowerPoint)'}
                   {activeTab === 'mindmap' && 'الخريطة الذهنية التفاعلية الشاملة'}
                   {activeTab === 'audio' && 'التسجيل الصوتي لشرح المحاضرة (Audio Record)'}
+                  {activeTab === 'questions' && 'بنك أسئلة وتدريبات المحاضرة (Questions PDF)'}
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
                   {activeFile.title}

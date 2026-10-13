@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     const pptFile = formData.get('pptFile') as File | null;
     const mindmapFile = formData.get('mindmapFile') as File | null;
     const audioFile = formData.get('audioFile') as File | null;
+    const questionsFile = formData.get('questionsFile') as File | null;
 
     const customToken =
       req.headers.get('x-github-token') ||
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
     const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
     const audioFileSize = ((formData.get('audioFileSize') as string) || '').trim();
+    const externalQuestionsUrl = ((formData.get('externalQuestionsUrl') as string) || '').trim();
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const yearId = (formData.get('yearId') as string) || '1';
@@ -62,15 +64,16 @@ export async function POST(req: NextRequest) {
     const hasPpt = Boolean(pptFile || externalPptUrl);
     const hasMindmap = Boolean(mindmapFile || externalMindmapUrl);
     const hasAudio = Boolean(audioFile || externalAudioUrl);
+    const hasQuestions = Boolean(questionsFile || externalQuestionsUrl);
     const flashcardsJsonRaw = (formData.get('flashcardsJson') as string | null) || '';
     const hasAnki = Boolean(ankiFile || (flashcardsJsonRaw && flashcardsJsonRaw !== '[]'));
 
-    if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki)) {
+    if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions)) {
       return NextResponse.json(
         {
           success: false,
           message:
-            'يرجى كتابة اسم المحاضرة ورفع محتوى واحد على الأقل (ملف PDF أو ريكورد صوتي أو بوربوينت أو خريطة ذهنية أو كروت Anki)',
+            'يرجى كتابة اسم المحاضرة ورفع محتوى واحد على الأقل (ملف PDF أو ريكورد صوتي أو بوربوينت أو خريطة ذهنية أو كروت Anki أو ملف أسئلة)',
         },
         { status: 400 }
       );
@@ -222,6 +225,38 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (questionsFile) {
+      const qBuffer = await questionsFile.arrayBuffer();
+      let processedQBytes = new Uint8Array(qBuffer);
+      if (shouldWatermark && (questionsFile.type === 'application/pdf' || questionsFile.name.endsWith('.pdf'))) {
+        try {
+          processedQBytes = await applyWatermarkToPdf(qBuffer);
+        } catch (qWmErr) {
+          console.warn('[UploadLecture] Questions watermark fallback:', qWmErr);
+        }
+      }
+      const savedQ = await saveUploadedFile(processedQBytes, questionsFile.name, customToken);
+      filesList.push({
+        type: 'questions',
+        title: `أسئلة وتمارين المحاضرة - ${lectureTitle.trim()}`,
+        fileSize: savedQ.sizeFormatted,
+        downloadUrl: savedQ.url,
+        pageCount: 'بنك أسئلة وتدريبات PDF',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف أسئلة وتدريبات واختبارات لتقييم فهم المحاضرة',
+      });
+    } else if (externalQuestionsUrl) {
+      filesList.push({
+        type: 'questions',
+        title: `أسئلة وتمارين المحاضرة - ${lectureTitle.trim()}`,
+        fileSize: 'رابط درايف 🌐',
+        downloadUrl: externalQuestionsUrl,
+        pageCount: 'بنك أسئلة وتدريبات PDF',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف أسئلة وتدريبات واختبارات لتقييم فهم المحاضرة عبر رابط مباشر',
+      });
+    }
+
     // 5. Construct New Lecture Record
     const lectureId = `lec-${Date.now()}`;
     const newLecture: Lecture = {
@@ -269,6 +304,7 @@ export async function POST(req: NextRequest) {
 🖥️ <b>ملف البوربوينت:</b> ${pptFile || externalPptUrl ? 'مرفوع جاهز ✅' : 'غير مرفق'}
 🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile || externalMindmapUrl ? 'مرفوعة جاهزة ✅' : 'غير مرفقة'}
 🎧 <b>الملف الصوتي (الريكورد):</b> ${audioFile || externalAudioUrl ? 'مرفوع جاهز للاستماع 🎵✅' : 'غير مرفق'}
+❓ <b>ملف الأسئلة:</b> ${questionsFile || externalQuestionsUrl ? 'مرفوع جاهز ❓✅' : 'غير مرفق'}
 🃏 <b>كروت الفلاش كاردز:</b> ${flashcards.length} بطاقة استذكار داخلية تفاعلية ${ankiFile ? '(مستخرجة من Anki .apkg 🎴)' : ''}
 ⏰ <b>التوقيت:</b> ${getArabicFormattedDate()}
 ━━━━━━━━━━━━━━━━━━━━

@@ -105,6 +105,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
             const isValid = (f: any) => Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#');
             if (lecture.files?.some((f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValid(f))) avail.push('ملف PDF');
             if (lecture.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValid(f))) avail.push('ريكورد صوتي 🎧');
+            if (lecture.files?.some((f: any) => (f.type === 'questions' || f.fileType === 'questions') && isValid(f))) avail.push('أسئلة وتمارين ❓');
             if (lecture.files?.some((f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValid(f))) avail.push('عرض بوربوينت 📊');
             if (lecture.files?.some((f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValid(f))) avail.push('خريطة ذهنية 🧠');
             if ((lecture.flashcards?.length || 0) > 0) avail.push(`${lecture.flashcards.length} كارت ذكي 🎴`);

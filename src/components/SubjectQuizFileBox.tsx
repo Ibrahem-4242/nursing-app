@@ -155,6 +155,41 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
             </div>
           </div>
 
+          {/* Explanation File Box (ملف الشرح وتوضيح الإجابات إذا كان متوفراً) */}
+          {quizFile.explanationUrl && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/90 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-teal-600/20">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200">
+                      ملف شرح مرفق 📖
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {quizFile.explanationFileSize || 'ملف PDF'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {quizFile.explanationTitle || 'ملف الشرح وتوضيح الإجابات النموذجية'}
+                  </h4>
+                </div>
+              </div>
+
+              <a
+                href={quizFile.explanationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-teal-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
+              >
+                <ArrowDownCircle className="w-4 h-4" />
+                <span>تحميل ملف الشرح 📖</span>
+              </a>
+            </div>
+          )}
+
           {/* Action Button: حملها دلوقتي */}
           <div className="pt-2 space-y-3">
             <button

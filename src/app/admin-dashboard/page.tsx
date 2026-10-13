@@ -53,6 +53,10 @@ export default function AdminDashboardPage() {
   const [quizDriveUrl, setQuizDriveUrl] = useState('');
   const [quizQuestionsCount, setQuizQuestionsCount] = useState(150);
   const [quizApplyWatermark, setQuizApplyWatermark] = useState(true);
+  const [quizExplanationMode, setQuizExplanationMode] = useState<'file' | 'link'>('file');
+  const [quizExplanationFile, setQuizExplanationFile] = useState<File | null>(null);
+  const [quizExplanationDriveUrl, setQuizExplanationDriveUrl] = useState('');
+  const [quizExplanationTitle, setQuizExplanationTitle] = useState('');
   const [isUploadingQuiz, setIsUploadingQuiz] = useState(false);
   const [quizUploadFeedback, setQuizUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [subjectQuizzes, setSubjectQuizzes] = useState<Record<string, any>>({});
@@ -67,6 +71,10 @@ export default function AdminDashboardPage() {
   const [editQuizQuestionsCount, setEditQuizQuestionsCount] = useState(150);
   const [editQuizDriveUrl, setEditQuizDriveUrl] = useState('');
   const [editQuizFile, setEditQuizFile] = useState<File | null>(null);
+  const [editQuizExplanationFile, setEditQuizExplanationFile] = useState<File | null>(null);
+  const [editQuizExplanationDriveUrl, setEditQuizExplanationDriveUrl] = useState('');
+  const [editQuizExplanationTitle, setEditQuizExplanationTitle] = useState('');
+  const [editRemoveQuizExplanation, setEditRemoveQuizExplanation] = useState(false);
   const [isSavingQuizEdit, setIsSavingQuizEdit] = useState(false);
 
   // Stats
@@ -96,6 +104,9 @@ export default function AdminDashboardPage() {
   const [externalMindmapUrl, setExternalMindmapUrl] = useState('');
   const [audioUploadMode, setAudioUploadMode] = useState<'file' | 'link'>('file');
   const [externalAudioUrl, setExternalAudioUrl] = useState('');
+  const [questionsUploadMode, setQuestionsUploadMode] = useState<'file' | 'link'>('file');
+  const [questionsFile, setQuestionsFile] = useState<File | null>(null);
+  const [externalQuestionsUrl, setExternalQuestionsUrl] = useState('');
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [ankiFile, setAnkiFile] = useState<File | null>(null);
@@ -144,15 +155,18 @@ export default function AdminDashboardPage() {
   const [editPptUrl, setEditPptUrl] = useState('');
   const [editMindmapUrl, setEditMindmapUrl] = useState('');
   const [editAudioUrl, setEditAudioUrl] = useState('');
+  const [editQuestionsUrl, setEditQuestionsUrl] = useState('');
   const [editRemovePdf, setEditRemovePdf] = useState(false);
   const [editRemovePpt, setEditRemovePpt] = useState(false);
   const [editRemoveMindmap, setEditRemoveMindmap] = useState(false);
   const [editRemoveAudio, setEditRemoveAudio] = useState(false);
+  const [editRemoveQuestions, setEditRemoveQuestions] = useState(false);
   const [editRemoveFlashcards, setEditRemoveFlashcards] = useState(false);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPptFile, setEditPptFile] = useState<File | null>(null);
   const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
   const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
+  const [editQuestionsFile, setEditQuestionsFile] = useState<File | null>(null);
   const [editAnkiFile, setEditAnkiFile] = useState<File | null>(null);
   const [editParsedCardsJson, setEditParsedCardsJson] = useState<string | null>(null);
   const [editParsedCardsCount, setEditParsedCardsCount] = useState<number>(0);
@@ -554,12 +568,13 @@ export default function AdminDashboardPage() {
     const hasPpt = (pptUploadMode === 'file' && !!pptFile) || (pptUploadMode === 'link' && !!externalPptUrl.trim());
     const hasMindmap = (mindmapUploadMode === 'file' && !!mindmapFile) || (mindmapUploadMode === 'link' && !!externalMindmapUrl.trim());
     const hasAudio = (audioUploadMode === 'file' && !!audioFile) || (audioUploadMode === 'link' && !!externalAudioUrl.trim());
+    const hasQuestions = (questionsUploadMode === 'file' && !!questionsFile) || (questionsUploadMode === 'link' && !!externalQuestionsUrl.trim());
     const hasAnki = !!ankiFile || !!parsedCardsJson;
 
-    if (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki) {
+    if (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions) {
       setUploadFeedback({
         type: 'error',
-        message: 'يرجى رفع محتوى واحد على الأقل للمحاضرة (ملف PDF أو صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية)',
+        message: 'يرجى رفع محتوى واحد على الأقل للمحاضرة (ملف PDF أو صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية أو ملف أسئلة)',
       });
       return;
     }
@@ -567,6 +582,7 @@ export default function AdminDashboardPage() {
     // Validate non-audio upload payload size before sending to prevent serverless 413 drop
     const nonAudioBytes =
       (uploadMode === 'file' && file ? file.size : 0) +
+      (questionsUploadMode === 'file' && questionsFile ? questionsFile.size : 0) +
       (ankiFile?.size || 0) +
       (pptUploadMode === 'file' && pptFile ? pptFile.size : 0) +
       (mindmapUploadMode === 'file' && mindmapFile ? mindmapFile.size : 0);
@@ -611,6 +627,12 @@ export default function AdminDashboardPage() {
         formData.append('mindmapFile', mindmapFile);
       } else if (mindmapUploadMode === 'link' && externalMindmapUrl.trim()) {
         formData.append('externalMindmapUrl', externalMindmapUrl.trim());
+      }
+
+      if (questionsUploadMode === 'file' && questionsFile) {
+        formData.append('questionsFile', questionsFile);
+      } else if (questionsUploadMode === 'link' && externalQuestionsUrl.trim()) {
+        formData.append('externalQuestionsUrl', externalQuestionsUrl.trim());
       }
 
       if (audioUploadMode === 'file' && audioFile) {
@@ -700,6 +722,9 @@ export default function AdminDashboardPage() {
         setAudioFile(null);
         setExternalAudioUrl('');
         setAudioUploadMode('file');
+        setQuestionsFile(null);
+        setExternalQuestionsUrl('');
+        setQuestionsUploadMode('file');
         setExternalPdfUrl('');
         loadLectures();
         loadStats();
@@ -805,6 +830,15 @@ export default function AdminDashboardPage() {
       formData.append('questionsCount', String(quizQuestionsCount));
       formData.append('watermark', String(quizApplyWatermark));
 
+      if (quizExplanationMode === 'file' && quizExplanationFile) {
+        formData.append('explanationFile', quizExplanationFile);
+      } else if (quizExplanationMode === 'link' && quizExplanationDriveUrl.trim()) {
+        formData.append('externalExplanationUrl', quizExplanationDriveUrl.trim());
+      }
+      if (quizExplanationTitle.trim()) {
+        formData.append('explanationTitle', quizExplanationTitle.trim());
+      }
+
       if (typeof window !== 'undefined') {
         const tok = localStorage.getItem('nursing_sync_token');
         if (tok) formData.append('githubToken', tok);
@@ -841,6 +875,10 @@ export default function AdminDashboardPage() {
         setQuizFile(null);
         setQuizDriveUrl('');
         setQuizTitle('');
+        setQuizExplanationFile(null);
+        setQuizExplanationDriveUrl('');
+        setQuizExplanationTitle('');
+        setQuizExplanationMode('file');
         loadSubjectQuizzes();
       } else {
         setQuizUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
@@ -864,6 +902,10 @@ export default function AdminDashboardPage() {
     setEditQuizQuestionsCount(quiz.questionsCount || 50);
     setEditQuizDriveUrl(quiz.downloadUrl?.startsWith('http') ? quiz.downloadUrl : '');
     setEditQuizFile(null);
+    setEditQuizExplanationTitle(quiz.explanationTitle || '');
+    setEditQuizExplanationDriveUrl(quiz.explanationUrl?.startsWith('http') ? quiz.explanationUrl : '');
+    setEditQuizExplanationFile(null);
+    setEditRemoveQuizExplanation(false);
   };
 
   // Save Quiz Edit (Supports Title, Subject, Semester, Questions Count, URL, or File replacement)
@@ -876,18 +918,38 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (editQuizExplanationFile && editQuizExplanationFile.size > 4.5 * 1024 * 1024) {
+      alert('حجم ملف الشرح الجديد أكبر من 4.5 MB. يرجى ضغط الملف أو استخدام رابط Google Drive مباشر.');
+      return;
+    }
+
     setIsSavingQuizEdit(true);
     try {
       const quizId = editingQuiz.id || editingQuiz.subjectId;
-      if (editQuizFile) {
+      if (editQuizFile || editQuizExplanationFile) {
         const formData = new FormData();
         formData.append('id', quizId);
         formData.append('title', editQuizTitle.trim());
         formData.append('subjectId', editQuizSubjectId);
         formData.append('semester', editQuizSemester);
         formData.append('questionsCount', String(editQuizQuestionsCount));
-        formData.append('file', editQuizFile);
+        if (editQuizFile) formData.append('file', editQuizFile);
+        if (editQuizDriveUrl.trim()) formData.append('downloadUrl', editQuizDriveUrl.trim());
         formData.append('watermark', String(quizApplyWatermark));
+
+        if (editRemoveQuizExplanation) {
+          formData.append('removeExplanation', 'true');
+        } else if (editQuizExplanationFile) {
+          formData.append('explanationFile', editQuizExplanationFile);
+          if (editQuizExplanationTitle.trim()) {
+            formData.append('explanationTitle', editQuizExplanationTitle.trim());
+          }
+        } else if (editQuizExplanationDriveUrl.trim()) {
+          formData.append('externalExplanationUrl', editQuizExplanationDriveUrl.trim());
+          if (editQuizExplanationTitle.trim()) {
+            formData.append('explanationTitle', editQuizExplanationTitle.trim());
+          }
+        }
 
         const res = await fetch('/api/admin/upload-quiz-file', {
           method: 'PUT',
@@ -902,17 +964,30 @@ export default function AdminDashboardPage() {
           alert(data.message || 'فشل تعديل ملف الكويز');
         }
       } else {
+        const bodyPayload: any = {
+          id: quizId,
+          title: editQuizTitle.trim(),
+          subjectId: editQuizSubjectId,
+          semester: editQuizSemester,
+          questionsCount: Number(editQuizQuestionsCount) || 50,
+          downloadUrl: editQuizDriveUrl.trim() || undefined,
+        };
+
+        if (editRemoveQuizExplanation) {
+          bodyPayload.removeExplanation = true;
+        } else {
+          if (editQuizExplanationDriveUrl.trim()) {
+            bodyPayload.externalExplanationUrl = editQuizExplanationDriveUrl.trim();
+          }
+          if (editQuizExplanationTitle.trim()) {
+            bodyPayload.explanationTitle = editQuizExplanationTitle.trim();
+          }
+        }
+
         const res = await fetch('/api/admin/upload-quiz-file', {
           method: 'PATCH',
           headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({
-            id: quizId,
-            title: editQuizTitle.trim(),
-            subjectId: editQuizSubjectId,
-            semester: editQuizSemester,
-            questionsCount: Number(editQuizQuestionsCount) || 50,
-            downloadUrl: editQuizDriveUrl.trim() || undefined,
-          }),
+          body: JSON.stringify(bodyPayload),
         });
         const data = await res.json();
         if (data.success) {
@@ -1093,19 +1168,23 @@ export default function AdminDashboardPage() {
     const ppt = lec.files?.find((f: any) => f.type === 'ppt' || f.fileType === 'presentation');
     const mm = lec.files?.find((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
     const aud = lec.files?.find((f: any) => f.type === 'audio' || f.fileType === 'audio');
+    const qFile = lec.files?.find((f: any) => f.type === 'questions' || f.fileType === 'questions');
     setEditPdfUrl((pdf?.downloadUrl || pdf?.fileUrl)?.startsWith('http') ? (pdf.downloadUrl || pdf.fileUrl) : '');
     setEditPptUrl((ppt?.downloadUrl || ppt?.fileUrl)?.startsWith('http') ? (ppt.downloadUrl || ppt.fileUrl) : '');
     setEditMindmapUrl((mm?.downloadUrl || mm?.fileUrl)?.startsWith('http') ? (mm.downloadUrl || mm.fileUrl) : '');
     setEditAudioUrl((aud?.downloadUrl || aud?.fileUrl)?.startsWith('http') ? (aud.downloadUrl || aud.fileUrl) : '');
+    setEditQuestionsUrl((qFile?.downloadUrl || qFile?.fileUrl)?.startsWith('http') ? (qFile.downloadUrl || qFile.fileUrl) : '');
     setEditRemovePdf(false);
     setEditRemovePpt(false);
     setEditRemoveMindmap(false);
     setEditRemoveAudio(false);
+    setEditRemoveQuestions(false);
     setEditRemoveFlashcards(false);
     setEditPdfFile(null);
     setEditPptFile(null);
     setEditMindmapFile(null);
     setEditAudioFile(null);
+    setEditQuestionsFile(null);
     setEditAnkiFile(null);
     setEditParsedCardsJson(null);
     setEditParsedCardsCount(0);
@@ -1118,6 +1197,11 @@ export default function AdminDashboardPage() {
 
     if (editAudioFile && editAudioFile.size > 24 * 1024 * 1024) {
       alert('حجم الملف الصوتي أكبر من 24 MB. يرجى رفعه على Google Drive ووضع الرابط في خانة رابط الملف الصوتي.');
+      return;
+    }
+
+    if (editQuestionsFile && editQuestionsFile.size > 4.5 * 1024 * 1024) {
+      alert('حجم ملف الأسئلة أكبر من 4.5 MB. يرجى استخدام رابط Google Drive لرفعه بدون قيود.');
       return;
     }
 
@@ -1140,7 +1224,7 @@ export default function AdminDashboardPage() {
         }
       }
 
-      if (editPdfFile || editPptFile || editMindmapFile || audioFileToSend || editAnkiFile) {
+      if (editPdfFile || editPptFile || editMindmapFile || audioFileToSend || editQuestionsFile || editAnkiFile) {
         const formData = new FormData();
         formData.append('id', editingLecture.id);
         formData.append('title', editTitle.trim());
@@ -1153,17 +1237,20 @@ export default function AdminDashboardPage() {
         if (editPdfUrl.trim()) formData.append('pdfUrl', editPdfUrl.trim());
         if (editPptUrl.trim()) formData.append('pptUrl', editPptUrl.trim());
         if (editMindmapUrl.trim()) formData.append('mindmapUrl', editMindmapUrl.trim());
+        if (editQuestionsUrl.trim()) formData.append('questionsUrl', editQuestionsUrl.trim());
         if (resolvedAudioUrl) formData.append('audioUrl', resolvedAudioUrl);
         if (resolvedAudioSize) formData.append('audioFileSize', resolvedAudioSize);
         if (editRemovePdf) formData.append('removePdf', 'true');
         if (editRemovePpt) formData.append('removePpt', 'true');
         if (editRemoveMindmap) formData.append('removeMindmap', 'true');
         if (editRemoveAudio) formData.append('removeAudio', 'true');
+        if (editRemoveQuestions) formData.append('removeQuestions', 'true');
         if (editRemoveFlashcards) formData.append('removeFlashcards', 'true');
         if (editPdfFile) formData.append('pdfFile', editPdfFile);
         if (editPptFile) formData.append('pptFile', editPptFile);
         if (editMindmapFile) formData.append('mindmapFile', editMindmapFile);
         if (audioFileToSend) formData.append('audioFile', audioFileToSend);
+        if (editQuestionsFile) formData.append('questionsFile', editQuestionsFile);
         if (editAnkiFile) formData.append('ankiFile', editAnkiFile);
         if (editParsedCardsJson) formData.append('flashcardsJson', editParsedCardsJson);
 
@@ -1196,12 +1283,14 @@ export default function AdminDashboardPage() {
             pdfUrl: editPdfUrl.trim() || undefined,
             pptUrl: editPptUrl.trim() || undefined,
             mindmapUrl: editMindmapUrl.trim() || undefined,
+            questionsUrl: editQuestionsUrl.trim() || undefined,
             audioUrl: resolvedAudioUrl || undefined,
             audioFileSize: resolvedAudioSize || undefined,
             removePdf: editRemovePdf,
             removePpt: editRemovePpt,
             removeMindmap: editRemoveMindmap,
             removeAudio: editRemoveAudio,
+            removeQuestions: editRemoveQuestions,
             removeFlashcards: editRemoveFlashcards,
             flashcardsJson: editParsedCardsJson || undefined,
           }),
@@ -1856,7 +1945,7 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {/* 1. Anki Package (.apkg) */}
                   <div className="p-4 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-2">
                     <div className="flex items-center justify-between">
@@ -2235,6 +2324,106 @@ export default function AdminDashboardPage() {
                       />
                     )}
                   </div>
+
+                  {/* 5. Lecture Questions PDF (.pdf, Google Drive) */}
+                  <div className="p-4 rounded-2xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                        <HelpCircle className="w-4 h-4" />
+                        <span>أسئلة المحاضرة (PDF)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300">
+                        تمارين ❓
+                      </span>
+                    </div>
+
+                    {/* Mode Selector: File vs Drive Link */}
+                    <div className="flex rounded-xl bg-rose-100/70 dark:bg-rose-950 p-1 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setQuestionsUploadMode('file')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          questionsUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-rose-900 dark:text-white shadow-sm'
+                            : 'text-rose-600 dark:text-rose-400 hover:text-rose-800'
+                        }`}
+                      >
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع ملف</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuestionsUploadMode('link')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          questionsUploadMode === 'link'
+                            ? 'bg-white dark:bg-slate-800 text-rose-900 dark:text-white shadow-sm'
+                            : 'text-rose-600 dark:text-rose-400 hover:text-rose-800'
+                        }`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>رابط درايف</span>
+                      </button>
+                    </div>
+
+                    {questionsUploadMode === 'file' ? (
+                      <>
+                        <input
+                          type="file"
+                          id="questions-file-input"
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setQuestionsFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('questions-file-input')?.click()}
+                          className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            questionsFile
+                              ? 'bg-rose-600 text-white border-rose-600'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-rose-500'
+                          }`}
+                        >
+                          {questionsFile ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[140px]">{questionsFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <HelpCircle className="w-3.5 h-3.5" />
+                              <span>اختر ملف أسئلة PDF ❓</span>
+                            </>
+                          )}
+                        </button>
+                        {questionsFile && (
+                          <div className="flex items-center justify-between text-[10px] px-1">
+                            <span className="text-rose-600 dark:text-rose-400 font-bold">
+                              {(questionsFile.size / (1024 * 1024)).toFixed(1)} MB
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionsFile(null)}
+                              className="text-rose-500 hover:underline"
+                            >
+                              إلغاء الملف
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="url"
+                        value={externalQuestionsUrl}
+                        onChange={(e) => setExternalQuestionsUrl(e.target.value)}
+                        placeholder="ضع رابط Google Drive لملف الأسئلة..."
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 text-right dir-rtl"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2328,6 +2517,8 @@ export default function AdminDashboardPage() {
                     (mindmapUploadMode === 'link' && !!externalMindmapUrl.trim()) ||
                     (audioUploadMode === 'file' && !!audioFile) ||
                     (audioUploadMode === 'link' && !!externalAudioUrl.trim()) ||
+                    (questionsUploadMode === 'file' && !!questionsFile) ||
+                    (questionsUploadMode === 'link' && !!externalQuestionsUrl.trim()) ||
                     !!ankiFile ||
                     !!parsedCardsJson
                   )
@@ -2452,6 +2643,9 @@ export default function AdminDashboardPage() {
                         const hasAudioFile = lec.files?.some(
                           (f: any) => (f.type === 'audio' || f.fileType === 'audio') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
                         );
+                        const hasQuestionsFile = lec.files?.some(
+                          (f: any) => (f.type === 'questions' || f.fileType === 'questions') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
+                        );
                         return (
                           <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
                             <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
@@ -2505,6 +2699,11 @@ export default function AdminDashboardPage() {
                                 {hasAudioFile && (
                                   <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px] whitespace-nowrap">
                                     Audio 🎧
+                                  </span>
+                                )}
+                                {hasQuestionsFile && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-bold text-[11px] whitespace-nowrap">
+                                    أسئلة ❓
                                   </span>
                                 )}
                                 {lec.flashcards?.length > 0 && (
@@ -2915,6 +3114,55 @@ export default function AdminDashboardPage() {
                                 if (e.target.files?.[0]) {
                                   setEditAudioFile(e.target.files[0]);
                                   setEditRemoveAudio(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Questions PDF replacement / removal */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                            رابط أو ملف أسئلة المحاضرة (PDF ❓):
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'questions' || f.fileType === 'questions') || editQuestionsUrl || editQuestionsFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuestionsUrl('');
+                                setEditQuestionsFile(null);
+                                setEditRemoveQuestions(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuestions ? 'سيتم حذف الأسئلة عند الحفظ 🗑️' : 'حذف ملف الأسئلة الحالي 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuestionsUrl}
+                            onChange={(e) => {
+                              setEditQuestionsUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuestions(false);
+                            }}
+                            placeholder="رابط Google Drive أو رابط مباشر لملف أسئلة PDF..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <HelpCircle className="w-3.5 h-3.5" />
+                            <span>{editQuestionsFile ? editQuestionsFile.name.slice(0, 10) : 'رفع PDF'}</span>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuestionsFile(e.target.files[0]);
+                                  setEditRemoveQuestions(false);
                                 }
                               }}
                             />
@@ -3551,6 +3799,125 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
+                {/* Optional Quiz Explanation / Model Answers File (ملف شرح وتوضيح الإجابات) */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-emerald-600" />
+                        <span>ملف شرح وتوضيح الإجابات (اختياري) 📖</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        إذا كان لديك ملف يشرح الإجابات أو يوفر حلولاً نموذجية للكويز، يمكنك إرفاقه هنا ليظهر بجانب الكويز للطلاب.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      ملف شرح إضافي 💡
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        عنوان ملف الشرح (اختياري):
+                      </label>
+                      <input
+                        type="text"
+                        value={quizExplanationTitle}
+                        onChange={(e) => setQuizExplanationTitle(e.target.value)}
+                        placeholder="مثال: ملف شرح وتوضيح الإجابات النموذجية"
+                        className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        طريقة إضافة ملف الشرح:
+                      </label>
+                      <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setQuizExplanationMode('file')}
+                          className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            quizExplanationMode === 'file'
+                              ? 'bg-white dark:bg-slate-700 text-emerald-800 dark:text-white shadow-sm'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700'
+                          }`}
+                        >
+                          <FileUp className="w-3.5 h-3.5" />
+                          <span>رفع ملف PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuizExplanationMode('link')}
+                          className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            quizExplanationMode === 'link'
+                              ? 'bg-white dark:bg-slate-700 text-emerald-800 dark:text-white shadow-sm'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700'
+                          }`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>رابط Google Drive</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {quizExplanationMode === 'file' ? (
+                    <div>
+                      <input
+                        type="file"
+                        id="quiz-explanation-file-input"
+                        accept=".pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setQuizExplanationFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('quiz-explanation-file-input')?.click()}
+                        className={`w-full py-3 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
+                          quizExplanationFile
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                        }`}
+                      >
+                        {quizExplanationFile ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            <span>تم اختيار: {quizExplanationFile.name} ({(quizExplanationFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                          </>
+                        ) : (
+                          <>
+                            <BookOpen className="w-4 h-4 text-emerald-600" />
+                            <span>اختر ملف PDF للشرح والتوضيح (اختياري)</span>
+                          </>
+                        )}
+                      </button>
+                      {quizExplanationFile && (
+                        <button
+                          type="button"
+                          onClick={() => setQuizExplanationFile(null)}
+                          className="text-[11px] text-rose-500 hover:underline block text-center w-full mt-1 font-bold"
+                        >
+                          إلغاء ملف الشرح
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="url"
+                      value={quizExplanationDriveUrl}
+                      onChange={(e) => setQuizExplanationDriveUrl(e.target.value)}
+                      placeholder="ضع رابط Google Drive لملف الشرح وتوضيح الإجابات..."
+                      className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  )}
+                </div>
+
                 {/* Watermark Toggle */}
                 {quizUploadMode === 'file' && (
                   <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
@@ -3652,7 +4019,23 @@ export default function AdminDashboardPage() {
                               {subObj?.title || quiz.subjectId}
                             </td>
                             <td className="py-3.5 px-4 font-bold text-slate-700 dark:text-slate-200">
-                              {quiz.title}
+                              <div className="flex flex-col gap-1">
+                                <span>{quiz.title}</span>
+                                {quiz.explanationUrl && (
+                                  <div className="flex items-center gap-1.5">
+                                    <a
+                                      href={quiz.explanationUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full hover:underline"
+                                    >
+                                      <BookOpen className="w-3 h-3" />
+                                      <span>{quiz.explanationTitle || 'ملف الشرح 📖'}</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3.5 px-4">
                               <button
@@ -3812,6 +4195,64 @@ export default function AdminDashboardPage() {
                               className="hidden"
                               onChange={(e) => {
                                 if (e.target.files?.[0]) setEditQuizFile(e.target.files[0]);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Explanation file edit / replacement / removal */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                            ملف الشرح وتوضيح الإجابات (اختياري 📖):
+                          </label>
+                          {(editingQuiz?.explanationUrl || editQuizExplanationDriveUrl || editQuizExplanationFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizExplanationDriveUrl('');
+                                setEditQuizExplanationFile(null);
+                                setEditRemoveQuizExplanation(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizExplanation ? 'سيتم حذف ملف الشرح عند الحفظ 🗑️' : 'حذف ملف الشرح الحالي 🗑️'}
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={editQuizExplanationTitle}
+                          onChange={(e) => setEditQuizExplanationTitle(e.target.value)}
+                          placeholder="عنوان ملف الشرح (مثال: ملف شرح وتوضيح الإجابات)..."
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                        />
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizExplanationDriveUrl}
+                            onChange={(e) => {
+                              setEditQuizExplanationDriveUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuizExplanation(false);
+                            }}
+                            placeholder="رابط Google Drive لملف الشرح..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>{editQuizExplanationFile ? editQuizExplanationFile.name.slice(0, 10) : 'رفع PDF'}</span>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuizExplanationFile(e.target.files[0]);
+                                  setEditRemoveQuizExplanation(false);
+                                }
                               }}
                             />
                           </label>

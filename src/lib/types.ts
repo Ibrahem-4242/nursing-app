@@ -45,6 +45,9 @@ export interface SubjectQuizFile {
   downloadUrl: string;
   questionsCount: number;
   updatedAt: string;
+  explanationUrl?: string;
+  explanationTitle?: string;
+  explanationFileSize?: string;
 }
 
 export interface MedicalTerm {
@@ -85,7 +88,7 @@ export interface QuizQuestion {
 }
 
 export interface LectureFile {
-  type: 'pdf' | 'ppt' | 'mindmap' | 'cards' | 'audio';
+  type: 'pdf' | 'ppt' | 'mindmap' | 'cards' | 'audio' | 'questions';
   title: string;
   fileSize: string;
   downloadUrl: string;
