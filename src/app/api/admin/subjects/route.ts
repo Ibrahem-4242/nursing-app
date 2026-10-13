@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
     } catch {}
 
     return NextResponse.json({
@@ -121,6 +122,7 @@ export async function PUT(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
     } catch {}
 
     return NextResponse.json({
@@ -153,6 +155,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     revalidatePath('/', 'layout');
+    revalidatePath('/admin-dashboard', 'page');
   } catch {}
 
   return NextResponse.json({

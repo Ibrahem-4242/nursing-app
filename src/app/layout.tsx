@@ -75,6 +75,7 @@ export default async function RootLayout({
     allSubjects.forEach((s) => subjectYearMap.set(s.id, s.yearId));
 
     const yearsWithContent = ACADEMIC_YEARS.filter((yr) => {
+      if (yr.id === '1') return true;
       const hasLec = liveLectures.some(
         (l) => (l.yearId || subjectYearMap.get(l.subjectId) || '1') === yr.id
       );

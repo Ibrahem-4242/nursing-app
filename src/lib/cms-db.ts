@@ -80,27 +80,63 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
     if (res.ok) {
       const gist = await res.json();
       const file = gist.files?.['cms-store.json'];
-      if (file && file.content) {
-        const parsed = JSON.parse(file.content) as CmsStore;
-        if (parsed && Array.isArray(parsed.lectures)) {
-          // Check if vault has additional lectures
-          const vaultFile = gist.files?.['lectures-vault.json'];
-          if (vaultFile && vaultFile.content) {
-            try {
-              const vaultLecs = JSON.parse(vaultFile.content) as Lecture[];
-              if (Array.isArray(vaultLecs)) {
-                const deletedSet = new Set(parsed.deletedLectureIds || []);
-                const curIds = new Set(parsed.lectures.map((l) => l.id));
-                for (const vL of vaultLecs) {
-                  if (!deletedSet.has(vL.id) && !curIds.has(vL.id)) {
-                    parsed.lectures.push(vL);
-                    curIds.add(vL.id);
-                  }
-                }
-              }
-            } catch {}
+      if (file) {
+        let content = file.content;
+        // If GitHub API truncated file.content (> ~300KB), fetch full content via file.raw_url
+        if ((file.truncated || !content) && file.raw_url) {
+          try {
+            const rawRes = await fetch(file.raw_url, {
+              cache: 'no-store',
+              headers: token
+                ? { 'Authorization': `token ${token}`, 'User-Agent': 'NursingStudyHubApp' }
+                : { 'User-Agent': 'NursingStudyHubApp' },
+            });
+            if (rawRes.ok) {
+              content = await rawRes.text();
+            }
+          } catch (rErr) {
+            console.warn('[CMS DB] Failed to fetch raw_url for truncated file:', rErr);
           }
-          return parsed;
+        }
+
+        if (content) {
+          const parsed = JSON.parse(content) as CmsStore;
+          if (parsed && Array.isArray(parsed.lectures)) {
+            // Check if vault has additional lectures
+            const vaultFile = gist.files?.['lectures-vault.json'];
+            if (vaultFile) {
+              let vaultContent = vaultFile.content;
+              if ((vaultFile.truncated || !vaultContent) && vaultFile.raw_url) {
+                try {
+                  const rawVaultRes = await fetch(vaultFile.raw_url, {
+                    cache: 'no-store',
+                    headers: token
+                      ? { 'Authorization': `token ${token}`, 'User-Agent': 'NursingStudyHubApp' }
+                      : { 'User-Agent': 'NursingStudyHubApp' },
+                  });
+                  if (rawVaultRes.ok) {
+                    vaultContent = await rawVaultRes.text();
+                  }
+                } catch {}
+              }
+              if (vaultContent) {
+                try {
+                  const vaultLecs = JSON.parse(vaultContent) as Lecture[];
+                  if (Array.isArray(vaultLecs)) {
+                    const deletedSet = new Set(parsed.deletedLectureIds || []);
+                    const curIds = new Set(parsed.lectures.map((l) => l.id));
+                    for (const vL of vaultLecs) {
+                      if (!deletedSet.has(vL.id) && !curIds.has(vL.id)) {
+                        parsed.lectures.push(vL);
+                        curIds.add(vL.id);
+                      }
+                    }
+                  }
+                } catch {}
+              }
+            }
+            return parsed;
+          }
         }
       }
     }
@@ -216,6 +252,14 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       }
     }
   } catch {}
+
+  // Prune visitor and download telemetry before writing to keep Gist size small (< 300KB)
+  if (store.visitors && store.visitors.length > 200) {
+    store.visitors = store.visitors.slice(-200);
+  }
+  if (store.downloads && store.downloads.length > 200) {
+    store.downloads = store.downloads.slice(-200);
+  }
 
   // Update local vault file synchronously
   try {
@@ -718,6 +762,7 @@ export const CmsService = {
       totalQuizzes: 0,
     };
     store.subjects.push(newSubject);
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return newSubject;
@@ -770,6 +815,7 @@ export const CmsService = {
       }
     }
 
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return store.subjects[index];
@@ -779,6 +825,7 @@ export const CmsService = {
     const store = await getFreshStore();
     if (!store.subjects) store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
     store.subjects = store.subjects.filter((s) => s.id !== id);
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return true;
@@ -832,11 +879,17 @@ export const CmsService = {
     const existingIndex = store.lectures.findIndex((l) => l.id === lecture.id);
 
     if (existingIndex >= 0) {
-      store.lectures[existingIndex] = { ...store.lectures[existingIndex], ...lecture };
+      store.lectures[existingIndex] = {
+        ...store.lectures[existingIndex],
+        ...lecture,
+        files: [...lecture.files],
+        flashcards: lecture.flashcards ? [...lecture.flashcards] : [],
+      };
     } else {
       store.lectures.unshift(lecture);
     }
 
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
 
@@ -878,6 +931,7 @@ export const CmsService = {
     }
     const initialLen = store.lectures.length;
     store.lectures = store.lectures.filter((l) => l.id !== id);
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
 
@@ -1007,7 +1061,7 @@ export const CmsService = {
     };
     if (!store.visitors) store.visitors = [];
     store.visitors.push(newEvent);
-    if (store.visitors.length > 5000) store.visitors = store.visitors.slice(-5000);
+    if (store.visitors.length > 250) store.visitors = store.visitors.slice(-250);
     persistStore(store);
     await syncToCloud(store);
   },
@@ -1022,7 +1076,7 @@ export const CmsService = {
     };
     if (!store.downloads) store.downloads = [];
     store.downloads.push(newEvent);
-    if (store.downloads.length > 5000) store.downloads = store.downloads.slice(-5000);
+    if (store.downloads.length > 250) store.downloads = store.downloads.slice(-250);
     persistStore(store);
     await syncToCloud(store);
   },
@@ -1197,7 +1251,19 @@ export const CmsService = {
       ...updates,
       id: existing.id || targetKey,
     };
+
+    if (
+      (updates as any).removeExplanation ||
+      updates.explanationUrl === '' ||
+      (updates.explanationUrl === undefined && 'explanationUrl' in updates)
+    ) {
+      delete (updated as any).explanationUrl;
+      delete (updated as any).explanationTitle;
+      delete (updated as any).explanationFileSize;
+    }
+
     store.subjectQuizzes[targetKey] = updated;
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return updated;
@@ -1218,6 +1284,7 @@ export const CmsService = {
       }
     }
 
+    memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return true;

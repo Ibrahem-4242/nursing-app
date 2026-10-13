@@ -129,6 +129,8 @@ export async function POST(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
+      revalidatePath(`/subject/${subjectId}`, 'page');
     } catch {}
 
     // 5. Send Telegram notification
@@ -325,6 +327,10 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    const isRemovingExplanation =
+      removeExplanation ||
+      (externalExplanationUrl !== undefined && !externalExplanationUrl.trim() && !explanationFile);
+
     const updated = await CmsService.updateSubjectQuizFile(
       id,
       {
@@ -335,9 +341,13 @@ export async function PATCH(req: NextRequest) {
         ...(questionsCount !== undefined ? { questionsCount } : {}),
         ...(downloadUrl ? { downloadUrl } : {}),
         ...(fileSize ? { fileSize } : {}),
-        ...(updatedExplanationUrl !== undefined ? { explanationUrl: updatedExplanationUrl || undefined } : {}),
-        ...(updatedExplanationSize !== undefined ? { explanationFileSize: updatedExplanationSize || undefined } : {}),
-        ...(updatedExplanationTitle !== undefined ? { explanationTitle: updatedExplanationTitle || undefined } : {}),
+        ...(isRemovingExplanation
+          ? { removeExplanation: true, explanationUrl: '' }
+          : {
+              ...(updatedExplanationUrl !== undefined ? { explanationUrl: updatedExplanationUrl || undefined } : {}),
+              ...(updatedExplanationSize !== undefined ? { explanationFileSize: updatedExplanationSize || undefined } : {}),
+              ...(updatedExplanationTitle !== undefined ? { explanationTitle: updatedExplanationTitle || undefined } : {}),
+            }),
         updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
       },
       customToken
@@ -345,6 +355,10 @@ export async function PATCH(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
+      if (subjectId) {
+        revalidatePath(`/subject/${subjectId}`, 'page');
+      }
     } catch {}
 
     return NextResponse.json({
@@ -385,6 +399,7 @@ export async function DELETE(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
     } catch {}
 
     return NextResponse.json({

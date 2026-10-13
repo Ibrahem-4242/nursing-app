@@ -71,9 +71,11 @@ export default function AdminDashboardPage() {
   const [editQuizSemester, setEditQuizSemester] = useState<'1' | '2'>('1');
   const [editQuizQuestionsCount, setEditQuizQuestionsCount] = useState(150);
   const [editQuizDriveUrl, setEditQuizDriveUrl] = useState('');
+  const [editQuizInitialDriveUrl, setEditQuizInitialDriveUrl] = useState('');
   const [editQuizFile, setEditQuizFile] = useState<File | null>(null);
   const [editQuizExplanationFile, setEditQuizExplanationFile] = useState<File | null>(null);
   const [editQuizExplanationDriveUrl, setEditQuizExplanationDriveUrl] = useState('');
+  const [editQuizInitialExplanationUrl, setEditQuizInitialExplanationUrl] = useState('');
   const [editQuizExplanationTitle, setEditQuizExplanationTitle] = useState('');
   const [editRemoveQuizExplanation, setEditRemoveQuizExplanation] = useState(false);
   const [isSavingQuizEdit, setIsSavingQuizEdit] = useState(false);
@@ -164,10 +166,15 @@ export default function AdminDashboardPage() {
   const [editOverview, setEditOverview] = useState('');
   const [editIsFree, setEditIsFree] = useState(true);
   const [editPdfUrl, setEditPdfUrl] = useState('');
+  const [editInitPdfUrl, setEditInitPdfUrl] = useState('');
   const [editPptUrl, setEditPptUrl] = useState('');
+  const [editInitPptUrl, setEditInitPptUrl] = useState('');
   const [editMindmapUrl, setEditMindmapUrl] = useState('');
+  const [editInitMindmapUrl, setEditInitMindmapUrl] = useState('');
   const [editAudioUrl, setEditAudioUrl] = useState('');
+  const [editInitAudioUrl, setEditInitAudioUrl] = useState('');
   const [editQuestionsUrl, setEditQuestionsUrl] = useState('');
+  const [editInitQuestionsUrl, setEditInitQuestionsUrl] = useState('');
   const [editRemovePdf, setEditRemovePdf] = useState(false);
   const [editRemovePpt, setEditRemovePpt] = useState(false);
   const [editRemoveMindmap, setEditRemoveMindmap] = useState(false);
@@ -1001,10 +1008,14 @@ export default function AdminDashboardPage() {
     setEditQuizSubjectId(quiz.subjectId || '');
     setEditQuizSemester(quiz.semester === '2' ? '2' : '1');
     setEditQuizQuestionsCount(quiz.questionsCount || 50);
-    setEditQuizDriveUrl(quiz.downloadUrl?.startsWith('http') ? quiz.downloadUrl : '');
+    const qUrl = (quiz.downloadUrl || '').trim();
+    const expUrl = (quiz.explanationUrl || '').trim();
+    setEditQuizDriveUrl(qUrl);
+    setEditQuizInitialDriveUrl(qUrl);
     setEditQuizFile(null);
     setEditQuizExplanationTitle(quiz.explanationTitle || '');
-    setEditQuizExplanationDriveUrl(quiz.explanationUrl?.startsWith('http') ? quiz.explanationUrl : '');
+    setEditQuizExplanationDriveUrl(expUrl);
+    setEditQuizInitialExplanationUrl(expUrl);
     setEditQuizExplanationFile(null);
     setEditRemoveQuizExplanation(false);
   };
@@ -1027,6 +1038,10 @@ export default function AdminDashboardPage() {
     setIsSavingQuizEdit(true);
     try {
       const quizId = editingQuiz.id || editingQuiz.subjectId;
+      const willRemoveExp =
+        editRemoveQuizExplanation ||
+        (Boolean(editQuizInitialExplanationUrl) && !editQuizExplanationDriveUrl.trim() && !editQuizExplanationFile);
+
       if (editQuizFile || editQuizExplanationFile) {
         const formData = new FormData();
         formData.append('id', quizId);
@@ -1038,7 +1053,7 @@ export default function AdminDashboardPage() {
         if (editQuizDriveUrl.trim()) formData.append('downloadUrl', editQuizDriveUrl.trim());
         formData.append('watermark', String(quizApplyWatermark));
 
-        if (editRemoveQuizExplanation) {
+        if (willRemoveExp) {
           formData.append('removeExplanation', 'true');
         } else if (editQuizExplanationFile) {
           formData.append('explanationFile', editQuizExplanationFile);
@@ -1059,6 +1074,13 @@ export default function AdminDashboardPage() {
         });
         const data = await res.json();
         if (data.success) {
+          if (data.quizFile) {
+            setQuizzesList((prev) =>
+              prev.map((q) =>
+                q.id === data.quizFile.id || q.subjectId === data.quizFile.id ? data.quizFile : q
+              )
+            );
+          }
           setEditingQuiz(null);
           loadSubjectQuizzes();
         } else {
@@ -1074,8 +1096,9 @@ export default function AdminDashboardPage() {
           downloadUrl: editQuizDriveUrl.trim() || undefined,
         };
 
-        if (editRemoveQuizExplanation) {
+        if (willRemoveExp) {
           bodyPayload.removeExplanation = true;
+          bodyPayload.externalExplanationUrl = '';
         } else {
           if (editQuizExplanationDriveUrl.trim()) {
             bodyPayload.externalExplanationUrl = editQuizExplanationDriveUrl.trim();
@@ -1092,6 +1115,13 @@ export default function AdminDashboardPage() {
         });
         const data = await res.json();
         if (data.success) {
+          if (data.quizFile) {
+            setQuizzesList((prev) =>
+              prev.map((q) =>
+                q.id === data.quizFile.id || q.subjectId === data.quizFile.id ? data.quizFile : q
+              )
+            );
+          }
           setEditingQuiz(null);
           loadSubjectQuizzes();
         } else {
@@ -1270,11 +1300,25 @@ export default function AdminDashboardPage() {
     const mm = lec.files?.find((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
     const aud = lec.files?.find((f: any) => f.type === 'audio' || f.fileType === 'audio');
     const qFile = lec.files?.find((f: any) => f.type === 'questions' || f.fileType === 'questions');
-    setEditPdfUrl((pdf?.downloadUrl || pdf?.fileUrl)?.startsWith('http') ? (pdf.downloadUrl || pdf.fileUrl) : '');
-    setEditPptUrl((ppt?.downloadUrl || ppt?.fileUrl)?.startsWith('http') ? (ppt.downloadUrl || ppt.fileUrl) : '');
-    setEditMindmapUrl((mm?.downloadUrl || mm?.fileUrl)?.startsWith('http') ? (mm.downloadUrl || mm.fileUrl) : '');
-    setEditAudioUrl((aud?.downloadUrl || aud?.fileUrl)?.startsWith('http') ? (aud.downloadUrl || aud.fileUrl) : '');
-    setEditQuestionsUrl((qFile?.downloadUrl || qFile?.fileUrl)?.startsWith('http') ? (qFile.downloadUrl || qFile.fileUrl) : '');
+
+    const pUrl = (pdf?.downloadUrl || pdf?.fileUrl || '').trim();
+    const pptUrlVal = (ppt?.downloadUrl || ppt?.fileUrl || '').trim();
+    const mmUrlVal = (mm?.downloadUrl || mm?.fileUrl || '').trim();
+    const audUrlVal = (aud?.downloadUrl || aud?.fileUrl || '').trim();
+    const qUrlVal = (qFile?.downloadUrl || qFile?.fileUrl || '').trim();
+
+    setEditInitPdfUrl(pUrl);
+    setEditInitPptUrl(pptUrlVal);
+    setEditInitMindmapUrl(mmUrlVal);
+    setEditInitAudioUrl(audUrlVal);
+    setEditInitQuestionsUrl(qUrlVal);
+
+    setEditPdfUrl(pUrl);
+    setEditPptUrl(pptUrlVal);
+    setEditMindmapUrl(mmUrlVal);
+    setEditAudioUrl(audUrlVal);
+    setEditQuestionsUrl(qUrlVal);
+
     setEditRemovePdf(false);
     setEditRemovePpt(false);
     setEditRemoveMindmap(false);
@@ -1325,6 +1369,12 @@ export default function AdminDashboardPage() {
         }
       }
 
+      const willRemovePdf = editRemovePdf || (Boolean(editInitPdfUrl) && !editPdfUrl.trim() && !editPdfFile);
+      const willRemovePpt = editRemovePpt || (Boolean(editInitPptUrl) && !editPptUrl.trim() && !editPptFile);
+      const willRemoveMm = editRemoveMindmap || (Boolean(editInitMindmapUrl) && !editMindmapUrl.trim() && !editMindmapFile);
+      const willRemoveAud = editRemoveAudio || (Boolean(editInitAudioUrl) && !resolvedAudioUrl.trim() && !audioFileToSend);
+      const willRemoveQ = editRemoveQuestions || (Boolean(editInitQuestionsUrl) && !editQuestionsUrl.trim() && !editQuestionsFile);
+
       if (editPdfFile || editPptFile || editMindmapFile || audioFileToSend || editQuestionsFile || editAnkiFile) {
         const formData = new FormData();
         formData.append('id', editingLecture.id);
@@ -1335,17 +1385,17 @@ export default function AdminDashboardPage() {
         formData.append('adminNote', editAdminNote.trim());
         formData.append('overview', editOverview.trim());
         formData.append('isFree', String(editIsFree));
-        if (editPdfUrl.trim()) formData.append('pdfUrl', editPdfUrl.trim());
-        if (editPptUrl.trim()) formData.append('pptUrl', editPptUrl.trim());
-        if (editMindmapUrl.trim()) formData.append('mindmapUrl', editMindmapUrl.trim());
-        if (editQuestionsUrl.trim()) formData.append('questionsUrl', editQuestionsUrl.trim());
-        if (resolvedAudioUrl) formData.append('audioUrl', resolvedAudioUrl);
+        formData.append('pdfUrl', willRemovePdf ? '' : editPdfUrl.trim());
+        formData.append('pptUrl', willRemovePpt ? '' : editPptUrl.trim());
+        formData.append('mindmapUrl', willRemoveMm ? '' : editMindmapUrl.trim());
+        formData.append('questionsUrl', willRemoveQ ? '' : editQuestionsUrl.trim());
+        formData.append('audioUrl', willRemoveAud ? '' : resolvedAudioUrl);
         if (resolvedAudioSize) formData.append('audioFileSize', resolvedAudioSize);
-        if (editRemovePdf) formData.append('removePdf', 'true');
-        if (editRemovePpt) formData.append('removePpt', 'true');
-        if (editRemoveMindmap) formData.append('removeMindmap', 'true');
-        if (editRemoveAudio) formData.append('removeAudio', 'true');
-        if (editRemoveQuestions) formData.append('removeQuestions', 'true');
+        if (willRemovePdf) formData.append('removePdf', 'true');
+        if (willRemovePpt) formData.append('removePpt', 'true');
+        if (willRemoveMm) formData.append('removeMindmap', 'true');
+        if (willRemoveAud) formData.append('removeAudio', 'true');
+        if (willRemoveQ) formData.append('removeQuestions', 'true');
         if (editRemoveFlashcards) formData.append('removeFlashcards', 'true');
         if (editPdfFile) formData.append('pdfFile', editPdfFile);
         if (editPptFile) formData.append('pptFile', editPptFile);
@@ -1362,6 +1412,11 @@ export default function AdminDashboardPage() {
         });
         const data = await res.json();
         if (data.success) {
+          if (data.lecture) {
+            setLectures((prev) =>
+              prev.map((l) => (l.id === data.lecture.id ? data.lecture : l))
+            );
+          }
           setEditingLecture(null);
           loadLectures();
           loadStats();
@@ -1381,17 +1436,17 @@ export default function AdminDashboardPage() {
             adminNote: editAdminNote.trim(),
             overview: editOverview.trim(),
             isFree: editIsFree,
-            pdfUrl: editPdfUrl.trim() || undefined,
-            pptUrl: editPptUrl.trim() || undefined,
-            mindmapUrl: editMindmapUrl.trim() || undefined,
-            questionsUrl: editQuestionsUrl.trim() || undefined,
-            audioUrl: resolvedAudioUrl || undefined,
+            pdfUrl: willRemovePdf ? '' : editPdfUrl.trim(),
+            pptUrl: willRemovePpt ? '' : editPptUrl.trim(),
+            mindmapUrl: willRemoveMm ? '' : editMindmapUrl.trim(),
+            questionsUrl: willRemoveQ ? '' : editQuestionsUrl.trim(),
+            audioUrl: willRemoveAud ? '' : resolvedAudioUrl,
             audioFileSize: resolvedAudioSize || undefined,
-            removePdf: editRemovePdf,
-            removePpt: editRemovePpt,
-            removeMindmap: editRemoveMindmap,
-            removeAudio: editRemoveAudio,
-            removeQuestions: editRemoveQuestions,
+            removePdf: willRemovePdf,
+            removePpt: willRemovePpt,
+            removeMindmap: willRemoveMm,
+            removeAudio: willRemoveAud,
+            removeQuestions: willRemoveQ,
             removeFlashcards: editRemoveFlashcards,
             flashcardsJson: editParsedCardsJson || undefined,
           }),
@@ -1399,6 +1454,11 @@ export default function AdminDashboardPage() {
 
         const data = await res.json();
         if (data.success) {
+          if (data.lecture) {
+            setLectures((prev) =>
+              prev.map((l) => (l.id === data.lecture.id ? data.lecture : l))
+            );
+          }
           setEditingLecture(null);
           loadLectures();
           loadStats();

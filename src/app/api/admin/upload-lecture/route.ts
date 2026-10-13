@@ -291,6 +291,8 @@ export async function POST(req: NextRequest) {
 
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/admin-dashboard', 'page');
+      revalidatePath(`/subject/${subjectId}`, 'page');
     } catch {}
 
     // 7. Send Immediate Telegram Notification to Admin

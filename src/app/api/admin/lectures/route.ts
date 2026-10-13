@@ -64,6 +64,8 @@ export async function DELETE(req: NextRequest) {
 
   try {
     revalidatePath('/', 'layout');
+    revalidatePath('/admin-dashboard', 'page');
+    revalidatePath(`/lecture/${id}`, 'page');
   } catch {}
 
   return NextResponse.json(
@@ -112,6 +114,11 @@ export async function PATCH(req: NextRequest) {
 
   try {
     revalidatePath('/', 'layout');
+    revalidatePath('/admin-dashboard', 'page');
+    revalidatePath(`/lecture/${existing.id}`, 'page');
+    if (existing.subjectId) {
+      revalidatePath(`/subject/${existing.subjectId}`, 'page');
+    }
   } catch {}
 
   return NextResponse.json({ success: true, lecture: existing });
@@ -252,7 +259,7 @@ export async function PUT(req: NextRequest) {
   if (isFree !== undefined) existing.isFree = isFree;
 
   // Update or Remove PDF
-  if (removePdf) {
+  if (removePdf || (pdfUrl !== undefined && !pdfUrl.trim() && !pdfFile)) {
     existing.files = existing.files.filter((f: any) => f.type !== 'pdf' && f.fileType !== 'summary');
   } else if (pdfFile) {
     const buf = new Uint8Array(await pdfFile.arrayBuffer());
@@ -262,6 +269,7 @@ export async function PUT(req: NextRequest) {
       existing.files[pdfIdx].type = 'pdf';
       existing.files[pdfIdx].title = existing.title;
       existing.files[pdfIdx].downloadUrl = saved.url;
+      existing.files[pdfIdx].fileUrl = saved.url;
       existing.files[pdfIdx].fileSize = saved.sizeFormatted;
       existing.files[pdfIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -269,6 +277,7 @@ export async function PUT(req: NextRequest) {
         type: 'pdf',
         title: existing.title,
         downloadUrl: saved.url,
+        fileUrl: saved.url,
         fileSize: saved.sizeFormatted,
         pageCount: 'ملف PDF معتمد',
         updatedAt: getArabicFormattedDate(),
@@ -281,21 +290,25 @@ export async function PUT(req: NextRequest) {
       existing.files[pdfIdx].type = 'pdf';
       existing.files[pdfIdx].title = existing.title;
       existing.files[pdfIdx].downloadUrl = pdfUrl.trim();
+      existing.files[pdfIdx].fileUrl = pdfUrl.trim();
+      existing.files[pdfIdx].fileSize = 'رابط خارجي 🌐';
       existing.files[pdfIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.unshift({
         type: 'pdf',
         title: existing.title,
         downloadUrl: pdfUrl.trim(),
+        fileUrl: pdfUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
         pageCount: 'ملف PDF معتمد',
         updatedAt: getArabicFormattedDate(),
+        customNote: 'ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة',
       });
     }
   }
 
   // Update or Remove PPT
-  if (removePpt) {
+  if (removePpt || (pptUrl !== undefined && !pptUrl.trim() && !pptFile)) {
     existing.files = existing.files.filter((f: any) => f.type !== 'ppt' && f.fileType !== 'powerpoint');
   } else if (pptFile) {
     const buf = new Uint8Array(await pptFile.arrayBuffer());
@@ -305,6 +318,7 @@ export async function PUT(req: NextRequest) {
       existing.files[pptIdx].type = 'ppt';
       existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
       existing.files[pptIdx].downloadUrl = saved.url;
+      existing.files[pptIdx].fileUrl = saved.url;
       existing.files[pptIdx].fileSize = saved.sizeFormatted;
       existing.files[pptIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -312,6 +326,7 @@ export async function PUT(req: NextRequest) {
         type: 'ppt',
         title: `عروض بوربوينت - ${existing.title}`,
         downloadUrl: saved.url,
+        fileUrl: saved.url,
         fileSize: saved.sizeFormatted,
         pageCount: 'سلايدات PowerPoint',
         updatedAt: getArabicFormattedDate(),
@@ -323,12 +338,15 @@ export async function PUT(req: NextRequest) {
       existing.files[pptIdx].type = 'ppt';
       existing.files[pptIdx].title = `عروض بوربوينت - ${existing.title}`;
       existing.files[pptIdx].downloadUrl = pptUrl.trim();
+      existing.files[pptIdx].fileUrl = pptUrl.trim();
+      existing.files[pptIdx].fileSize = 'رابط خارجي 🌐';
       existing.files[pptIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'ppt',
         title: `عروض بوربوينت - ${existing.title}`,
         downloadUrl: pptUrl.trim(),
+        fileUrl: pptUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
         pageCount: 'سلايدات PowerPoint',
         updatedAt: getArabicFormattedDate(),
@@ -337,7 +355,7 @@ export async function PUT(req: NextRequest) {
   }
 
   // Update or Remove Mindmap
-  if (removeMindmap) {
+  if (removeMindmap || (mindmapUrl !== undefined && !mindmapUrl.trim() && !mindmapFile)) {
     existing.files = existing.files.filter((f: any) => f.type !== 'mindmap' && f.fileType !== 'mindmap');
   } else if (mindmapFile) {
     const buf = new Uint8Array(await mindmapFile.arrayBuffer());
@@ -347,6 +365,7 @@ export async function PUT(req: NextRequest) {
       existing.files[mmIdx].type = 'mindmap';
       existing.files[mmIdx].title = `الخريطة الذهنية - ${existing.title}`;
       existing.files[mmIdx].downloadUrl = saved.url;
+      existing.files[mmIdx].fileUrl = saved.url;
       existing.files[mmIdx].fileSize = saved.sizeFormatted;
       existing.files[mmIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -354,6 +373,7 @@ export async function PUT(req: NextRequest) {
         type: 'mindmap',
         title: `الخريطة الذهنية - ${existing.title}`,
         downloadUrl: saved.url,
+        fileUrl: saved.url,
         fileSize: saved.sizeFormatted,
         pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
@@ -365,12 +385,15 @@ export async function PUT(req: NextRequest) {
       existing.files[mmIdx].type = 'mindmap';
       existing.files[mmIdx].title = `الخريطة الذهنية - ${existing.title}`;
       existing.files[mmIdx].downloadUrl = mindmapUrl.trim();
+      existing.files[mmIdx].fileUrl = mindmapUrl.trim();
+      existing.files[mmIdx].fileSize = 'رابط خارجي 🌐';
       existing.files[mmIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'mindmap',
         title: `الخريطة الذهنية - ${existing.title}`,
         downloadUrl: mindmapUrl.trim(),
+        fileUrl: mindmapUrl.trim(),
         fileSize: 'رابط خارجي 🌐',
         pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
@@ -379,7 +402,7 @@ export async function PUT(req: NextRequest) {
   }
 
   // Update or Remove Audio
-  if (removeAudio) {
+  if (removeAudio || (audioUrl !== undefined && !audioUrl.trim() && !audioFile)) {
     existing.files = existing.files.filter((f) => f.type !== 'audio');
   } else if (audioFile) {
     const buf = new Uint8Array(await audioFile.arrayBuffer());
@@ -388,6 +411,7 @@ export async function PUT(req: NextRequest) {
     if (audioIdx >= 0) {
       existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = saved.url;
+      existing.files[audioIdx].fileUrl = saved.url;
       existing.files[audioIdx].fileSize = saved.sizeFormatted;
       existing.files[audioIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -395,6 +419,7 @@ export async function PUT(req: NextRequest) {
         type: 'audio',
         title: `التسجيل الصوتي للشرح - ${existing.title}`,
         downloadUrl: saved.url,
+        fileUrl: saved.url,
         fileSize: saved.sizeFormatted,
         pageCount: 'ريكورد شرح المحاضرة 🎧',
         updatedAt: getArabicFormattedDate(),
@@ -406,6 +431,7 @@ export async function PUT(req: NextRequest) {
     if (audioIdx >= 0) {
       existing.files[audioIdx].title = `التسجيل الصوتي للشرح - ${existing.title}`;
       existing.files[audioIdx].downloadUrl = audioUrl.trim();
+      existing.files[audioIdx].fileUrl = audioUrl.trim();
       if (audioFileSize) existing.files[audioIdx].fileSize = audioFileSize;
       existing.files[audioIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -413,6 +439,7 @@ export async function PUT(req: NextRequest) {
         type: 'audio',
         title: `التسجيل الصوتي للشرح - ${existing.title}`,
         downloadUrl: audioUrl.trim(),
+        fileUrl: audioUrl.trim(),
         fileSize: audioFileSize || 'ملف صوتي سحابي 🎧',
         pageCount: 'ريكورد شرح المحاضرة 🎧',
         updatedAt: getArabicFormattedDate(),
@@ -422,7 +449,7 @@ export async function PUT(req: NextRequest) {
   }
 
   // Update or Remove Questions File
-  if (removeQuestions) {
+  if (removeQuestions || (questionsUrl !== undefined && !questionsUrl.trim() && !questionsFile)) {
     existing.files = existing.files.filter((f: any) => f.type !== 'questions');
   } else if (questionsFile) {
     const buf = new Uint8Array(await questionsFile.arrayBuffer());
@@ -431,6 +458,7 @@ export async function PUT(req: NextRequest) {
     if (qIdx >= 0) {
       existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
       existing.files[qIdx].downloadUrl = saved.url;
+      existing.files[qIdx].fileUrl = saved.url;
       existing.files[qIdx].fileSize = saved.sizeFormatted;
       existing.files[qIdx].updatedAt = getArabicFormattedDate();
     } else {
@@ -438,6 +466,7 @@ export async function PUT(req: NextRequest) {
         type: 'questions',
         title: `أسئلة وتمارين المحاضرة - ${existing.title}`,
         downloadUrl: saved.url,
+        fileUrl: saved.url,
         fileSize: saved.sizeFormatted,
         pageCount: 'بنك أسئلة وتدريبات PDF',
         updatedAt: getArabicFormattedDate(),
@@ -449,12 +478,15 @@ export async function PUT(req: NextRequest) {
     if (qIdx >= 0) {
       existing.files[qIdx].title = `أسئلة وتمارين المحاضرة - ${existing.title}`;
       existing.files[qIdx].downloadUrl = questionsUrl.trim();
+      existing.files[qIdx].fileUrl = questionsUrl.trim();
+      existing.files[qIdx].fileSize = 'رابط درايف 🌐';
       existing.files[qIdx].updatedAt = getArabicFormattedDate();
     } else {
       existing.files.push({
         type: 'questions',
         title: `أسئلة وتمارين المحاضرة - ${existing.title}`,
         downloadUrl: questionsUrl.trim(),
+        fileUrl: questionsUrl.trim(),
         fileSize: 'رابط درايف 🌐',
         pageCount: 'بنك أسئلة وتدريبات PDF',
         updatedAt: getArabicFormattedDate(),
@@ -523,11 +555,16 @@ export async function PUT(req: NextRequest) {
 
   try {
     revalidatePath('/', 'layout');
+    revalidatePath('/admin-dashboard', 'page');
+    revalidatePath(`/lecture/${existing.id}`, 'page');
+    if (existing.subjectId) {
+      revalidatePath(`/subject/${existing.subjectId}`, 'page');
+    }
   } catch {}
 
   return NextResponse.json({
     success: true,
     lecture: existing,
-    message: 'تم تحديث المحاضرة والملفات بنجاح',
+    message: 'تم تحديث المحاضرة والملفات بنجاح ✅',
   });
 }

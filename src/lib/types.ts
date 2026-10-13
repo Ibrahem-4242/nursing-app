@@ -92,6 +92,8 @@ export interface LectureFile {
   title: string;
   fileSize: string;
   downloadUrl: string;
+  fileUrl?: string;
+  fileType?: string;
   pageCount?: string;
   updatedAt: string;
   customNote?: string;

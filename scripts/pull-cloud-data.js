@@ -25,51 +25,72 @@ const req = https.get(options, (res) => {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const gist = JSON.parse(data);
         const file = gist.files && gist.files['cms-store.json'];
-        if (file && file.content) {
-          const cloudStore = JSON.parse(file.content);
-          if (cloudStore && Array.isArray(cloudStore.lectures)) {
-            const dataDir = path.join(process.cwd(), 'data');
-            if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+        if (file) {
+          const proceedWithContent = (content) => {
+            const cloudStore = JSON.parse(content);
+            if (cloudStore && Array.isArray(cloudStore.lectures)) {
+              const dataDir = path.join(process.cwd(), 'data');
+              if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-            const storePath = path.join(dataDir, 'cms-store.json');
-            const vaultPath = path.join(dataDir, 'lectures-vault.json');
+              const storePath = path.join(dataDir, 'cms-store.json');
+              const vaultPath = path.join(dataDir, 'lectures-vault.json');
 
-            // Merge with local vault if present
-            let localLectures = [];
-            let localDeleted = [];
-            if (fs.existsSync(storePath)) {
-              try {
-                const local = JSON.parse(fs.readFileSync(storePath, 'utf8'));
-                if (Array.isArray(local.lectures)) localLectures = local.lectures;
-                if (Array.isArray(local.deletedLectureIds)) localDeleted = local.deletedLectureIds;
-              } catch {}
+              // Merge with local vault if present
+              let localLectures = [];
+              let localDeleted = [];
+              if (fs.existsSync(storePath)) {
+                try {
+                  const local = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+                  if (Array.isArray(local.lectures)) localLectures = local.lectures;
+                  if (Array.isArray(local.deletedLectureIds)) localDeleted = local.deletedLectureIds;
+                } catch {}
+              }
+
+              const allDeleted = new Set([...(cloudStore.deletedLectureIds || []), ...localDeleted]);
+              const mergedMap = new Map();
+
+              for (const l of localLectures) {
+                if (!allDeleted.has(l.id)) mergedMap.set(l.id, l);
+              }
+              for (const l of cloudStore.lectures) {
+                if (!allDeleted.has(l.id)) mergedMap.set(l.id, l);
+              }
+
+              cloudStore.lectures = Array.from(mergedMap.values());
+              cloudStore.deletedLectureIds = Array.from(allDeleted);
+
+              fs.writeFileSync(storePath, JSON.stringify(cloudStore, null, 2), 'utf8');
+              fs.writeFileSync(vaultPath, JSON.stringify(cloudStore.lectures, null, 2), 'utf8');
+
+              // Save isolated lecture files in lectures-data folder
+              const lecturesDir = path.join(process.cwd(), 'lectures-data');
+              if (!fs.existsSync(lecturesDir)) fs.mkdirSync(lecturesDir, { recursive: true });
+              for (const lec of cloudStore.lectures) {
+                fs.writeFileSync(path.join(lecturesDir, `${lec.id}.json`), JSON.stringify(lec, null, 2), 'utf8');
+              }
+
+              console.log(`[Prebuild Guard] ✓ Successfully synced and secured ${cloudStore.lectures.length} live lectures in lectures-data folder!`);
+              process.exit(0);
             }
+          };
 
-            const allDeleted = new Set([...(cloudStore.deletedLectureIds || []), ...localDeleted]);
-            const mergedMap = new Map();
-
-            for (const l of localLectures) {
-              if (!allDeleted.has(l.id)) mergedMap.set(l.id, l);
-            }
-            for (const l of cloudStore.lectures) {
-              if (!allDeleted.has(l.id)) mergedMap.set(l.id, l);
-            }
-
-            cloudStore.lectures = Array.from(mergedMap.values());
-            cloudStore.deletedLectureIds = Array.from(allDeleted);
-
-            fs.writeFileSync(storePath, JSON.stringify(cloudStore, null, 2), 'utf8');
-            fs.writeFileSync(vaultPath, JSON.stringify(cloudStore.lectures, null, 2), 'utf8');
-
-            // Save isolated lecture files in lectures-data folder
-            const lecturesDir = path.join(process.cwd(), 'lectures-data');
-            if (!fs.existsSync(lecturesDir)) fs.mkdirSync(lecturesDir, { recursive: true });
-            for (const lec of cloudStore.lectures) {
-              fs.writeFileSync(path.join(lecturesDir, `${lec.id}.json`), JSON.stringify(lec, null, 2), 'utf8');
-            }
-
-            console.log(`[Prebuild Guard] ✓ Successfully synced and secured ${cloudStore.lectures.length} live lectures in lectures-data folder!`);
-            process.exit(0);
+          if ((file.truncated || !file.content) && file.raw_url) {
+            https.get(file.raw_url, { headers: { 'User-Agent': 'NursingStudyHubApp', ...(TOKEN ? { 'Authorization': `token ${TOKEN}` } : {}) } }, (rawRes) => {
+              let rawData = '';
+              rawRes.on('data', c => rawData += c);
+              rawRes.on('end', () => {
+                try {
+                  proceedWithContent(rawData);
+                } catch (e) {
+                  console.warn('[Prebuild Guard] Raw fetch parse warning:', e.message);
+                  process.exit(0);
+                }
+              });
+            }).on('error', () => process.exit(0));
+            return;
+          } else if (file.content) {
+            proceedWithContent(file.content);
+            return;
           }
         }
       }
