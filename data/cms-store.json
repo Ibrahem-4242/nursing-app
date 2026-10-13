@@ -59,8 +59,8 @@
         },
         {
           "id": 5,
-          "front": "صف كي��ية وضع المريض ��ي وضع بضع المثانة (Lithotomy Position).",
-          "back": "يستلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
+          "front": "صف كي��ية وضع المريض في وضع بضع المثانة (Lithotomy Position).",
+          "back": "ي��تلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
@@ -75,7 +75,7 @@
           "id": 7,
           "front": "في الوضع التشريحي القياسي، إلى أي اتجاه يتجه الوجه (Face)؟",
           "back": "يتجه الوجه مباشرة إلى الأمام (Directed forward).",
-          "category": "كروت ا��تذكار",
+          "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
         },
         {
@@ -115,7 +115,7 @@
         },
         {
           "id": 13,
-          "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في م��ال التصوير الشعاعي (Radiology)؟",
+          "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير الشعاعي (Radiology)؟",
           "back": "تساعد في التغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -144,7 +144,7 @@
         {
           "id": 17,
           "front": "قارن بين المستوى السهمي المتوسط (Sagittal) والمستوى جنيب السهمي (Para-sagittal) من حيث العدد وتساوي الأجزاء.",
-          "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بينما جنيب الس��مي يقسم لأجزاء غير متساوية (Unequal parts).",
+          "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بينما جنيب السهمي يقسم لأجزاء غير متساوية (Unequal parts).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -466,7 +466,7 @@
         {
           "id": 63,
           "front": "أكمل الفراغ: يُسمى المستوى الذي يمر شاقولياً بمنتصف الجسم تماماً بـ _____ بينما المستويات الموازية له تُسمى بـ _____.",
-          "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جن��بة السهمية (Parasagittal planes).",
+          "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جنيبة السهمية (Parasagittal planes).",
           "category": "كروت استذكار",
           "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
         },
@@ -493,7 +493,7 @@
         },
         {
           "id": 67,
-          "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين أفراد الفريق الطبي؟",
+          "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين ��فراد الفريق الطبي؟",
           "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن موقع كل فرد في الفريق.",
           "category": "كروت استذكار",
           "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -510,7 +510,7 @@
           "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
           "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
           "category": "كروت استذكار",
-          "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
+          "clinicalPearl": "الجه��ز الدوري والقلب (Cardiovascular System)"
         },
         {
           "id": 70,
@@ -585,7 +585,7 @@
           "downloadUrl": "https://drive.google.com/file/d/1ccPYB4vGlvzpq1G8KokJdkJHMG39CsnL/view?usp=sharing",
           "pageCount": "ملف PDF معتمد",
           "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
-          "customNote": "م����ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+          "customNote": "م��ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
         },
         {
           "type": "ppt",
@@ -765,7 +765,7 @@
         {
           "id": 20,
           "front": "ما هو نقص ألبومين الدم (Hypoalbuminemia) وما النتيجة المترتبة عليه؟",
-          "back": "- التعريف: انخفاض مستوى الألبومين إلى أقل من $2 \\text{ g/100ml}$.\n- النتيجة: يقل الضغط ��لأسموزي الغرواني، مما يؤدي لترشح الماء خارج الأوعية الدموية إلى المسافات بين الخلايا وظهور الاستسقاء/التورم (Edema).",
+          "back": "- التعريف: انخفاض مستوى الألبومين إلى أقل من $2 \\text{ g/100ml}$.\n- النتيجة: يقل الضغط الأسموزي الغرواني، مما يؤدي لترشح الماء خارج الأوعية الدموية إلى المسافات بين الخلايا وظهور الاستسقاء/التورم (Edema).",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
@@ -779,7 +779,7 @@
         {
           "id": 22,
           "front": "ما هو الوزن الجزيئي لبروتين الجلوبيولين (Globulin) وما هي أنواعه؟",
-          "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنواع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
+          "back": "- الوزن الجزيئي: كبير ($90,000 - 1,300,000$).\n- الأنو��ع: ألفا 1 و 2 ($\\alpha_1, \\alpha_2$)، بيتا ($\\beta$)، وجاما ($\\gamma$).",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
@@ -799,7 +799,7 @@
         },
         {
           "id": 25,
-          "front": "ما هي الأجسام المضادة (Immunoglobulins / Antibodies) وإ��ى أي نوع من الجلوبيولين تنتمي؟",
+          "front": "ما هي الأجسام المضادة (Immunoglobulins / Antibodies) وإلى أي نوع من الجلوبيولين تنتمي؟",
           "back": "تنتمي جميع الأجسام المضادة إلى جاما جلوبيولين ($\\gamma$-globulins)، وتنقسم إلى 5 فئات:\n$IgG, IgM, IgD, IgE, IgA$.",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -827,8 +827,8 @@
         },
         {
           "id": 29,
-          "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى؟",
-          "back": "لأن ارتباط المواد (مثل الهرمونات، $Fe^{++}, Cu, Ca$, الفيتامينات) ببروتينات البلازما يمنع فقدانها السريع ونفاذها ع��ر البول في الكلى.",
+          "front": "لماذا يعد ارتباط الهرمونات والمعادن ببروتينات البلازما مهمًا للكلى��",
+          "back": "لأن ارتباط المواد (مثل الهرمونات، $Fe^{++}, Cu, Ca$, الفيتامينات) ببروتينات البلازما يمنع فقدانها السريع ونفاذها عبر البول في الكلى.",
           "category": "كروت استذكار",
           "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
         },
@@ -856,7 +856,7 @@
         {
           "id": 33,
           "front": "ما المقصود بتكون الدم خارج النخاع (Extramedullary erythropoiesis) ومقتا يحدث؟",
-          "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد لخلايا الدم.",
+          "back": "هو إنتاج خلايا الدم الحمراء خارج نخاع العظام (خاصة في الكبد والطحال)، ويحدث عندما يزداد احتياج الجسم الشديد ��خلايا الدم.",
           "category": "كروت استذكار",
           "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
         },
@@ -892,12 +892,12 @@
           "id": 38,
           "front": "مما يتكون جزيء ال��يموجلوبين (Hemoglobin)؟",
           "back": "يتكون من:\n- بروتوبورفيرين (Protoporphyrin) يحتوي على الحديد في الحالة حديدوزية ($Fe^{++}$).\n- جلوبين (Globin) يتكون من زوجين من السلاسل الببتيدية.",
-          "category": "كروت استذكار",
+          "category": "ك��وت استذكار",
           "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
         },
         {
           "id": 39,
-          "front": "كم يبلغ كمية الحديد ��لإجمالية في جسم الإنسان وكيف تتوزع؟",
+          "front": "كم يبلغ كمية الحديد الإجمالية في جسم الإنسان وكيف تتوزع؟",
           "back": "- المجموع الكلي: $3 - 5 \\text{ g}$.\n- في الهيموجلوبين: $65 - 75\\%$ (حوالي $3 \\text{ g}$).\n- الحديد المخزن: $20\\%$ (حوالي $1 \\text{ g}$).\n- حديد البلازما: $3 - 4 \\text{ mg}$.",
           "category": "كروت استذكار",
           "clinicalPearl": "الهيموجلوبين وأيض الحديد (Iron & Hb)"
@@ -967,7 +967,7 @@
         },
         {
           "id": 49,
-          "front": "كيف تؤثر الهرمونات المختلفة على عملية تصنيع كرات الدم الحمراء (Erythropoiesis)؟",
+          "front": "كيف تؤثر الهرمونات المختلفة على عملية ت��نيع كرات الدم الحمراء (Erythropoiesis)؟",
           "back": "- الهرمونات المحفزة: الأندروجين (Androgen)، الثايروكسين (Thyroxine)، والجلوكوكورتيكويد (Glucocorticoids).\n- الهرمونات المبطئة/المانعة: الإستروجين (Estrogen) يثبط الإنتاج.",
           "category": "كروت استذكار",
           "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
@@ -1149,7 +1149,7 @@
           "id": 17,
           "front": "Why must the pyogenic membrane (الغشاء المولد للصديد) be excised during abscess surgery?",
           "back": "Removal prevents infection persistence, chronic abscess formation, and local recurrence.",
-          "category": "كروت استذكار",
+          "category": "كروت است��كار",
           "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
         },
         {
@@ -1241,7 +1241,7 @@
           "front": "What is sepsis (الإنتان)?",
           "back": "Sepsis is a life-threatening systemic organ dysfunction caused by a dysregulated host response to infection.",
           "category": "كروت استذكار",
-          "clinicalPearl": "الالتهاب 2 - الأ��واع والمضاعفات (Inflammation 2)"
+          "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
         },
         {
           "id": 31,
@@ -1304,7 +1304,7 @@
           "front": "What characterizes membranous inflammation (التهاب غشائي / كاذب)?",
           "back": "It is an acute inflammation of mucous membranes forming a coherent false membrane made of fibrin, necrotic cells, and leukocytes over eroded epithelium.",
           "category": "كروت استذكار",
-          "clinicalPearl": "الالتها�� 2 - الأنواع والمضاعفات (Inflammation 2)"
+          "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
         },
         {
           "id": 40,
@@ -1431,7 +1431,7 @@
       "viewCount": 1,
       "readingMinutes": 10,
       "threeDModelType": "heart",
-      "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النس��ية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+      "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة وم��ددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
       "concepts": [],
       "terminology": [],
       "interventions": [],
@@ -1461,7 +1461,7 @@
         {
           "id": 4,
           "front": "Which standard medical suffix denotes Inflammation (الالتهاب) in tissue terminology?",
-          "back": "The suffix '-itis' (ا��لاحقة إيتس) is added to tissue names to indicate inflammation.",
+          "back": "The suffix '-itis' (اللاحقة إيتس) is added to tissue names to indicate inflammation.",
           "category": "كروت استذكار",
           "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
         },
@@ -1476,7 +1476,7 @@
           "id": 6,
           "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
           "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
-          "category": "كروت استذكار",
+          "category": "��روت استذكار",
           "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
         },
         {
@@ -1771,7 +1771,7 @@
           "front": "What is Pavementing or Margination (التهميش / الترصيف) in leukocyte extravasation?",
           "back": "Pavementing is the accumulation and lining up of white blood cells along the vascular endothelial surface.",
           "category": "كروت استذكار",
-          "clinicalPearl": "علم الأم��اض والالتهاب (Pathology & Inflammation)"
+          "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
         },
         {
           "id": 49,
@@ -1961,7 +1961,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "��مبيوتر / لابتوب (Desktop)",
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
       "page": "/subject/anatomy",
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
       "isDailyUnique": false,
@@ -2042,7 +2042,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل آيفون (iPhone)",
+      "deviceType": "��وبايل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
       "isDailyUnique": true,
@@ -2105,7 +2105,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل آيفو�� (iPhone)",
+      "deviceType": "موبايل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/155.0.8059.37 Mobile/15E148 Safari/604.1",
       "isDailyUnique": false,
@@ -2537,7 +2537,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موباي�� أندرويد (Android)",
+      "deviceType": "موبايل أندرويد (Android)",
       "page": "/year/1",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -2627,7 +2627,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبايل أند��ويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": true,
@@ -2834,7 +2834,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل آيفون (iPhone)",
+      "deviceType": "موب��يل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
       "isDailyUnique": true,
@@ -3176,7 +3176,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "م��بايل أندرويد (Android)",
+      "deviceType": "موبايل أندرويد (Android)",
       "page": "/subject/pathology",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -3932,7 +3932,7 @@
       "dateStr": "2026-10-11"
     },
     {
-      "deviceType": "موبايل أن��رويد (Android)",
+      "deviceType": "موبايل أندرويد (Android)",
       "page": "/lecture/lec-1791657855705",
       "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
       "isDailyUnique": false,
@@ -6362,7 +6362,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "م��بايل آيفون (iPhone)",
+      "deviceType": "موبايل آيفون (iPhone)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
       "isDailyUnique": true,
@@ -7091,7 +7091,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "موبايل أندرويد (Android)",
+      "deviceType": "موبا��ل أندرويد (Android)",
       "page": "/",
       "userAgent": "Mozilla/5.0 (Linux; U; Android 15; en-eg; CPH2577 Build/AP3A.240617.008) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5970.168 Mobile Safari/537.36 HeyTapBrowser/45.14.8.1",
       "isDailyUnique": false,
@@ -7253,7 +7253,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "موبايل آيفون (iPhone)",
+      "deviceType": "م��بايل آيفون (iPhone)",
       "page": "/year/1",
       "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1",
       "isDailyUnique": false,
@@ -7370,7 +7370,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "deviceType": "كمبيوتر / ��ابتوب (Desktop)",
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
       "page": "/year/1",
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
       "isDailyUnique": false,
@@ -7611,6 +7611,69 @@
       "id": "vis-1791868020774-9o6x",
       "timestamp": "2026-10-13T05:07:00.774Z",
       "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1791869507888-4yfr",
+      "timestamp": "2026-10-13T05:31:47.888Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/year/4",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791869551556-q2cd",
+      "timestamp": "2026-10-13T05:32:31.556Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/psychiatric",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791869557024-8s0y",
+      "timestamp": "2026-10-13T05:32:37.024Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/year/1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791869788926-l4dy",
+      "timestamp": "2026-10-13T05:36:28.926Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791869791445-ipcr",
+      "timestamp": "2026-10-13T05:36:31.445Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل أندرويد (Android)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1791870537496-sgi4",
+      "timestamp": "2026-10-13T05:48:57.496Z",
+      "dateStr": "2026-10-13"
+    },
+    {
+      "deviceType": "موبايل أندرويد (Android)",
+      "page": "/subject/pathology",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1791870559403-xbwq",
+      "timestamp": "2026-10-13T05:49:19.403Z",
+      "dateStr": "2026-10-13"
     }
   ],
   "downloads": [
@@ -7634,7 +7697,7 @@
     },
     {
       "lectureTitle": "المحاضرة الاولي والتانية (الاتجاهات)",
-      "subjectTitle": "تشريح (ا��اتومي)",
+      "subjectTitle": "تشريح (اناتومي)",
       "fileType": "ملخص PDF",
       "fileName": "المحاضرة الاولي والتانية (الاتجاهات)",
       "id": "dl-1791717293506-h3hp",
@@ -7733,7 +7796,7 @@
     },
     {
       "lectureTitle": "Inflammation 1",
-      "subjectTitle": "علم الأمراض (باثول��جي)",
+      "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملخص PDF",
       "fileName": "Inflammation 1",
       "id": "dl-1791717643954-z2vy",
@@ -7805,7 +7868,7 @@
     },
     {
       "lectureTitle": "عروض بوربوينت - Inflammation 1",
-      "subjectTitle": "علم الأمراض (ب��ثولوجي)",
+      "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "عرض بوربوينت PPT",
       "fileName": "عروض بوربوينت - Inflammation 1",
       "id": "dl-1791718786816-2vt4",
@@ -8040,7 +8103,7 @@
     {
       "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
-      "fileType": "ملف أ��ئلة الكويزات PDF",
+      "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
       "id": "dl-1791731210226-825q",
       "timestamp": "2026-10-11T15:06:50.226Z",
@@ -8203,7 +8266,7 @@
       "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملف أسئلة الكويزات PDF",
-      "fileName": "بنك أسئ��ة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
+      "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
       "id": "dl-1791739798955-vna9",
       "timestamp": "2026-10-11T17:29:58.955Z",
       "dateStr": "2026-10-11"
@@ -8347,7 +8410,7 @@
       "lectureTitle": "عروض بوربوينت - Inflammation 2",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "عرض بوربوينت PPT",
-      "fileName": "عر��ض بوربوينت - Inflammation 2",
+      "fileName": "عروض بوربوينت - Inflammation 2",
       "id": "dl-1791746499618-1gx2",
       "timestamp": "2026-10-11T19:21:39.618Z",
       "dateStr": "2026-10-11"
@@ -8509,7 +8572,7 @@
       "lectureTitle": "الخريطة الذهنية الشاملة - Inflammation 2",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "خريطة ذهنية",
-      "fileName": "الخريطة الذهنية الشامل�� - Inflammation 2",
+      "fileName": "الخريطة الذهنية الشاملة - Inflammation 2",
       "id": "dl-1791791376298-0mdz",
       "timestamp": "2026-10-12T07:49:36.298Z",
       "dateStr": "2026-10-12"
@@ -8589,7 +8652,7 @@
     {
       "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
-      "fileType": "ملف أسئلة الكويزات PDF",
+      "fileType": "ملف أسئلة ال��ويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
       "id": "dl-1791817453682-jn7f",
       "timestamp": "2026-10-12T15:04:13.682Z",
@@ -8617,7 +8680,7 @@
       "lectureTitle": "الخريطة الذهنية الشاملة - المحاضرة الاولي والتانية (الاتجاهات)",
       "subjectTitle": "تشريح (اناتومي)",
       "fileType": "خريطة ذهنية",
-      "fileName": "الخريطة الذهنية الش��ملة - المحاضرة الاولي والتانية (الاتجاهات)",
+      "fileName": "الخريطة الذهنية الشاملة - المحاضرة الاولي والتانية (الاتجاهات)",
       "id": "dl-1791822398555-r7jf",
       "timestamp": "2026-10-12T16:26:38.555Z",
       "dateStr": "2026-10-12"
@@ -8641,7 +8704,7 @@
       "dateStr": "2026-10-12"
     },
     {
-      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
+      "lectureTitle": "بنك أسئلة الكويز��ت المجمعة - علم الأمراض (باثولوجي)",
       "subjectTitle": "علم الأمراض (باثولوجي)",
       "fileType": "ملف أسئلة الكويزات PDF",
       "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
@@ -8729,6 +8792,15 @@
       "id": "dl-1791868026721-m99a",
       "timestamp": "2026-10-13T05:07:06.721Z",
       "dateStr": "2026-10-13"
+    },
+    {
+      "lectureTitle": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي)",
+      "subjectTitle": "علم الأمراض (باثولوجي)",
+      "fileType": "ملف أسئلة الكويزات PDF",
+      "fileName": "بنك أسئلة الكويزات المجمعة - علم الأمراض (باثولوجي).pdf",
+      "id": "dl-1791870586906-dlwq",
+      "timestamp": "2026-10-13T05:49:46.906Z",
+      "dateStr": "2026-10-13"
     }
   ],
   "subjects": [
@@ -8774,7 +8846,7 @@
     {
       "id": "microbiology",
       "yearId": "2",
-      "yearName": "السنة الثانية",
+      "yearName": "السنة الثان��ة",
       "slug": "microbiology",
       "title": "الأحياء الدقيقة (ميكروبيولوجي)",
       "englishTitle": "Medical Microbiology",

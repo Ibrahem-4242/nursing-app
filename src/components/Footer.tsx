@@ -36,31 +36,26 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 2: Academic Years */}
+          {/* Col 2: Academic Years & Semesters */}
           <div>
             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-              السنوات الدراسية
+              المقررات والفصول الدراسية
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li>
                 <Link href="/year/1" className="hover:text-teal-400 transition">
-                  السنة الأولى (التشريح، وظائف الأعضاء، الأساسيات)
+                  السنة الأولى (جميع المقررات المعتمدة)
                 </Link>
               </li>
               <li>
-                <Link href="/year/2" className="hover:text-teal-400 transition">
-                  السنة الثانية (الفارماكولوجي، الميكرو، باطني وجراحي)
+                <Link href="/year/1?semester=1" className="hover:text-teal-400 transition">
+                  الفصل الدراسي الأول (سمستر 1)
                 </Link>
               </li>
               <li>
-                <Link href="/year/3" className="hover:text-teal-400 transition">
-                  السنة الثالثة (تمريض أطفال، نساء وتوليد)
-                </Link>
-              </li>
-              <li>
-                <Link href="/year/4" className="hover:text-teal-400 transition">
-                  السنة الرابعة (التمريض النفسي، القيادة والإدارة)
+                <Link href="/year/1?semester=2" className="hover:text-teal-400 transition">
+                  الفصل الدراسي الثاني (سمستر 2)
                 </Link>
               </li>
             </ul>

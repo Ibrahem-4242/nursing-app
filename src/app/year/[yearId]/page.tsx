@@ -1,11 +1,12 @@
 import React from 'react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { DataService } from '@/lib/data-service';
 import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import { BookOpen, FileText, ArrowLeft, Sparkles, CheckCircle2, Layers } from 'lucide-react';
+import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,17 +15,30 @@ interface YearPageProps {
   params: {
     yearId: string;
   };
+  searchParams?: {
+    semester?: string;
+  };
 }
 
-export default async function YearPage({ params }: YearPageProps) {
+export default async function YearPage({ params, searchParams }: YearPageProps) {
   const year = DataService.getAcademicYearById(params.yearId);
 
   if (!year) {
     notFound();
   }
 
-  const liveSubjects = await CmsService.getLiveSubjects();
-  const subjects = liveSubjects.filter((s) => s.yearId === year.id);
+  const isAdmin =
+    cookies().get('nursing_admin_token')?.value ===
+    'secret_session_5143545638_verified';
+
+  const allSubjects = isAdmin
+    ? await CmsService.getAllSubjects()
+    : await CmsService.getLiveSubjects();
+  const subjects = allSubjects.filter((s) => s.yearId === year.id);
+  const liveLectures = await CmsService.getLiveLectures();
+  const quizzesList = await CmsService.getAllSubjectQuizFilesList();
+  const initialSemester =
+    searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -48,7 +62,7 @@ export default async function YearPage({ params }: YearPageProps) {
           <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-teal-200">
             <span>📚 عدد المواد: {subjects.length} مقررات معتمدة</span>
             <span>•</span>
-            <span>⚡️ متوفر في كل محاضرة: PDF • بوربوينت • خريطة ذهنية • فلاش كاردز</span>
+            <span>⚡️ مقسمة حسب الفصل الدراسي: سمستر 1 (الترم الأول) و سمستر 2 (الترم الثاني)</span>
           </div>
         </div>
       </div>
@@ -56,79 +70,26 @@ export default async function YearPage({ params }: YearPageProps) {
       {/* Top AdSense Banner */}
       <AdSenseBanner position="header" slotId="8765432109" label={`إعلانات مقررات ${year.title}`} />
 
-      {/* Subjects Grid */}
+      {/* Subjects Grid by Semester */}
       <div className="my-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">مواد ومقررات {year.title}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اختر المادة لتصفح المحاضرات وتحميل الملفات والفلاش كاردز</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اختر الفصل الدراسي والمادة لتصفح المحاضرات أو أسئلة الكويزات</p>
           </div>
           <span className="text-xs font-bold px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300">
             {subjects.length} مواد
           </span>
         </div>
 
-        {subjects.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="w-16 h-16 rounded-3xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-2">
-              <BookOpen className="w-8 h-8" />
-            </div>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">
-              لا توجد مقررات بها محاضرات منشورة لهذه السنة حالياً 🩺
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              المقررات تظهر هنا تلقائياً بمجرد رفع محاضراتها من لوحة الأدمن.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {subjects.map((sub) => (
-              <Link
-                key={sub.id}
-                href={`/subject/${sub.id}`}
-                className="group flex flex-col justify-between p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-bold border border-teal-200/60 dark:border-teal-800">
-                      مقرر معتمد
-                    </span>
-                    <div className="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-bold">
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>{sub.totalLectures} محاضرات</span>
-                    </div>
-                  </div>
-
-                  {/* Subject Arabic Title Only (Removed small englishTitle as requested) */}
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition mb-3">
-                    {sub.title}
-                  </h3>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 mb-5">
-                    {sub.description}
-                  </p>
-
-                  {/* Materials Badge Indicator */}
-                  <div className="flex items-center gap-2 text-[11px] text-teal-700 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2.5 rounded-xl border border-teal-100 dark:border-teal-900/40 mb-4">
-                    <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>PDF • بوربوينت • خريطة ذهنية • فلاش كاردز + أسئلة كويزات 📝</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
-                    <span>فتح المحاضرات والملخصات</span>
-                    <ArrowLeft className="w-4 h-4" />
-                  </span>
-
-                  <span className="text-[11px] text-slate-400">
-                    المحاضرة 1 مجاناً 🎁
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <SemesterSubjectsBrowser
+          subjects={subjects}
+          lectures={liveLectures}
+          quizzesList={quizzesList}
+          isAdmin={isAdmin}
+          initialSemester={initialSemester}
+          gridCols={3}
+        />
       </div>
 
       {/* High-yield Study Tips Section */}

@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const yearId = (formData.get('yearId') as string) || '1';
+    const rawSemester = ((formData.get('semester') as string) || '').trim();
+    const semester: '1' | '2' = rawSemester === '2' ? '2' : '1';
     const lectureTitle = (formData.get('lectureTitle') as string) || '';
     const lectureNumber = Number(formData.get('lectureNumber')) || 1;
     const adminNote = (formData.get('adminNote') as string) || '';
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
     }
     // Zero fake cards - strictly uses what the user uploaded!
 
-    // 4. Construct Files Array (PDF, PPT, Mindmap) - NOTE: .apkg is NEVER made downloadable!
+    // 4. Construct Files Array (PDF, PPT, Mindmap, Audio) - Only push resources that actually have content!
     const filesList: LectureFile[] = [
       {
         type: 'pdf',
@@ -157,16 +159,6 @@ export async function POST(req: NextRequest) {
         updatedAt: getArabicFormattedDate(),
         customNote: 'عروض تقديمية وسلايدات الشرح الجامعي عبر رابط مباشر',
       });
-    } else {
-      filesList.push({
-        type: 'ppt',
-        title: `عروض بوربوينت - ${lectureTitle.trim()}`,
-        fileSize: '3.1 MB',
-        downloadUrl: savedPdf.url,
-        pageCount: 'سلايدات PowerPoint',
-        updatedAt: getArabicFormattedDate(),
-        customNote: 'عروض تقديمية وسلايدات الشرح الجامعي الرسمية',
-      });
     }
 
     if (mindmapFile) {
@@ -190,16 +182,6 @@ export async function POST(req: NextRequest) {
         pageCount: 'خريطة ذهنية عالية الدقة',
         updatedAt: getArabicFormattedDate(),
         customNote: 'رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر',
-      });
-    } else {
-      filesList.push({
-        type: 'mindmap',
-        title: `الخريطة الذهنية الشاملة - ${lectureTitle.trim()}`,
-        fileSize: '1.9 MB',
-        downloadUrl: savedPdf.url,
-        pageCount: 'خريطة ذهنية عالية الدقة',
-        updatedAt: getArabicFormattedDate(),
-        customNote: 'رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار',
       });
     }
 
@@ -233,6 +215,7 @@ export async function POST(req: NextRequest) {
       id: lectureId,
       subjectId,
       yearId,
+      semester,
       subjectTitle: subjectObj.title,
       yearTitle: yearId === '1' ? 'السنة الأولى' : yearId === '2' ? 'السنة الثانية' : yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة',
       slug: lectureId,
@@ -267,10 +250,11 @@ export async function POST(req: NextRequest) {
 ━━━━━━━━━━━━━━━━━━━━
 📖 <b>اسم المحاضرة:</b> ${lectureTitle.trim()}
 📚 <b>المادة:</b> ${subjectObj.title}
+📅 <b>الفصل الدراسي:</b> سمستر ${semester} (${semester === '2' ? 'الترم الثاني' : 'الترم الأول'})
 🔢 <b>رقم المحاضرة:</b> ${lectureNumber}
 📄 <b>ملف الـ PDF:</b> (${savedPdf.sizeFormatted}) ${shouldWatermark ? '🛡️ مع العلامة المائية' : ''}
-🖥️ <b>ملف البوربوينت:</b> ${pptFile || externalPptUrl ? 'مرفوع جاهز ✅' : 'قالب مدمج ⚡'}
-🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile || externalMindmapUrl ? 'مرفوعة جاهزة ✅' : 'قالب مدمج ⚡'}
+🖥️ <b>ملف البوربوينت:</b> ${pptFile || externalPptUrl ? 'مرفوع جاهز ✅' : 'غير مرفق'}
+🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile || externalMindmapUrl ? 'مرفوعة جاهزة ✅' : 'غير مرفقة'}
 🎧 <b>الملف الصوتي (الريكورد):</b> ${audioFile || externalAudioUrl ? 'مرفوع جاهز للاستماع 🎵✅' : 'غير مرفق'}
 🃏 <b>كروت الفلاش كاردز:</b> ${flashcards.length} بطاقة استذكار داخلية تفاعلية ${ankiFile ? '(مستخرجة من Anki .apkg 🎴)' : ''}
 ⏰ <b>التوقيت:</b> ${getArabicFormattedDate()}

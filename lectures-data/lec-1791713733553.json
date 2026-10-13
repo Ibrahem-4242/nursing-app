@@ -49,8 +49,8 @@
     },
     {
       "id": 5,
-      "front": "صف كي��ية وضع المريض ��ي وضع بضع المثانة (Lithotomy Position).",
-      "back": "يستلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
+      "front": "صف كي��ية وضع المريض في وضع بضع المثانة (Lithotomy Position).",
+      "back": "ي��تلقي المريض على ظهره (Supine) مع ثني الساقين (Flexed) وإبعادهما (Abducted) وتدويرهما للخارج (Laterally rotated) عند مفصلي الورك والركبة، وتثبيتهما بركابات (Stirrups).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -65,7 +65,7 @@
       "id": 7,
       "front": "في الوضع التشريحي القياسي، إلى أي اتجاه يتجه الوجه (Face)؟",
       "back": "يتجه الوجه مباشرة إلى الأمام (Directed forward).",
-      "category": "كروت ا��تذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
     {
@@ -105,7 +105,7 @@
     },
     {
       "id": 13,
-      "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في م��ال التصوير الشعاعي (Radiology)؟",
+      "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير الشعاعي (Radiology)؟",
       "back": "تساعد في التغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -134,7 +134,7 @@
     {
       "id": 17,
       "front": "قارن بين المستوى السهمي المتوسط (Sagittal) والمستوى جنيب السهمي (Para-sagittal) من حيث العدد وتساوي الأجزاء.",
-      "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بينما جنيب الس��مي يقسم لأجزاء غير متساوية (Unequal parts).",
+      "back": "1. العدد: السهمي المتوسط مستوى واحد فريد (Single)، بينما جنيب السهمي متعدد (Multiple).\n2. التقسيم: السهمي المتوسط يقسم لنصفين متساويين (Equal halves)، بينما جنيب السهمي يقسم لأجزاء غير متساوية (Unequal parts).",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
     },
@@ -456,7 +456,7 @@
     {
       "id": 63,
       "front": "أكمل الفراغ: يُسمى المستوى الذي يمر شاقولياً بمنتصف الجسم تماماً بـ _____ بينما المستويات الموازية له تُسمى بـ _____.",
-      "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جن��بة السهمية (Parasagittal planes).",
+      "back": "المستوى السهمي المتوسط (Median / Mid-sagittal plane)؛ المستو��ات جنيبة السهمية (Parasagittal planes).",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
     },
@@ -483,7 +483,7 @@
     },
     {
       "id": 67,
-      "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين أفراد الفريق الطبي؟",
+      "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة للوضعيات التشريحية بين ��فراد الفريق الطبي؟",
       "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن موقع كل فرد في الفريق.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -500,7 +500,7 @@
       "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
       "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
+      "clinicalPearl": "الجه��ز الدوري والقلب (Cardiovascular System)"
     },
     {
       "id": 70,
@@ -575,7 +575,7 @@
       "downloadUrl": "https://drive.google.com/file/d/1ccPYB4vGlvzpq1G8KokJdkJHMG39CsnL/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
       "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
-      "customNote": "م����ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+      "customNote": "م��ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
     },
     {
       "type": "ppt",

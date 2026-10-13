@@ -1,25 +1,21 @@
 import React from 'react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { DataService } from '@/lib/data-service';
 import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import SubjectQuizFileBox from '@/components/SubjectQuizFileBox';
+import SubjectContentView from '@/components/SubjectContentView';
 import {
   FileText,
-  Clock,
-  Eye,
   Gift,
-  Lock,
-  ArrowLeft,
   Sparkles,
-  Download,
   Presentation,
   GitFork,
   Layers,
   Headphones,
   HelpCircle,
+  EyeOff,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -29,14 +25,23 @@ interface SubjectPageProps {
   params: {
     subId: string;
   };
+  searchParams?: {
+    semester?: string;
+  };
 }
 
-export default async function SubjectPage({ params }: SubjectPageProps) {
+export default async function SubjectPage({ params, searchParams }: SubjectPageProps) {
+  const isAdmin =
+    cookies().get('nursing_admin_token')?.value ===
+    'secret_session_5143545638_verified';
+
+  const allSubjects = await CmsService.getAllSubjects();
   const liveSubjects = await CmsService.getLiveSubjects();
   const liveLectures = await CmsService.getLiveLecturesBySubject(params.subId);
 
   const subject =
     liveSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
+    allSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
     DataService.getSubjectById(params.subId) ||
     (liveLectures.length > 0
       ? {
@@ -59,7 +64,19 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
 
   const year = DataService.getAcademicYearById(subject.yearId);
   const lectures = liveLectures;
-  const quizFile = await CmsService.getSubjectQuizFile(subject.id);
+  const quizzesFiles = await CmsService.getSubjectQuizFiles(subject.id);
+
+  // Strict rule: if a subject has 0 lectures and 0 quizzes, hide it from students
+  if (!isAdmin && lectures.length === 0 && quizzesFiles.length === 0) {
+    notFound();
+  }
+
+  const initialSemester =
+    searchParams?.semester === '2'
+      ? '2'
+      : searchParams?.semester === '1'
+      ? '1'
+      : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
@@ -74,12 +91,21 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
       {/* Subject Header */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-8 sm:p-10 text-white shadow-xl mb-8 border border-teal-500/20">
         <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>مقرر دراسي معتمد • {subject.yearName}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>مقرر دراسي معتمد • {subject.yearName}</span>
+            </div>
+
+            {isAdmin && lectures.length === 0 && quizzesFiles.length === 0 && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 text-amber-200 text-xs font-bold border border-amber-400/40">
+                <EyeOff className="w-3.5 h-3.5" />
+                <span>يظهر للأدمن فقط (فارغ ومخفي عن الطلاب)</span>
+              </div>
+            )}
           </div>
 
-          {/* Clean Arabic title without small English subtitle */}
+          {/* Clean Arabic title */}
           <h1 className="text-3xl sm:text-4xl font-black">{subject.title}</h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed pt-1">
@@ -93,7 +119,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
             </span>
             <span>•</span>
             <span className="text-emerald-400 font-bold">
-              متوفر: محاضرات المنهج + ملف أسئلة الكويزات المجمعة 📝
+              متوفر: {lectures.length} محاضرات شرح • {quizzesFiles.length} ملفات أسئلة كويزات 📝
             </span>
           </div>
         </div>
@@ -102,134 +128,20 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
       {/* Top AdSense Banner */}
       <AdSenseBanner position="header" slotId="6543210987" label={`إعلانات مادة ${subject.title}`} />
 
-      {/* Content Section: Lectures & Quizzes */}
+      {/* Content Section: Lectures & Quizzes with 2-Option Chooser */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 my-10">
-        {/* Main Column: Quizzes Bank & Lectures List */}
+        {/* Main Column */}
         <div className="lg:col-span-8 space-y-8">
-          {/* 1. Dedicated Subject Quiz Questions File Box (أسئلة الكويزات) */}
-          {quizFile && (
-            <section>
-              <SubjectQuizFileBox quizFile={quizFile} />
-            </section>
-          )}
+          <SubjectContentView
+            subject={subject}
+            lectures={lectures}
+            quizzesFiles={quizzesFiles}
+            isAdmin={isAdmin}
+            initialSemester={initialSemester}
+          />
 
-          {/* 2. Lectures Section */}
-          <div className="space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <FileText className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-                <span>محاضرات المادة المتاحة</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                اختر المحاضرة لفتح ملفات الـ PDF والبوربوينت والخرائط الذهنية وتصفح الفلاش كاردز التفاعلية
-              </p>
-            </div>
-            <span className="text-xs font-bold px-3 py-1 bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 rounded-full border border-teal-200 dark:border-teal-800">
-              {lectures.length} محاضرات متاحة
-            </span>
-          </div>
-
-          {lectures.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-              <p className="text-sm font-semibold">جارِ رفع وتنسيق محاضرات هذه المادة قريباً ⌛️</p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {lectures.map((lec) => (
-                <div
-                  key={lec.id}
-                  className="group p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-black text-xs flex items-center justify-center">
-                        #{lec.lectureNumber}
-                      </span>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        المحاضرة رقم {lec.lectureNumber}
-                      </span>
-                    </div>
-
-                    {/* Free vs Paid Badge */}
-                    {lec.isFree ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-                        <Gift className="w-3.5 h-3.5" />
-                        <span>مجانية للجميع 🎁</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>محتوى مدفوع (10 ج)</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <Link href={`/lecture/${lec.id}`}>
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition leading-snug mb-2">
-                      {lec.title}
-                    </h3>
-                  </Link>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 mb-4">
-                    {lec.subtitle || lec.overview}
-                  </p>
-
-                  {/* The Resource Badges inside each lecture card */}
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-5 mb-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <FileText className="w-3.5 h-3.5 text-rose-500" />
-                      <span>ملف PDF</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Presentation className="w-3.5 h-3.5 text-amber-500" />
-                      <span>عرض بوربوينت</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <GitFork className="w-3.5 h-3.5 text-sky-500" />
-                      <span>خريطة ذهنية</span>
-                    </span>
-                    {lec.files?.some((f: any) => f.type === 'audio') && (
-                      <span className="flex items-center gap-1.5 font-bold text-violet-600 dark:text-violet-400">
-                        <Headphones className="w-3.5 h-3.5" />
-                        <span>ريكورد صوتي 🎧</span>
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5 font-medium font-bold text-teal-600 dark:text-teal-400">
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>فلاش كاردز تفاعلية</span>
-                    </span>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-4 text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {lec.readingMinutes} دقيقة قراءة
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5 text-slate-400" />
-                        {lec.viewCount} طالب
-                      </span>
-                    </div>
-
-                    <Link
-                      href={`/lecture/${lec.id}`}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition active:scale-95 shadow-md shadow-teal-600/20 text-xs"
-                    >
-                      <span>فتح المحاضرة والفلاش كاردز</span>
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          </div>
-
-          {/* AdSense In-Content between lectures and quizzes */}
+          {/* AdSense In-Content */}
           <AdSenseBanner position="in-content" slotId="5432167890" label="إعلان ممول - المحاضرات الأكاديمية" />
-
         </div>
 
         {/* Sidebar Column: Study Guide & AdSense */}

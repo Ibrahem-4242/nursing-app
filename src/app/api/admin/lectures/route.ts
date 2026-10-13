@@ -85,7 +85,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { id, isLive, isFree } = body;
+  const { id, isLive, isFree, semester } = body;
 
   if (!id) {
     return NextResponse.json({ success: false, message: 'معرف المحاضرة مطلوب' }, { status: 400 });
@@ -103,6 +103,9 @@ export async function PATCH(req: NextRequest) {
   }
   if (isFree !== undefined) {
     existing.isFree = !!isFree;
+  }
+  if (semester === '1' || semester === '2') {
+    existing.semester = semester;
   }
 
   await CmsService.addOrUpdateLecture(existing, customToken);
@@ -123,6 +126,7 @@ export async function PUT(req: NextRequest) {
   let id = '';
   let title: string | undefined;
   let lectureNumber: number | undefined;
+  let semester: '1' | '2' | undefined;
   let adminNote: string | undefined;
   let overview: string | undefined;
   let isFree: boolean | undefined;
@@ -144,6 +148,8 @@ export async function PUT(req: NextRequest) {
     id = (formData.get('id') as string) || '';
     title = (formData.get('title') as string) || undefined;
     lectureNumber = formData.get('lectureNumber') ? Number(formData.get('lectureNumber')) : undefined;
+    const rawSem = formData.get('semester') as string | null;
+    if (rawSem === '1' || rawSem === '2') semester = rawSem;
     adminNote = formData.get('adminNote') !== null ? (formData.get('adminNote') as string) : undefined;
     overview = formData.get('overview') !== null ? (formData.get('overview') as string) : undefined;
     if (formData.get('isFree') !== null) {
@@ -166,6 +172,7 @@ export async function PUT(req: NextRequest) {
     id = body.id;
     title = body.title;
     lectureNumber = body.lectureNumber !== undefined ? Number(body.lectureNumber) : undefined;
+    if (body.semester === '1' || body.semester === '2') semester = body.semester;
     adminNote = body.adminNote;
     overview = body.overview;
     isFree = body.isFree !== undefined ? Boolean(body.isFree) : undefined;
@@ -365,6 +372,7 @@ export async function PUT(req: NextRequest) {
   // Update Text Fields
   if (title) existing.title = title.trim();
   if (lectureNumber) existing.lectureNumber = lectureNumber;
+  if (semester) existing.semester = semester;
   if (adminNote !== undefined) existing.adminNote = adminNote.trim();
   if (overview !== undefined) existing.overview = overview.trim();
   if (isFree !== undefined) existing.isFree = isFree;

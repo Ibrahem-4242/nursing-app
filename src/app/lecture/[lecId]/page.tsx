@@ -1,5 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { DataService } from '@/lib/data-service';
 import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -28,6 +29,10 @@ interface LecturePageProps {
 }
 
 export default async function LecturePage({ params }: LecturePageProps) {
+  const isAdmin =
+    cookies().get('nursing_admin_token')?.value ===
+    'secret_session_5143545638_verified';
+
   const lecture = await CmsService.getLectureById(params.lecId);
 
   if (!lecture) {
@@ -39,14 +44,15 @@ export default async function LecturePage({ params }: LecturePageProps) {
     liveSubjects.find((s) => s.id === lecture.subjectId || s.slug === lecture.subjectId) ||
     DataService.getSubjectById(lecture.subjectId);
   const year = DataService.getAcademicYearById(lecture.yearId);
+  const lecSemester = lecture.semester || (subject?.semester === '2' ? '2' : '1');
 
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
       {/* 1. Breadcrumb Navigation */}
       <Breadcrumb
         items={[
-          { label: year?.title || 'السنة الدراسية', href: `/year/${lecture.yearId}` },
-          { label: subject?.title || 'المادة', href: `/subject/${lecture.subjectId}` },
+          { label: year?.title || 'السنة الدراسية', href: `/year/${lecture.yearId}?semester=${lecSemester}` },
+          { label: `${subject?.title || 'المادة'} (سمستر ${lecSemester})`, href: `/subject/${lecture.subjectId}?semester=${lecSemester}` },
           { label: `المحاضرة ${lecture.lectureNumber}` },
         ]}
       />
@@ -120,7 +126,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
         label="إعلان ممول - منصة ملخصات التمريض"
       />
 
-      {/* 4. THE 4 INTERACTIVE TABS & DIRECT DOWNLOAD SECTION */}
+      {/* 4. THE INTERACTIVE TABS & DIRECT DOWNLOAD SECTION */}
       <section className="my-6">
         <LectureContentTabs
           files={lecture.files}
@@ -129,6 +135,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           adminNote={lecture.adminNote}
           lectureId={lecture.id}
           isFree={lecture.isFree}
+          isAdmin={isAdmin}
         />
       </section>
 

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, yearId, description, englishTitle } = body;
+    const { title, yearId, semester, description, englishTitle } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       {
         title: title.trim(),
         yearId: yearId || '1',
+        semester: semester === '2' ? '2' : semester === 'both' ? 'both' : '1',
         description: description?.trim(),
         englishTitle: englishTitle?.trim(),
       },
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, title, yearId, description, englishTitle } = body;
+    const { id, title, yearId, semester, syncItemsSemester, description, englishTitle } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -103,6 +104,8 @@ export async function PUT(req: NextRequest) {
         id,
         ...(title ? { title: title.trim() } : {}),
         ...(yearId ? { yearId } : {}),
+        ...(semester ? { semester } : {}),
+        ...(syncItemsSemester !== undefined ? { syncItemsSemester: Boolean(syncItemsSemester) } : {}),
         ...(description !== undefined ? { description: description.trim() } : {}),
         ...(englishTitle !== undefined ? { englishTitle: englishTitle.trim() } : {}),
       },

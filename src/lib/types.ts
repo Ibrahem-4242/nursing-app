@@ -20,6 +20,7 @@ export interface Subject {
   id: string;
   yearId: string;
   yearName: string;
+  semester?: '1' | '2' | 'both';
   slug: string;
   title: string;
   englishTitle?: string;
@@ -30,11 +31,14 @@ export interface Subject {
   totalLectures: number;
   totalQuizzes: number;
   quizzesFile?: SubjectQuizFile;
+  quizzesFiles?: SubjectQuizFile[];
 }
 
 export interface SubjectQuizFile {
+  id?: string;
   subjectId: string;
   subjectTitle: string;
+  semester?: '1' | '2';
   title: string;
   description?: string;
   fileSize: string;
@@ -94,6 +98,7 @@ export interface Lecture {
   id: string;
   subjectId: string;
   yearId: string;
+  semester?: '1' | '2';
   subjectTitle: string;
   yearTitle: string;
   slug: string;

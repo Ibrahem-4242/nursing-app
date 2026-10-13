@@ -17,6 +17,7 @@ interface CmsStore {
   announcement: AnnouncementConfig;
   lectures: Lecture[];
   deletedLectureIds?: string[];
+  deletedQuizIds?: string[];
   subjects?: Subject[];
   subjectQuizzes?: Record<string, SubjectQuizFile>;
   brokenLinks: BrokenLinkReport[];
@@ -167,6 +168,31 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       }
 
       store.lectures = Array.from(lectureMap.values());
+
+      // Safely merge subjectQuizzes and deletedQuizIds
+      const allDeletedQuizzes = new Set<string>();
+      (store.deletedQuizIds || []).forEach((id) => allDeletedQuizzes.add(id));
+      (existing.deletedQuizIds || []).forEach((id) => allDeletedQuizzes.add(id));
+      store.deletedQuizIds = Array.from(allDeletedQuizzes);
+
+      const mergedQuizzes: Record<string, SubjectQuizFile> = {};
+      if (existing.subjectQuizzes) {
+        for (const [k, q] of Object.entries(existing.subjectQuizzes)) {
+          const qId = q.id || k;
+          if (!allDeletedQuizzes.has(k) && !allDeletedQuizzes.has(qId)) {
+            mergedQuizzes[k] = { ...q, id: qId };
+          }
+        }
+      }
+      if (store.subjectQuizzes) {
+        for (const [k, q] of Object.entries(store.subjectQuizzes)) {
+          const qId = q.id || k;
+          if (!allDeletedQuizzes.has(k) && !allDeletedQuizzes.has(qId)) {
+            mergedQuizzes[k] = { ...q, id: qId };
+          }
+        }
+      }
+      store.subjectQuizzes = mergedQuizzes;
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -437,7 +463,31 @@ async function getFreshStore(): Promise<CmsStore> {
     } else if (!store.subjects || store.subjects.length === 0) {
       store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
     }
-    if (cloudStore.subjectQuizzes) store.subjectQuizzes = cloudStore.subjectQuizzes;
+
+    const deletedQuizSet = new Set<string>();
+    (store.deletedQuizIds || []).forEach((id) => deletedQuizSet.add(id));
+    (cloudStore.deletedQuizIds || []).forEach((id) => deletedQuizSet.add(id));
+    store.deletedQuizIds = Array.from(deletedQuizSet);
+
+    const mergedQuizzes: Record<string, SubjectQuizFile> = {};
+    if (store.subjectQuizzes) {
+      for (const [k, q] of Object.entries(store.subjectQuizzes)) {
+        const qId = q.id || k;
+        if (!deletedQuizSet.has(k) && !deletedQuizSet.has(qId)) {
+          mergedQuizzes[k] = { ...q, id: qId };
+        }
+      }
+    }
+    if (cloudStore.subjectQuizzes) {
+      for (const [k, q] of Object.entries(cloudStore.subjectQuizzes)) {
+        const qId = q.id || k;
+        if (!deletedQuizSet.has(k) && !deletedQuizSet.has(qId)) {
+          mergedQuizzes[k] = { ...q, id: qId };
+        }
+      }
+    }
+    store.subjectQuizzes = mergedQuizzes;
+
     if (cloudStore.brokenLinks) store.brokenLinks = cloudStore.brokenLinks;
     if (cloudStore.complaints) store.complaints = cloudStore.complaints;
     if (cloudStore.visitors && Array.isArray(cloudStore.visitors)) {
@@ -657,6 +707,7 @@ export const CmsService = {
       id,
       yearId: subjectData.yearId || '1',
       yearName: yearNames[subjectData.yearId || '1'] || 'السنة الأولى',
+      semester: subjectData.semester || '1',
       slug: subjectData.slug || id,
       title: subjectData.title.trim(),
       englishTitle: subjectData.englishTitle?.trim() || '',
@@ -673,14 +724,33 @@ export const CmsService = {
   },
 
   async updateSubject(
-    subjectData: Partial<Subject> & { id: string },
+    subjectData: Partial<Subject> & { id: string; syncItemsSemester?: boolean },
     customToken?: string
   ): Promise<Subject | null> {
     const store = await getFreshStore();
     if (!store.subjects) store.subjects = MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals');
     const index = store.subjects.findIndex((s) => s.id === subjectData.id);
     if (index === -1) return null;
-    store.subjects[index] = { ...store.subjects[index], ...subjectData };
+
+    const { syncItemsSemester, ...cleanData } = subjectData;
+    store.subjects[index] = { ...store.subjects[index], ...cleanData };
+
+    // If semester was explicitly set to '1' or '2' and syncItemsSemester is requested, update lectures & quizzes of this subject
+    if (syncItemsSemester && (cleanData.semester === '1' || cleanData.semester === '2')) {
+      for (const lec of store.lectures || []) {
+        if (lec.subjectId === subjectData.id) {
+          lec.semester = cleanData.semester;
+        }
+      }
+      if (store.subjectQuizzes) {
+        for (const q of Object.values(store.subjectQuizzes)) {
+          if (q.subjectId === subjectData.id) {
+            q.semester = cleanData.semester;
+          }
+        }
+      }
+    }
+
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return store.subjects[index];
@@ -698,22 +768,36 @@ export const CmsService = {
   async getLiveSubjects(): Promise<Subject[]> {
     const allSubjects = await this.getAllSubjects();
     const liveLectures = await this.getLiveLectures();
+    const allQuizFiles = await this.getAllSubjectQuizFilesList();
     const counts: Record<string, number> = {};
+    const quizzesBySub: Record<string, SubjectQuizFile[]> = {};
 
     for (const lec of liveLectures) {
       counts[lec.subjectId] = (counts[lec.subjectId] || 0) + 1;
     }
 
-    return allSubjects.map((sub) => ({
-      ...sub,
-      totalLectures: counts[sub.id] || 0,
-      totalQuizzes: 0,
-    }));
+    for (const qf of allQuizFiles) {
+      if (!quizzesBySub[qf.subjectId]) quizzesBySub[qf.subjectId] = [];
+      quizzesBySub[qf.subjectId].push(qf);
+    }
+
+    return allSubjects.map((sub) => {
+      const subQuizzes = quizzesBySub[sub.id] || [];
+      return {
+        ...sub,
+        totalLectures: counts[sub.id] || 0,
+        totalQuizzes: subQuizzes.length,
+        quizzesFile: subQuizzes[0] || undefined,
+        quizzesFiles: subQuizzes,
+      };
+    });
   },
 
   async getLiveLecturesBySubject(subjectId: string): Promise<Lecture[]> {
     const liveLectures = await this.getLiveLectures();
-    return liveLectures.filter((lec) => lec.subjectId === subjectId);
+    return liveLectures
+      .filter((lec) => lec.subjectId === subjectId)
+      .sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
   },
 
   async getLectureById(id: string): Promise<Lecture | undefined> {
@@ -1012,13 +1096,43 @@ export const CmsService = {
     };
   },
 
-  // --- SUBJECT QUIZZES (اسئلة الكويزات المجمعة) ---
-  async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile | null> {
+  // --- SUBJECT QUIZZES (اسئلة الكويزات المجمعة والمتعددة لكل مادة وسمستر) ---
+  async getAllSubjectQuizFilesList(): Promise<SubjectQuizFile[]> {
     const store = await getFreshStore();
-    if (store.subjectQuizzes && store.subjectQuizzes[subjectId]) {
-      return store.subjectQuizzes[subjectId];
+    const deletedSet = new Set(store.deletedQuizIds || []);
+    const subjectsMap = new Map((store.subjects || []).map((s) => [s.id, s]));
+    const list: SubjectQuizFile[] = [];
+
+    if (store.subjectQuizzes) {
+      for (const [key, q] of Object.entries(store.subjectQuizzes)) {
+        const qId = q.id || key;
+        if (deletedSet.has(key) || deletedSet.has(qId)) continue;
+        const sub = subjectsMap.get(q.subjectId);
+        const resolvedSemester: '1' | '2' =
+          q.semester === '2' ? '2' : q.semester === '1' ? '1' : sub?.semester === '2' ? '2' : '1';
+        list.push({
+          ...q,
+          id: qId,
+          semester: resolvedSemester,
+        });
+      }
     }
-    return null;
+
+    return list;
+  },
+
+  async getSubjectQuizFiles(subjectId: string, semester?: '1' | '2'): Promise<SubjectQuizFile[]> {
+    const all = await this.getAllSubjectQuizFilesList();
+    return all.filter((q) => {
+      if (q.subjectId !== subjectId) return false;
+      if (semester && q.semester !== semester) return false;
+      return true;
+    });
+  },
+
+  async getSubjectQuizFile(subjectId: string): Promise<SubjectQuizFile | null> {
+    const files = await this.getSubjectQuizFiles(subjectId);
+    return files[0] || null;
   },
 
   async saveSubjectQuizFile(quizFile: SubjectQuizFile, customToken?: string): Promise<SubjectQuizFile> {
@@ -1026,14 +1140,77 @@ export const CmsService = {
     if (!store.subjectQuizzes) {
       store.subjectQuizzes = {};
     }
-    store.subjectQuizzes[quizFile.subjectId] = quizFile;
+    const id = quizFile.id?.trim() || `quiz-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const normalized: SubjectQuizFile = {
+      ...quizFile,
+      id,
+      semester: quizFile.semester === '2' ? '2' : '1',
+    };
+    if (store.deletedQuizIds) {
+      store.deletedQuizIds = store.deletedQuizIds.filter((dId) => dId !== id);
+    }
+    store.subjectQuizzes[id] = normalized;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
-    return quizFile;
+    return normalized;
+  },
+
+  async updateSubjectQuizFile(
+    id: string,
+    updates: Partial<SubjectQuizFile>,
+    customToken?: string
+  ): Promise<SubjectQuizFile | null> {
+    const store = await getFreshStore();
+    if (!store.subjectQuizzes) return null;
+
+    let targetKey: string | null = null;
+    for (const [k, q] of Object.entries(store.subjectQuizzes)) {
+      if (k === id || q.id === id) {
+        targetKey = k;
+        break;
+      }
+    }
+    if (!targetKey) return null;
+
+    const existing = store.subjectQuizzes[targetKey];
+    const updated: SubjectQuizFile = {
+      ...existing,
+      ...updates,
+      id: existing.id || targetKey,
+    };
+    store.subjectQuizzes[targetKey] = updated;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return updated;
+  },
+
+  async deleteSubjectQuizFile(id: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.deletedQuizIds) store.deletedQuizIds = [];
+    if (!store.deletedQuizIds.includes(id)) {
+      store.deletedQuizIds.push(id);
+    }
+
+    if (store.subjectQuizzes) {
+      for (const [k, q] of Object.entries(store.subjectQuizzes)) {
+        if (k === id || q.id === id) {
+          delete store.subjectQuizzes[k];
+        }
+      }
+    }
+
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
   },
 
   async getAllSubjectQuizFiles(): Promise<Record<string, SubjectQuizFile>> {
-    const store = await getFreshStore();
-    return store.subjectQuizzes || {};
+    const list = await this.getAllSubjectQuizFilesList();
+    const map: Record<string, SubjectQuizFile> = {};
+    for (const q of list) {
+      map[q.id || q.subjectId] = q;
+    }
+    return map;
   },
 };
+

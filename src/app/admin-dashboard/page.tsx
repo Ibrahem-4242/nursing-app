@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
 
   // Subject Quizzes Form state
   const [quizSubjectId, setQuizSubjectId] = useState('anatomy');
+  const [quizSemester, setQuizSemester] = useState<'1' | '2'>('1');
+  const [quizTitle, setQuizTitle] = useState('');
   const [quizUploadMode, setQuizUploadMode] = useState<'file' | 'link'>('file');
   const [quizFile, setQuizFile] = useState<File | null>(null);
   const [quizDriveUrl, setQuizDriveUrl] = useState('');
@@ -54,6 +56,7 @@ export default function AdminDashboardPage() {
   const [isUploadingQuiz, setIsUploadingQuiz] = useState(false);
   const [quizUploadFeedback, setQuizUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [subjectQuizzes, setSubjectQuizzes] = useState<Record<string, any>>({});
+  const [quizzesList, setQuizzesList] = useState<any[]>([]);
   const [isLoadingSubjectQuizzes, setIsLoadingSubjectQuizzes] = useState(false);
 
   // Stats
@@ -69,6 +72,7 @@ export default function AdminDashboardPage() {
   // Upload Form state
   const [yearId, setYearId] = useState('1');
   const [subjectId, setSubjectId] = useState('anatomy');
+  const [semester, setSemester] = useState<'1' | '2'>('1');
   const [lectureTitle, setLectureTitle] = useState('');
   const [lectureNumber, setLectureNumber] = useState(1);
   const [adminNote, setAdminNote] = useState('');
@@ -100,17 +104,20 @@ export default function AdminDashboardPage() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState('');
   const [newSubYearId, setNewSubYearId] = useState('1');
+  const [newSubSemester, setNewSubSemester] = useState<'1' | '2' | 'both'>('1');
   const [newSubDesc, setNewSubDesc] = useState('');
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectFeedback, setSubjectFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Lectures state
   const [lectures, setLectures] = useState<any[]>([]);
+  const [lectureSemesterFilter, setLectureSemesterFilter] = useState<'all' | '1' | '2'>('all');
   const [isLoadingLectures, setIsLoadingLectures] = useState(false);
   const [editingLecture, setEditingLecture] = useState<any | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editLectureNumber, setEditLectureNumber] = useState(1);
+  const [editSemester, setEditSemester] = useState<'1' | '2'>('1');
   const [editAdminNote, setEditAdminNote] = useState('');
   const [editOverview, setEditOverview] = useState('');
   const [editIsFree, setEditIsFree] = useState(true);
@@ -313,6 +320,7 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({
           title: newSubTitle.trim(),
           yearId: newSubYearId,
+          semester: newSubSemester,
           description: newSubDesc.trim(),
         }),
       });
@@ -329,6 +337,30 @@ export default function AdminDashboardPage() {
       setSubjectFeedback({ type: 'error', message: err?.message || 'حدث خطأ أثناء إضافة المادة' });
     } finally {
       setIsAddingSubject(false);
+    }
+  };
+
+  const handleUpdateSubjectSemester = async (id: string, newSem: '1' | '2' | 'both') => {
+    setSubjects((prev) => prev.map((s) => (s.id === id ? { ...s, semester: newSem } : s)));
+    try {
+      const res = await fetch('/api/admin/subjects', {
+        method: 'PUT',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          id,
+          semester: newSem,
+          syncItemsSemester: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjects();
+        loadLectures();
+        loadSubjectQuizzes();
+      }
+    } catch {
+      alert('فشل تحديث الفصل الدراسي للمادة');
+      loadSubjects();
     }
   };
 
@@ -353,10 +385,11 @@ export default function AdminDashboardPage() {
   const loadSubjectQuizzes = async () => {
     setIsLoadingSubjectQuizzes(true);
     try {
-      const res = await fetch('/api/admin/upload-quiz-file', { cache: 'no-store' });
+      const res = await fetch(`/api/admin/upload-quiz-file?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
-      if (data.success && data.quizzes) {
-        setSubjectQuizzes(data.quizzes);
+      if (data.success) {
+        if (data.quizzes) setSubjectQuizzes(data.quizzes);
+        if (data.quizzesList) setQuizzesList(data.quizzesList);
       }
     } catch (e) {
       console.warn('Failed to load subject quizzes:', e);
@@ -536,6 +569,7 @@ export default function AdminDashboardPage() {
 
       formData.append('subjectId', subjectId);
       formData.append('yearId', yearId);
+      formData.append('semester', semester);
       formData.append('lectureTitle', lectureTitle.trim());
       formData.append('lectureNumber', String(lectureNumber));
       formData.append('adminNote', adminNote.trim());
@@ -697,6 +731,10 @@ export default function AdminDashboardPage() {
         formData.append('externalDriveUrl', quizDriveUrl.trim());
       }
       formData.append('subjectId', quizSubjectId);
+      formData.append('semester', quizSemester);
+      if (quizTitle.trim()) {
+        formData.append('quizTitle', quizTitle.trim());
+      }
       formData.append('questionsCount', String(quizQuestionsCount));
       formData.append('watermark', String(quizApplyWatermark));
 
@@ -735,6 +773,7 @@ export default function AdminDashboardPage() {
         setQuizUploadFeedback({ type: 'success', message: data.message });
         setQuizFile(null);
         setQuizDriveUrl('');
+        setQuizTitle('');
         loadSubjectQuizzes();
       } else {
         setQuizUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
@@ -746,6 +785,51 @@ export default function AdminDashboardPage() {
       });
     } finally {
       setIsUploadingQuiz(false);
+    }
+  };
+
+  // 1-Click Toggle Quiz Semester ('1' <-> '2')
+  const handleToggleQuizSemester = async (quizId: string, currentSem: string) => {
+    const nextSem: '1' | '2' = currentSem === '2' ? '1' : '2';
+    setQuizzesList((prev) =>
+      prev.map((q) => (q.id === quizId || q.subjectId === quizId ? { ...q, semester: nextSem } : q))
+    );
+    try {
+      const res = await fetch('/api/admin/upload-quiz-file', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id: quizId, semester: nextSem }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjectQuizzes();
+      } else {
+        loadSubjectQuizzes();
+      }
+    } catch {
+      alert('فشل تغيير سمستر ملف الكويز');
+      loadSubjectQuizzes();
+    }
+  };
+
+  // Delete Quiz File
+  const handleDeleteQuizFile = async (quizId: string, title: string) => {
+    if (!confirm(`هل أنت متأكد من حذف ملف الكويز "${title}" نهائياً؟`)) return;
+    setQuizzesList((prev) => prev.filter((q) => q.id !== quizId && q.subjectId !== quizId));
+    try {
+      const res = await fetch(`/api/admin/upload-quiz-file?id=${encodeURIComponent(quizId)}&t=${Date.now()}`, {
+        method: 'DELETE',
+        headers: getAdminHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjectQuizzes();
+      } else {
+        loadSubjectQuizzes();
+      }
+    } catch {
+      alert('فشل حذف ملف الكويز');
+      loadSubjectQuizzes();
     }
   };
 
@@ -829,11 +913,37 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // 1-Click Toggle Lecture Semester ('1' <-> '2')
+  const handleToggleLectureSemester = async (id: string, currentSem: string) => {
+    const nextSem: '1' | '2' = currentSem === '2' ? '1' : '2';
+    setLectures((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, semester: nextSem } : l))
+    );
+
+    try {
+      const res = await fetch('/api/admin/lectures', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id, semester: nextSem }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadLectures();
+      } else {
+        loadLectures();
+      }
+    } catch {
+      alert('فشل تغيير الفصل الدراسي للمحاضرة');
+      loadLectures();
+    }
+  };
+
   // Open Edit Lecture Modal
   const openEditModal = (lec: any) => {
     setEditingLecture(lec);
     setEditTitle(lec.title || '');
     setEditLectureNumber(lec.lectureNumber || 1);
+    setEditSemester(lec.semester === '2' ? '2' : '1');
     setEditAdminNote(lec.adminNote || '');
     setEditOverview(lec.overview || '');
     setEditIsFree(lec.isFree !== false);
@@ -889,6 +999,7 @@ export default function AdminDashboardPage() {
         formData.append('id', editingLecture.id);
         formData.append('title', editTitle.trim());
         formData.append('lectureNumber', String(editLectureNumber));
+        formData.append('semester', editSemester);
         formData.append('adminNote', editAdminNote.trim());
         formData.append('overview', editOverview.trim());
         formData.append('isFree', String(editIsFree));
@@ -926,6 +1037,7 @@ export default function AdminDashboardPage() {
             id: editingLecture.id,
             title: editTitle.trim(),
             lectureNumber: editLectureNumber,
+            semester: editSemester,
             adminNote: editAdminNote.trim(),
             overview: editOverview.trim(),
             isFree: editIsFree,
@@ -1318,7 +1430,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <form onSubmit={handleUploadLecture} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                 {/* Academic Year Selector */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -1333,6 +1445,8 @@ export default function AdminDashboardPage() {
                       const available = currentSubs.filter((s) => s.yearId === newYear);
                       if (available.length > 0) {
                         setSubjectId(available[0].id);
+                        if (available[0].semester === '2') setSemester('2');
+                        else if (available[0].semester === '1') setSemester('1');
                       }
                     }}
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -1344,6 +1458,21 @@ export default function AdminDashboardPage() {
                   </select>
                 </div>
 
+                {/* Semester Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-teal-700 dark:text-teal-300 mb-2">
+                    الفصل الدراسي (الترم):
+                  </label>
+                  <select
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value as '1' | '2')}
+                    className="w-full px-4 py-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/50 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 font-black text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="1">سمستر 1 (الترم الأول)</option>
+                    <option value="2">سمستر 2 (الترم الثاني)</option>
+                  </select>
+                </div>
+
                 {/* Subject Selector */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -1351,14 +1480,21 @@ export default function AdminDashboardPage() {
                   </label>
                   <select
                     value={subjectId}
-                    onChange={(e) => setSubjectId(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSubjectId(val);
+                      const currentSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
+                      const chosen = currentSubs.find((s) => s.id === val);
+                      if (chosen?.semester === '2') setSemester('2');
+                      else if (chosen?.semester === '1') setSemester('1');
+                    }}
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     {(subjects.length > 0 ? subjects : MOCK_SUBJECTS)
                       .filter((s) => s.yearId === yearId)
                       .map((sub) => (
                         <option key={sub.id} value={sub.id}>
-                          {sub.title}
+                          {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
                         </option>
                       ))}
                   </select>
@@ -2010,25 +2146,63 @@ export default function AdminDashboardPage() {
         {/* TAB 2: Manage Live Lectures */}
         {activeTab === 'lectures' && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-5 h-5 text-teal-600" />
                   <span>المحاضرات والمذكرات الحالية ({lectures.length})</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  أي حذف أو تعديل هنا ينعكس في الموقع فوراً وفي نفس اللحظة بدون إعادة عمل Build!
+                  يمكنك تحديد الفصل الدراسي (سمستر 1 أو سمستر 2) لأي محاضرة بضغطة زر واحدة، وسينعكس في الموقع فوراً!
                 </p>
               </div>
 
-              <button
-                onClick={loadLectures}
-                disabled={isLoadingLectures}
-                className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
-                title="تحديث القائمة"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoadingLectures ? 'animate-spin' : ''}`} />
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setLectureSemesterFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      lectureSemesterFilter === 'all'
+                        ? 'bg-teal-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    الكل ({lectures.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLectureSemesterFilter('1')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      lectureSemesterFilter === '1'
+                        ? 'bg-teal-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    سمستر 1 ({lectures.filter((l) => (l.semester || '1') === '1').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLectureSemesterFilter('2')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      lectureSemesterFilter === '2'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    سمستر 2 ({lectures.filter((l) => l.semester === '2').length})
+                  </button>
+                </div>
+
+                <button
+                  onClick={loadLectures}
+                  disabled={isLoadingLectures}
+                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                  title="تحديث القائمة"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingLectures ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
 
             {isLoadingLectures ? (
@@ -2048,142 +2222,163 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-4">رقم</th>
                       <th className="py-3 px-4">اسم المحاضرة</th>
                       <th className="py-3 px-4">المادة</th>
+                      <th className="py-3 px-4">الفصل الدراسي (اضغط للتبديل)</th>
                       <th className="py-3 px-4">الملفات المتاحة</th>
                       <th className="py-3 px-4">تاريخ النشر</th>
                       <th className="py-3 px-4 text-center">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                    {lectures.map((lec) => (
-                      <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
-                        <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                          <div className="flex items-center gap-2">
-                            <span>{lec.title}</span>
-                            {lec.isFree !== false ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                مفتوحة 🎁
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                مقفولة 🔒
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-500">{lec.subjectTitle}</td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px]">
-                              PDF 📄
-                            </span>
-                            {lec.files?.some((f: any) => f.fileType === 'powerpoint' || f.type === 'ppt') && (
-                              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]">
-                                PPT 📊
-                              </span>
-                            )}
-                            {lec.files?.some((f: any) => f.fileType === 'mindmap' || f.type === 'mindmap') && (
-                              <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-                                Mindmap 🧠
-                              </span>
-                            )}
-                            {lec.files?.some((f: any) => f.type === 'audio') && (
-                              <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px]">
-                                Audio 🎧
-                              </span>
-                            )}
-                            {lec.flashcards?.length > 0 ? (
-                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
-                                {lec.flashcards.length} كارت 🎴
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 font-normal text-[10px]">
-                                بدون كروت
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-400">{lec.files?.[0]?.updatedAt || 'معتمد'}</td>
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {/* 1-Click Free vs Locked Toggle button */}
-                            <button
-                              onClick={() => handleToggleFree(lec.id, lec.isFree !== false)}
-                              className={`p-1.5 rounded-lg transition ${
-                                lec.isFree !== false
-                                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
-                                  : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100'
-                              }`}
-                              title={lec.isFree !== false ? 'المحاضرة مفتوحة مجاناً (اضغط للقفل 🔒)' : 'المحاضرة مقفولة باشتراك (اضغط للفتح 🎁)'}
-                            >
-                              {lec.isFree !== false ? <Gift className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
-                            </button>
+                    {lectures
+                      .filter((lec) => lectureSemesterFilter === 'all' || (lec.semester || '1') === lectureSemesterFilter)
+                      .map((lec) => {
+                        const lecSem = lec.semester || '1';
+                        return (
+                          <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                            <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
+                            <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
+                              <div className="flex items-center gap-2">
+                                <span>{lec.title}</span>
+                                {lec.isFree !== false ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                    مفتوحة 🎁
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    مقفولة 🔒
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500">{lec.subjectTitle}</td>
+                            <td className="py-3.5 px-4">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleLectureSemester(lec.id, lecSem)}
+                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border ${
+                                  lecSem === '2'
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
+                                    : 'bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100'
+                                }`}
+                                title="اضغط للتبديل الفوري بين سمستر 1 وسمستر 2"
+                              >
+                                <span>{lecSem === '2' ? '⚡ سمستر 2 (الترم الثاني)' : '🌱 سمستر 1 (الترم الأول)'}</span>
+                                <span className="text-[10px] opacity-70">🔄</span>
+                              </button>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-bold text-[11px]">
+                                  PDF 📄
+                                </span>
+                                {lec.files?.some((f: any) => (f.fileType === 'powerpoint' || f.type === 'ppt') && f.fileUrl && f.fileUrl !== '#') && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-[11px]">
+                                    PPT 📊
+                                  </span>
+                                )}
+                                {lec.files?.some((f: any) => (f.fileType === 'mindmap' || f.type === 'mindmap') && f.fileUrl && f.fileUrl !== '#') && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+                                    Mindmap 🧠
+                                  </span>
+                                )}
+                                {lec.files?.some((f: any) => f.type === 'audio' && f.fileUrl && f.fileUrl !== '#') && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px]">
+                                    Audio 🎧
+                                  </span>
+                                )}
+                                {lec.flashcards?.length > 0 ? (
+                                  <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
+                                    {lec.flashcards.length} كارت 🎴
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 font-normal text-[10px]">
+                                    بدون كروت
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-400">{lec.files?.[0]?.updatedAt || 'معتمد'}</td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {/* 1-Click Free vs Locked Toggle button */}
+                                <button
+                                  onClick={() => handleToggleFree(lec.id, lec.isFree !== false)}
+                                  className={`p-1.5 rounded-lg transition ${
+                                    lec.isFree !== false
+                                      ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                                      : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100'
+                                  }`}
+                                  title={lec.isFree !== false ? 'المحاضرة مفتوحة مجاناً (اضغط للقفل 🔒)' : 'المحاضرة مقفولة باشتراك (اضغط للفتح 🎁)'}
+                                >
+                                  {lec.isFree !== false ? <Gift className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
+                                </button>
 
-                            {/* Toggle Live button */}
-                            <button
-                              onClick={() => handleToggleLive(lec.id, lec.isLive !== false)}
-                              className={`p-1.5 rounded-lg transition ${
-                                lec.isLive !== false
-                                  ? 'bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 hover:bg-teal-100'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'
-                              }`}
-                              title={lec.isLive !== false ? 'المحاضرة منشورة للطلاب (اضغط للإخفاء)' : 'المحاضرة مخفية (اضغط للنشر)'}
-                            >
-                              {lec.isLive !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                            </button>
+                                {/* Toggle Live button */}
+                                <button
+                                  onClick={() => handleToggleLive(lec.id, lec.isLive !== false)}
+                                  className={`p-1.5 rounded-lg transition ${
+                                    lec.isLive !== false
+                                      ? 'bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 hover:bg-teal-100'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'
+                                  }`}
+                                  title={lec.isLive !== false ? 'المحاضرة منشورة للطلاب (اضغط للإخفاء)' : 'المحاضرة مخفية (اضغط للنشر)'}
+                                >
+                                  {lec.isLive !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </button>
 
-                            {/* Edit lecture button */}
-                            <button
-                              onClick={() => openEditModal(lec)}
-                              className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition"
-                              title="تعديل بيانات المحاضرة واستبدال الملفات"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
+                                {/* Edit lecture button */}
+                                <button
+                                  onClick={() => openEditModal(lec)}
+                                  className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 hover:bg-sky-100 transition"
+                                  title="تعديل بيانات المحاضرة واستبدال الملفات"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
 
-                            {/* Anki import button */}
-                            <label
-                              className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer transition flex items-center"
-                              title="استيراد كروت Anki (.apkg) لهذه المحاضرة"
-                            >
-                              <input
-                                type="file"
-                                accept=".apkg"
-                                className="hidden"
-                                disabled={isImportingAnki === lec.id}
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    handleImportAnki(lec.id, e.target.files[0]);
-                                  }
-                                }}
-                              />
-                              {isImportingAnki === lec.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                              ) : (
-                                <Layers className="w-4 h-4" />
-                              )}
-                            </label>
+                                {/* Anki import button */}
+                                <label
+                                  className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer transition flex items-center"
+                                  title="استيراد كروت Anki (.apkg) لهذه المحاضرة"
+                                >
+                                  <input
+                                    type="file"
+                                    accept=".apkg"
+                                    className="hidden"
+                                    disabled={isImportingAnki === lec.id}
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        handleImportAnki(lec.id, e.target.files[0]);
+                                      }
+                                    }}
+                                  />
+                                  {isImportingAnki === lec.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                                  ) : (
+                                    <Layers className="w-4 h-4" />
+                                  )}
+                                </label>
 
-                            <Link
-                              href={`/lecture/${lec.id}`}
-                              target="_blank"
-                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition"
-                              title="معاينة صفحة المحاضرة"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Link>
+                                <Link
+                                  href={`/lecture/${lec.id}`}
+                                  target="_blank"
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition"
+                                  title="معاينة صفحة المحاضرة"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
 
-                            <button
-                              onClick={() => handleDeleteLecture(lec.id, lec.title)}
-                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
-                              title="حذف المحاضرة"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                                <button
+                                  onClick={() => handleDeleteLecture(lec.id, lec.title)}
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
+                                  title="حذف المحاضرة"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -2220,7 +2415,7 @@ export default function AdminDashboardPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                           رقم المحاضرة:
@@ -2236,13 +2431,27 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div>
+                        <label className="block text-xs font-bold text-teal-700 dark:text-teal-300 mb-1.5">
+                          الفصل الدراسي:
+                        </label>
+                        <select
+                          value={editSemester}
+                          onChange={(e) => setEditSemester(e.target.value as '1' | '2')}
+                          className="w-full px-3 py-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs font-black focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="1">سمستر 1 (الأول)</option>
+                          <option value="2">سمستر 2 (الثاني)</option>
+                        </select>
+                      </div>
+
+                      <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                           الإتاحة للطلاب:
                         </label>
                         <select
                           value={editIsFree ? 'free' : 'paid'}
                           onChange={(e) => setEditIsFree(e.target.value === 'free')}
-                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
+                          className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500"
                         >
                           <option value="free">مجانية للجميع 🎁</option>
                           <option value="paid">مدفوعة / مقفولة 🔒</option>
@@ -2500,7 +2709,7 @@ export default function AdminDashboardPage() {
                     <span>إضافة مادة دراسية جديدة للموقع 📚</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    أضف أي مادة دراسية جديدة مباشرة، وستظهر فوراً في صفحات السنوات وفي قوائم رفع المحاضرات بدون الحاجة لكتابة أي كود!
+                    أضف أي مادة دراسية جديدة مباشرة وحدد لها السمستر (الترم الأول أو الثاني أو كلاهما)، وستظهر فوراً في قوائم الموقع!
                   </p>
                 </div>
 
@@ -2510,7 +2719,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <form onSubmit={handleAddSubject} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                       اسم المادة بالعربي:
@@ -2538,6 +2747,21 @@ export default function AdminDashboardPage() {
                       <option value="2">السنة الثانية</option>
                       <option value="3">السنة الثالثة</option>
                       <option value="4">السنة الرابعة</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-teal-700 dark:text-teal-300 mb-2">
+                      الفصل الدراسي (السمستر):
+                    </label>
+                    <select
+                      value={newSubSemester}
+                      onChange={(e) => setNewSubSemester(e.target.value as '1' | '2' | 'both')}
+                      className="w-full px-4 py-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/50 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs font-black focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="1">سمستر 1 (الترم الأول)</option>
+                      <option value="2">سمستر 2 (الترم الثاني)</option>
+                      <option value="both">ممتدة في الترمين (1 و 2)</option>
                     </select>
                   </div>
 
@@ -2598,7 +2822,7 @@ export default function AdminDashboardPage() {
                     <span>المواد والمقررات الحالية ({subjects.length})</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    يمكنك حذف أي مادة دراسية بضغطة زر واحدة بدون الرجوع لأي شخص!
+                    حدد الفصل الدراسي (سمستر 1 أو سمستر 2) لكل مادة من القائمة المنسدلة مباشرة، وسينتقل محتواها للترم المحدد فوراً!
                   </p>
                 </div>
 
@@ -2628,6 +2852,7 @@ export default function AdminDashboardPage() {
                       <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
                         <th className="py-3 px-4">اسم المادة</th>
                         <th className="py-3 px-4">الفرقة الدراسية</th>
+                        <th className="py-3 px-4">الفصل الدراسي (تحديد مباشر)</th>
                         <th className="py-3 px-4">عدد المحاضرات</th>
                         <th className="py-3 px-4">الوصف</th>
                         <th className="py-3 px-4 text-center">إجراءات</th>
@@ -2636,6 +2861,7 @@ export default function AdminDashboardPage() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                       {subjects.map((sub) => {
                         const count = lectures.filter((l) => l.subjectId === sub.id).length;
+                        const subSem = sub.semester || '1';
                         return (
                           <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
                             <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
@@ -2645,6 +2871,25 @@ export default function AdminDashboardPage() {
                               <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
                                 {sub.yearName || (sub.yearId === '1' ? 'السنة الأولى' : sub.yearId === '2' ? 'السنة الثانية' : sub.yearId === '3' ? 'السنة الثالثة' : 'السنة الرابعة')}
                               </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <select
+                                value={subSem}
+                                onChange={(e) =>
+                                  handleUpdateSubjectSemester(sub.id, e.target.value as '1' | '2' | 'both')
+                                }
+                                className={`px-3 py-1.5 rounded-xl font-black text-[11px] border focus:outline-none focus:ring-2 cursor-pointer transition ${
+                                  subSem === '2'
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 focus:ring-indigo-500'
+                                    : subSem === 'both'
+                                    ? 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800 focus:ring-amber-500'
+                                    : 'bg-teal-50 dark:bg-teal-950/70 text-teal-800 dark:text-teal-200 border-teal-200 dark:border-teal-800 focus:ring-teal-500'
+                                }`}
+                              >
+                                <option value="1">🌱 سمستر 1 (الترم الأول)</option>
+                                <option value="2">⚡ سمستر 2 (الترم الثاني)</option>
+                                <option value="both">🔄 الترمين معاً (1 و 2)</option>
+                              </select>
                             </td>
                             <td className="py-3.5 px-4 font-bold text-teal-600">
                               {count} محاضرة
@@ -2692,20 +2937,20 @@ export default function AdminDashboardPage() {
                 <div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                     <HelpCircle className="w-5 h-5 text-amber-600" />
-                    <span>رفع وتحديث ملف أسئلة الكويزات المجمعة لكل مادة</span>
+                    <span>إضافة ورفع ملفات أسئلة الكويزات لكل مادة (يدعم أكثر من ملف كويز للمادة الواحدة)</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    ارفع ملف PDF يجمع كافة أسئلة الكويزات والامتحانات والـ MCQ مع الإجابات النموذجية لمادة معينة ليتاح للطلاب فوراً.
+                    ارفع ملف أو أكثر من ملفات أسئلة الكويزات والامتحانات والـ MCQ لأي مادة، وحدد الفصل الدراسي (سمستر 1 أو سمستر 2) لكل ملف كويز.
                   </p>
                 </div>
 
                 <span className="text-xs font-bold px-3 py-1 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded-full border border-amber-200 dark:border-amber-800">
-                  📝 بنك أسئلة الكويزات المجمعة
+                  📝 دعم تعدد ملفات الكويزات للمادة الواحدة
                 </span>
               </div>
 
               <form onSubmit={handleUploadQuizFile} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Subject Selector */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -2713,15 +2958,51 @@ export default function AdminDashboardPage() {
                     </label>
                     <select
                       value={quizSubjectId}
-                      onChange={(e) => setQuizSubjectId(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setQuizSubjectId(val);
+                        const currentSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
+                        const chosen = currentSubs.find((s) => s.id === val);
+                        if (chosen?.semester === '2') setQuizSemester('2');
+                        else if (chosen?.semester === '1') setQuizSemester('1');
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => (
                         <option key={sub.id} value={sub.id}>
-                          {sub.title}
+                          {sub.title} {sub.semester === '2' ? '(سمستر 2)' : sub.semester === 'both' ? '(الترمين)' : '(سمستر 1)'}
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Semester Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-amber-700 dark:text-amber-300 mb-2">
+                      الفصل الدراسي للكويز:
+                    </label>
+                    <select
+                      value={quizSemester}
+                      onChange={(e) => setQuizSemester(e.target.value as '1' | '2')}
+                      className="w-full px-4 py-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="1">🌱 سمستر 1 (الترم الأول)</option>
+                      <option value="2">⚡ سمستر 2 (الترم الثاني)</option>
+                    </select>
+                  </div>
+
+                  {/* Quiz Title (Optional - supports multiple quizzes per subject) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      عنوان ملف الكويز (اختياري):
+                    </label>
+                    <input
+                      type="text"
+                      value={quizTitle}
+                      onChange={(e) => setQuizTitle(e.target.value)}
+                      placeholder="مثال: كويز الميدتيرم / بنك الفاينل..."
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
                   </div>
 
                   {/* Questions Count */}
@@ -2731,10 +3012,10 @@ export default function AdminDashboardPage() {
                     </label>
                     <input
                       type="number"
-                      min="10"
+                      min="1"
                       value={quizQuestionsCount}
                       onChange={(e) => setQuizQuestionsCount(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
                 </div>
@@ -2890,20 +3171,25 @@ export default function AdminDashboardPage() {
                   ) : (
                     <>
                       <FileUp className="w-5 h-5" />
-                      <span>رفع ونشر ملف أسئلة الكويزات للمادة فوراً 🚀</span>
+                      <span>إضافة ونشر ملف أسئلة الكويزات للمادة فوراً 🚀</span>
                     </>
                   )}
                 </button>
               </form>
             </div>
 
-            {/* 2. List of Subjects and their Quiz Status */}
+            {/* 2. List of All Uploaded Quiz Files (supports multiple quizzes per subject) */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>حالة ملف أسئلة الكويزات لجميع المواد ({MOCK_SUBJECTS.length})</span>
-                </h4>
+                <div>
+                  <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>ملفات أسئلة الكويزات المنشورة ({quizzesList.length})</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    يمكنك رفع أكثر من ملف كويز لنفس المادة، وتغيير الفصل الدراسي (سمستر 1 / 2) أو حذف أي ملف كويز بضغطة زر!
+                  </p>
+                </div>
                 <button
                   onClick={loadSubjectQuizzes}
                   disabled={isLoadingSubjectQuizzes}
@@ -2914,54 +3200,85 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
-                      <th className="py-3 px-4">المادة</th>
-                      <th className="py-3 px-4">السنة الدراسية</th>
-                      <th className="py-3 px-4">حالة ملف أسئلة الكويزات</th>
-                      <th className="py-3 px-4">عدد الأسئلة</th>
-                      <th className="py-3 px-4 text-center">معاينة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(subjects.length > 0 ? subjects : MOCK_SUBJECTS).map((sub) => {
-                      const customQuiz = subjectQuizzes[sub.id];
-                      return (
-                        <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
-                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{sub.title}</td>
-                          <td className="py-3 px-4 text-slate-500">{sub.yearName}</td>
-                          <td className="py-3 px-4">
-                            {customQuiz ? (
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200">
-                                مرفوع ومتاح للطلاب 🟢 ({customQuiz.fileSize})
+              {quizzesList.length === 0 ? (
+                <div className="py-10 text-center text-slate-400 text-xs font-bold">
+                  لا توجد ملفات كويزات مرفوعة حالياً. ارفع أول ملف كويز من النموذج بالأعلى!
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                        <th className="py-3 px-4">المادة</th>
+                        <th className="py-3 px-4">عنوان ملف الكويز</th>
+                        <th className="py-3 px-4">الفصل الدراسي (اضغط للتبديل)</th>
+                        <th className="py-3 px-4">عدد الأسئلة والحجم</th>
+                        <th className="py-3 px-4">تاريخ الرفع</th>
+                        <th className="py-3 px-4 text-center">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {quizzesList.map((quiz: any) => {
+                        const allSubs = subjects.length > 0 ? subjects : MOCK_SUBJECTS;
+                        const subObj = allSubs.find((s) => s.id === quiz.subjectId);
+                        const qSem = quiz.semester || '1';
+                        const qId = quiz.id || quiz.subjectId;
+                        return (
+                          <tr key={qId} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                            <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
+                              {subObj?.title || quiz.subjectId}
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-slate-700 dark:text-slate-200">
+                              {quiz.title}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleQuizSemester(qId, qSem)}
+                                className={`px-3 py-1 rounded-full text-[11px] font-black transition inline-flex items-center gap-1.5 border ${
+                                  qSem === '2'
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
+                                    : 'bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100'
+                                }`}
+                                title="اضغط للتبديل الفوري بين سمستر 1 وسمستر 2"
+                              >
+                                <span>{qSem === '2' ? '⚡ سمستر 2 (الترم الثاني)' : '🌱 سمستر 1 (الترم الأول)'}</span>
+                                <span className="text-[10px] opacity-70">🔄</span>
+                              </button>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800">
+                                +{quiz.questionsCount} سؤال • {quiz.fileSize}
                               </span>
-                            ) : (
-                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-[11px]">
-                                لم يُرفع ملف كويز بعد ⚪️
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300">
-                            {customQuiz ? `+${customQuiz.questionsCount} سؤال` : '—'}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Link
-                              href={`/subject/${sub.id}`}
-                              target="_blank"
-                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 transition inline-flex items-center"
-                              title="معاينة المادة"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-400">{quiz.updatedAt || 'معتمد'}</td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Link
+                                  href={`/subject/${quiz.subjectId}`}
+                                  target="_blank"
+                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 transition inline-flex items-center"
+                                  title="معاينة صفحة المادة"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuizFile(qId, quiz.title)}
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition inline-flex items-center"
+                                  title="حذف ملف الكويز"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
