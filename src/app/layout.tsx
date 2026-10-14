@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'فريق ملخصات تمريض الأكاديمي' }],
   creator: 'ملخصات تمريض',
-  metadataBase: new URL('https://nursing-app.vercel.app'),
+  metadataBase: new URL('https://www.nursingsum.live'),
   openGraph: {
     title: 'ملخصات تمريض | بنك ملخصات وكويزات التمريض التفاعلي',
     description: 'استكشف ملخصات مواد التمريض التفاعلية ثلاثية الأبعاد والخرائط الذهنية وبنك الأسئلة.',

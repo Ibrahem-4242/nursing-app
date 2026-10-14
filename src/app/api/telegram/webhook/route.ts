@@ -4,29 +4,92 @@ import { sendDailySummary, sendTelegramMessage } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 
+const TELEGRAM_BOT_TOKEN =
+  process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
+
+function normalizeArabicText(text: string): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove Arabic diacritics / tashkeel
+    .replace(/[أإآٱ]/g, 'ا') // unify Alef
+    .replace(/ة/g, 'ه') // unify Ta Marbuta
+    .replace(/[ىئ]/g, 'ي') // unify Ya
+    .replace(/[^a-zA-Z0-9\u0621-\u064A]/g, ' ') // replace symbols/punct with space
+    .trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const message = body.message || body.channel_post;
 
+    // 1. Handle Callback Query (e.g., clicking "تحديث الإحصائيات" button)
+    if (body.callback_query) {
+      const cb = body.callback_query;
+      const cbId = cb.id;
+      const cbData = cb.data;
+      const targetChatId = cb.message?.chat?.id || cb.from?.id;
+
+      // Acknowledge callback immediately to dismiss Telegram's loading spinner
+      if (cbId && TELEGRAM_BOT_TOKEN) {
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callback_query_id: cbId,
+            text: '🔄 جاري تحديث الإحصائيات بأحدث الأرقام...',
+            show_alert: false,
+          }),
+        }).catch((e) => console.warn('[Telegram Webhook] answerCallbackQuery notice:', e));
+      }
+
+      if (cbData === 'refresh_stats' && targetChatId) {
+        const stats = await CmsService.getTodayAnalytics();
+        await sendDailySummary(
+          {
+            date: stats.date,
+            totalVisitors: stats.visitors,
+            pageViews: stats.pageViews,
+            yesterdayVisitors: stats.yesterdayVisitors,
+            allTimeVisitors: stats.allTimeVisitors,
+            totalDownloads: stats.downloads,
+            yesterdayDownloads: stats.yesterdayDownloads,
+            allTimeDownloads: stats.allTimeDownloads,
+            breakdown: stats.breakdown,
+          },
+          targetChatId
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // 2. Handle Normal Messages or Channel Posts
+    const message = body.message || body.channel_post || body.edited_message;
     if (!message) {
       return NextResponse.json({ ok: true });
     }
 
-    const chatId = message.chat?.id;
-    const rawText = (message.text || '').trim();
-    const command = rawText.toLowerCase();
+    const chatId = message.chat?.id || message.from?.id;
+    const rawText = String(message.text || message.caption || '').trim();
+    const normalized = normalizeArabicText(rawText);
+    const lowerRaw = rawText.toLowerCase();
 
-    // Respond to /احصائيات or احصائيات or /stats or stats
-    if (
-      rawText === '/احصائيات' ||
-      rawText === 'احصائيات' ||
-      rawText.startsWith('/احصائيات') ||
-      rawText.startsWith('احصائيات') ||
-      command === '/stats' ||
-      command === 'stats' ||
-      command.startsWith('/stats')
-    ) {
+    // Check if the user is asking for statistics with any variation
+    const isStatsRequest =
+      normalized.includes('احصائ') || // Matches: احصائيات, الاحصائيات, إحصائيات, الإحصائيات, احصائية, احصاء
+      normalized.includes('تقرير') || // Matches: تقرير, التقرير, التقارير
+      normalized.includes('تحليلات') ||
+      normalized.includes('ارقام') ||
+      normalized.includes('زوار') ||
+      lowerRaw.includes('stats') ||
+      lowerRaw.includes('stat') ||
+      lowerRaw.includes('analytics') ||
+      lowerRaw.startsWith('/stats') ||
+      lowerRaw.startsWith('/احصائيات') ||
+      lowerRaw.startsWith('/report');
+
+    if (isStatsRequest) {
       const stats = await CmsService.getTodayAnalytics();
       await sendDailySummary(
         {
@@ -45,18 +108,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Respond to /start or /help
-    if (command === '/start' || command === 'start' || command === '/help' || command === 'help') {
-      const welcome = `👋 <b>أهلاً بك في بوت منصة ملخصات تمريض!</b> 🩺
-━━━━━━━━━━━━━━━━━━━━
-📊 لمعرفة إحصائيات المنصة المباشرة في أي لحظة، أرسل الأمر:
-👉 <code>/احصائيات</code>
+    // Check if the user sent /start or greeting
+    const isStart =
+      normalized === 'ابدأ' ||
+      normalized === 'مرحبا' ||
+      normalized === 'اهلا' ||
+      normalized === 'سلام' ||
+      lowerRaw === '/start' ||
+      lowerRaw === 'start' ||
+      lowerRaw === '/help' ||
+      lowerRaw === 'help';
 
-سيصلك التقرير اليومي الشامل المحدث للزوار والتحميلات وتفصيل كل مادة ومحاضرة فوراً! 🚀`;
-      await sendTelegramMessage(welcome, 'HTML', chatId);
+    if (isStart) {
+      const welcome = `👋 <b>أهلاً بك في بوت منصة ملخصات تمريض الرسمي!</b> 🩺
+━━━━━━━━━━━━━━━━━━━━
+📊 لمعرفة إحصائيات المنصة المحدثة واللحظية في أي وقت:
+👉 أرسل كلمة: <b>احصائيات</b>
+أو اضغط مباشرة على الزر أدناه:`;
+
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            { text: '📊 عرض الإحصائيات الآن', callback_data: 'refresh_stats' },
+            { text: '🌐 زيارة المنصة المعتمدة', url: 'https://www.nursingsum.live/' },
+          ],
+        ],
+      };
+
+      await sendTelegramMessage(welcome, 'HTML', chatId, inlineKeyboard);
       return NextResponse.json({ ok: true });
     }
 
+    // Default polite response for any other incoming message
+    const defaultResponse = `👋 <b>مرحباً بك!</b>
+أرسل كلمة <b>احصائيات</b> في أي لحظة لمعرفة عدد الزوار والتحميلات ونشاط المنصة المباشر 📊✨`;
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          { text: '📊 طلب الإحصائيات الفورية', callback_data: 'refresh_stats' },
+          { text: '🌐 فتح المنصة', url: 'https://www.nursingsum.live/' },
+        ],
+      ],
+    };
+
+    await sendTelegramMessage(defaultResponse, 'HTML', chatId, inlineKeyboard);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[Telegram Webhook] Error processing update:', err);
@@ -67,6 +163,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'online',
+    domain: 'https://www.nursingsum.live',
     message: 'Telegram Webhook Endpoint is active. Send POST updates from Telegram.',
   });
 }

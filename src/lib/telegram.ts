@@ -1,6 +1,16 @@
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8098726389';
+export const SITE_URL = 'https://www.nursingsum.live';
+
+export function escapeHtml(str: string): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 export interface VisitorInfo {
   deviceType?: string;
@@ -8,7 +18,11 @@ export interface VisitorInfo {
   page?: string;
   ip?: string;
   time?: string;
+  referrer?: string;
   isFirstTime?: boolean;
+  isGoogle?: boolean;
+  googleReason?: string;
+  visitorName?: string;
 }
 
 export interface DownloadInfo {
@@ -63,7 +77,8 @@ export interface DailySummaryInfo {
 export async function sendTelegramMessage(
   text: string,
   parseMode: 'HTML' | 'Markdown' = 'HTML',
-  targetChatId?: string | number
+  targetChatId?: string | number,
+  replyMarkup?: any
 ): Promise<boolean> {
   const chatId = targetChatId ? String(targetChatId) : TELEGRAM_CHAT_ID;
   if (!TELEGRAM_BOT_TOKEN || !chatId) {
@@ -72,20 +87,28 @@ export async function sendTelegramMessage(
   }
 
   try {
+    const payload: any = {
+      chat_id: chatId,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: true,
+    };
+    if (replyMarkup) {
+      payload.reply_markup = replyMarkup;
+    }
+
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: parseMode,
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
+    if (!data.ok) {
+      console.error('[Telegram] API error:', data);
+    }
     return !!data.ok;
   } catch (err) {
     console.error('[Telegram] Failed to send message:', err);
@@ -97,7 +120,7 @@ export function getArabicFormattedDate(date = new Date()): string {
   try {
     return new Intl.DateTimeFormat('ar-EG', {
       timeZone: 'Africa/Cairo',
-      dateStyle: 'medium',
+      dateStyle: 'full',
       timeStyle: 'short',
     }).format(date);
   } catch {
@@ -105,86 +128,145 @@ export function getArabicFormattedDate(date = new Date()): string {
   }
 }
 
+export async function notifyGoogleVisitor(info: VisitorInfo): Promise<boolean> {
+  const time = info.time || getArabicFormattedDate();
+  const device = escapeHtml(info.deviceType || 'غير محدد');
+  const page = escapeHtml(info.page || '/');
+  const referrer = escapeHtml(info.referrer || 'محرك بحث Google');
+  const reason = escapeHtml(info.googleReason || 'محرك بحث Google / أرشفة Googlebot');
+  const ua = escapeHtml((info.userAgent || '').slice(0, 160));
+  const visitorName = info.visitorName ? escapeHtml(info.visitorName) : '';
+
+  const nameLine = visitorName ? `\n👤 <b>الاسم / المعرّف:</b> <code>${visitorName}</code>` : '';
+
+  const text = `🔍 <b>تنبيه فوري: رصد دخول مرتبط بـ Google!</b> 🌐
+━━━━━━━━━━━━━━━━━━━━
+🎯 <b>طبيعة الزيارة:</b> <b>${reason}</b>${nameLine}
+📄 <b>الصفحة:</b> <code>${page}</code>
+🔗 <b>المصدر (Referrer):</b> <code>${referrer}</code>
+📱 <b>نوع الجهاز:</b> ${device}
+⏰ <b>التوقيت:</b> ${time}
+💻 <b>المتصفح / المعرف:</b>
+<i>${ua}</i>
+━━━━━━━━━━━━━━━━━━━━
+<i>منصة ملخصات تمريض - الرصد اللحظي للزوار ومحركات البحث 🩺</i>`;
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        { text: '🌐 فتح المنصة', url: 'https://www.nursingsum.live/' },
+        { text: '📊 طلب الإحصائيات', callback_data: 'refresh_stats' },
+      ],
+    ],
+  };
+
+  return sendTelegramMessage(text, 'HTML', undefined, inlineKeyboard);
+}
+
 export async function notifyNewVisitor(info: VisitorInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
-  const device = info.deviceType || 'غير محدد';
-  const page = info.page || '/';
+  const device = escapeHtml(info.deviceType || 'غير محدد');
+  const page = escapeHtml(info.page || '/');
+  const referrer = escapeHtml(info.referrer || 'دخول مباشر');
+  const ua = escapeHtml((info.userAgent || '').slice(0, 160));
 
-  const text = `🎓 <b>طالب جديد دخل المنصة لأول مرة!</b>
+  const text = `🎓 <b>طالب جديد دخل المنصة لأول مرة!</b> ✨
 ━━━━━━━━━━━━━━━━━━━━
 📱 <b>نوع الجهاز:</b> ${device}
 🌐 <b>صفحة البداية:</b> <code>${page}</code>
+🔗 <b>المصدر (Referrer):</b> <code>${referrer}</code>
 ⏰ <b>التوقيت:</b> ${time}
-💻 <b>المتصفح:</b> <i>${(info.userAgent || '').slice(0, 120)}</i>`;
+💻 <b>المتصفح:</b> <i>${ua}</i>
+━━━━━━━━━━━━━━━━━━━━
+<i>منصة ملخصات تمريض - الرعاية التعليمية المعتمدة 🩺</i>`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML');
 }
 
 export async function notifyDownload(info: DownloadInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
+  const lec = escapeHtml(info.lectureTitle);
+  const sub = escapeHtml(info.subjectTitle);
+  const type = escapeHtml(info.fileType);
 
-  const text = `📥 <b>قام طالب بتحميل: [${info.lectureTitle}] - [${info.subjectTitle}]</b>
+  const text = `📥 <b>قام طالب بتحميل: [${lec}] - [${sub}]</b>
 ━━━━━━━━━━━━━━━━━━━━
-📖 <b>المحاضرة:</b> ${info.lectureTitle}
-📚 <b>المادة:</b> ${info.subjectTitle}
-📄 <b>نوع المورد:</b> ${info.fileType}
+📖 <b>المحاضرة:</b> ${lec}
+📚 <b>المادة:</b> ${sub}
+📄 <b>نوع المورد:</b> ${type}
 ⏰ <b>التوقيت:</b> ${time}`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML');
 }
 
 export async function notifyBrokenLink(info: BrokenLinkInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
-  const phoneLine = info.userPhone ? `\n📞 <b>رقم هاتف الطالب:</b> <code>${info.userPhone}</code>` : '';
+  const phoneLine = info.userPhone ? `\n📞 <b>رقم هاتف الطالب:</b> <code>${escapeHtml(info.userPhone)}</code>` : '';
+  const lec = escapeHtml(info.lectureTitle);
+  const sub = escapeHtml(info.subjectTitle);
+  const link = escapeHtml(info.linkUrl);
+  const note = escapeHtml(info.userNote || 'لم يتم تقديم ملاحظة');
 
-  const text = `⚠️ <b>بلاغ: طالب أبلغ عن عطل في رابط: [${info.lectureTitle}]</b>
+  const text = `⚠️ <b>بلاغ: طالب أبلغ عن عطل في رابط: [${lec}]</b>
 ━━━━━━━━━━━━━━━━━━━━
-📖 <b>المحاضرة:</b> ${info.lectureTitle}
-📚 <b>المادة:</b> ${info.subjectTitle}
-🔗 <b>الرابط المتأثر:</b> <code>${info.linkUrl}</code>${phoneLine}
-📝 <b>ملاحظة الطالب:</b> ${info.userNote ? `<i>${info.userNote}</i>` : 'لم يتم تقديم ملاحظة'}
+📖 <b>المحاضرة:</b> ${lec}
+📚 <b>المادة:</b> ${sub}
+🔗 <b>الرابط المتأثر:</b> <code>${link}</code>${phoneLine}
+📝 <b>ملاحظة الطالب:</b> <i>${note}</i>
 ⏰ <b>التوقيت:</b> ${time}`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML');
 }
 
 export async function notifyComplaint(info: ComplaintInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
-  const typeTag = info.type || 'شكوى أو استفسار';
+  const typeTag = escapeHtml(info.type || 'شكوى أو استفسار');
+  const name = escapeHtml(info.name || 'طالب تمريض');
+  const phone = escapeHtml(info.phone);
+  const year = escapeHtml(info.year || 'السنة الأولى');
+  const msg = escapeHtml(info.message);
 
-  const text = `🚨 <b>وصلتك شكوى جديدة من طالب عبر الموقع!</b>
+  const text = `🚨 <b>وصلتك رسالة / استفسار جديد من طالب!</b>
 ━━━━━━━━━━━━━━━━━━━━
-👤 <b>اسم الطالب:</b> ${info.name || 'طالب تمريض'}
-📞 <b>رقم الهاتف / الواتساب:</b> <code>${info.phone}</code>
-🎓 <b>السنة الدراسية:</b> ${info.year || 'السنة الأولى'}
+👤 <b>اسم الطالب:</b> ${name}
+📞 <b>رقم الهاتف / الواتساب:</b> <code>${phone}</code>
+🎓 <b>السنة الدراسية:</b> ${year}
 🏷️ <b>التصنيف:</b> ${typeTag}
-📝 <b>نص الشكوى / الرسالة:</b>
-<i>${info.message}</i>
+📝 <b>نص الرسالة:</b>
+<i>${msg}</i>
 ⏰ <b>التوقيت:</b> ${time}
 ━━━━━━━━━━━━━━━━━━━━
 <i>منصة ملخصات تمريض - خدمة الطلاب والشكاوى 🩺</i>`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML');
 }
 
 export async function notifyFlashcardSession(info: FlashcardSessionInfo): Promise<boolean> {
   const time = info.time || getArabicFormattedDate();
   const countText = info.cardsCount ? `\n🃏 <b>عدد البطاقات:</b> ${info.cardsCount} بطاقة` : '';
+  const lec = escapeHtml(info.lectureTitle);
+  const sub = escapeHtml(info.subjectTitle);
 
   const text = `🧠 <b>طالب بدأ جلسة استذكار فلاش كاردز!</b>
 ━━━━━━━━━━━━━━━━━━━━
-📖 <b>المحاضرة:</b> ${info.lectureTitle}
-📚 <b>المادة:</b> ${info.subjectTitle}${countText}
+📖 <b>المحاضرة:</b> ${lec}
+📚 <b>المادة:</b> ${sub}${countText}
 ⏰ <b>التوقيت:</b> ${time}
 ━━━━━━━━━━━━━━━━━━━━
 <i>تفاعل مباشر مع نظام الفلاش كاردز ثلاثي الأبعاد 🩺</i>`;
 
-  return sendTelegramMessage(text);
+  return sendTelegramMessage(text, 'HTML');
 }
 
-export async function sendDailySummary(info: DailySummaryInfo, targetChatId?: string | number): Promise<boolean> {
-  let breakdownLines = '';
+export async function sendDailySummary(
+  info: DailySummaryInfo,
+  targetChatId?: string | number
+): Promise<boolean> {
+  const time = getArabicFormattedDate();
+  const dateStr = escapeHtml(info.date || 'اليوم');
 
+  // Format breakdown of subjects and lectures
+  let breakdownFormatted = '';
   if (info.breakdown && info.breakdown.length > 0) {
     const grouped: Record<string, Array<{ lecture: string; count: number }>> = {};
     for (const item of info.breakdown) {
@@ -192,32 +274,93 @@ export async function sendDailySummary(info: DailySummaryInfo, targetChatId?: st
       grouped[item.subjectTitle].push({ lecture: item.lectureTitle, count: item.downloads });
     }
 
-    for (const [subject, items] of Object.entries(grouped)) {
+    // Sort subjects by total downloads descending
+    const sortedSubjects = Object.entries(grouped).sort((a, b) => {
+      const totalA = a[1].reduce((acc, i) => acc + i.count, 0);
+      const totalB = b[1].reduce((acc, i) => acc + i.count, 0);
+      return totalB - totalA;
+    });
+
+    let linesCount = 0;
+    const maxLines = 18; // Safety ceiling to keep message below Telegram's 4096 character limit
+
+    for (const [subject, items] of sortedSubjects) {
+      if (linesCount >= maxLines) {
+        breakdownFormatted += `\n▫️ <i>... وهناك المزيد من المحاضرات الأخرى النشطة</i>\n`;
+        break;
+      }
       const subjectTotal = items.reduce((acc, i) => acc + i.count, 0);
-      breakdownLines += `\n📚 <b>${subject}</b> (${subjectTotal} تحميل):\n`;
+      breakdownFormatted += `\n📚 <b>${escapeHtml(subject)}</b> ─ [<code>${subjectTotal}</code> تحميل]:\n`;
+      linesCount++;
+
+      // Sort lectures inside subject
+      items.sort((a, b) => b.count - a.count);
       for (const it of items) {
-        breakdownLines += `  • ${it.lecture}: <b>${it.count}</b> تحميل\n`;
+        if (linesCount >= maxLines) {
+          breakdownFormatted += `  ▫️ <i>... ومحاضرات أخرى</i>\n`;
+          break;
+        }
+        breakdownFormatted += `  ▫️ ${escapeHtml(it.lecture)}: <b>${it.count}</b> تحميل\n`;
+        linesCount++;
       }
     }
   } else {
-    breakdownLines = '\n<i>لا توجد تحميلات مسجلة اليوم بعد.</i>\n';
+    breakdownFormatted = '\n▫️ <i>لا توجد عمليات تحميل مسجلة اليوم حتى الآن.</i>\n';
   }
 
-  const pageViewsLine = info.pageViews !== undefined ? `\n👁️ <b>مشاهدات الصفحات اليوم:</b> ${info.pageViews} مشاهدة` : '';
-  const yesterdayVisitorsLine = info.yesterdayVisitors !== undefined ? `\n👥 <b>زوار الأمس:</b> ${info.yesterdayVisitors} زائر` : '';
-  const allTimeVisitorsLine = info.allTimeVisitors !== undefined ? `\n🌐 <b>إجمالي الزوار الكلي:</b> ${info.allTimeVisitors} زائر` : '';
-  const yesterdayDownloadsLine = info.yesterdayDownloads !== undefined ? `\n📥 <b>تحميلات الأمس:</b> ${info.yesterdayDownloads} تحميل` : '';
-  const allTimeDownloadsLine = info.allTimeDownloads !== undefined ? `\n📦 <b>إجمالي التحميلات الكلي:</b> ${info.allTimeDownloads} تحميل` : '';
+  // Growth / trend indicators
+  const todayVis = info.totalVisitors || 0;
+  const yestVis = info.yesterdayVisitors ?? 0;
+  let visTrend = '';
+  if (yestVis > 0) {
+    const diff = todayVis - yestVis;
+    if (diff > 0) visTrend = ` (📈 +${diff})`;
+    else if (diff < 0) visTrend = ` (📉 ${diff})`;
+    else visTrend = ` (⚖️ متساوي)`;
+  }
 
-  const text = `📊 <b>التقرير اليومي التلقائي (Daily Analytics Summary)</b>
-━━━━━━━━━━━━━━━━━━━━
-📅 <b>تاريخ التقرير:</b> ${info.date} (توقيت مصر)
-👥 <b>إجمالي الزوار اليوم:</b> ${info.totalVisitors} زائر${pageViewsLine}${yesterdayVisitorsLine}${allTimeVisitorsLine}
-📥 <b>إجمالي عدد التحميلات اليومية:</b> ${info.totalDownloads} تحميل${yesterdayDownloadsLine}${allTimeDownloadsLine}
-━━━━━━━━━━━━━━━━━━━━
-<b>تفصيل التحميلات لكل مادة ومحاضرة:</b>${breakdownLines}
-━━━━━━━━━━━━━━━━━━━━
-<i>منصة ملخصات تمريض - الرعاية التعليمية المعتمدة 🩺</i>`;
+  const todayDl = info.totalDownloads || 0;
+  const yestDl = info.yesterdayDownloads ?? 0;
+  let dlTrend = '';
+  if (yestDl > 0) {
+    const diff = todayDl - yestDl;
+    if (diff > 0) dlTrend = ` (📈 +${diff})`;
+    else if (diff < 0) dlTrend = ` (📉 ${diff})`;
+    else dlTrend = ` (⚖️ متساوي)`;
+  }
 
-  return sendTelegramMessage(text, 'HTML', targetChatId);
+  const text = `╔═══════════════════════╗
+   📊 <b>تقرير إحصائيات منصة ملخصات تمريض</b> 🩺
+╚═══════════════════════╝
+📅 <b>التاريخ:</b> ${dateStr}
+⏰ <b>وقت التقرير:</b> ${time} (توقيت مصر 🇪🇬)
+🌐 <b>الرابط المعتمد:</b> https://www.nursingsum.live/
+━━━━━━━━━━━━━━━━━━━━
+
+👥 <b>حركة الزوار وتفاعل الطلاب (Traffic):</b>
+┌ 👤 <b>زوار اليوم (الفريدين):</b> <code>${todayVis}</code> زائر${visTrend}
+├ 👁️ <b>مشاهدات الصفحات اليوم:</b> <code>${info.pageViews || todayVis}</code> مشاهدة
+├ 🔄 <b>زوار الأمس:</b> <code>${yestVis}</code> زائر
+└ 🌐 <b>إجمالي الزوار الكلي:</b> <code>${info.allTimeVisitors ?? 0}</code> زائر تراكمي
+
+📥 <b>نشاط تحميل المذكرات والملخصات (Downloads):</b>
+┌ ⚡ <b>تحميلات اليوم:</b> <code>${todayDl}</code> ملف${dlTrend}
+├ ⏳ <b>تحميلات الأمس:</b> <code>${yestDl}</code> ملف
+└ 📦 <b>إجمالي التحميلات التراكمي:</b> <code>${info.allTimeDownloads ?? 0}</code> عملية تحميل
+
+📚 <b>تفصيل التحميلات حسب المواد والمحاضرات:</b>
+${breakdownFormatted}
+━━━━━━━━━━━━━━━━━━━━
+💡 <i>أرسل كلمة <b>احصائيات</b> في أي وقت لتحديث هذه الأرقام مباشرة 🚀</i>`;
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        { text: '🔄 تحديث الإحصائيات الآن', callback_data: 'refresh_stats' },
+        { text: '🌐 فتح المنصة المباشرة', url: 'https://www.nursingsum.live/' },
+      ],
+    ],
+  };
+
+  return sendTelegramMessage(text, 'HTML', targetChatId, inlineKeyboard);
 }

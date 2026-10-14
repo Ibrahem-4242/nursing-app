@@ -79,7 +79,7 @@ export async function applyWatermarkToPdf(pdfBuffer: ArrayBuffer | Uint8Array): 
         opacity: 0.9,
       });
 
-      const bottomText = 'HTTPS://NURSING-APP.VERCEL.APP • OFFICIAL NURSING STUDY NOTES';
+      const bottomText = 'HTTPS://WWW.NURSINGSUM.LIVE • OFFICIAL NURSING STUDY NOTES';
       const bottomTextWidth = fontRegular.widthOfTextAtSize(bottomText, 8);
       page.drawText(bottomText, {
         x: Math.max(10, (width - bottomTextWidth) / 2),
