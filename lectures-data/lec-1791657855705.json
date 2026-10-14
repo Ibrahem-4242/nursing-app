@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملا�� رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -203,7 +203,7 @@
     },
     {
       "id": 27,
-      "front": "What is bacteremia (تجرثم الدم)?",
+      "front": "What is bacteremia (تجرثم ا��دم)?",
       "back": "It is the transient presence of bacteria within the bloodstream as a severe complication of infection.",
       "category": "كروت استذكار",
       "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
@@ -224,7 +224,7 @@
     },
     {
       "id": 30,
-      "front": "What is sepsis (الإنتان)?",
+      "front": "What is sepsis (ال��نتان)?",
       "back": "Sepsis is a life-threatening systemic organ dysfunction caused by a dysregulated host response to infection.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
@@ -308,7 +308,7 @@
     },
     {
       "id": 42,
-      "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نزفي)?",
+      "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نز��ي)?",
       "back": "It is a severe inflammatory response marked by extensive tissue necrosis and widespread vascular destruction causing hemorrhage.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
@@ -351,7 +351,7 @@
     {
       "id": 48,
       "front": "What cell type undergoes transformation to form epithelioid cells in a granuloma (ورم حبيبي)?",
-      "back": "Macrophages (الخلايا الب��عمية) transform into epithelioid cells.",
+      "back": "Macrophages (الخلايا البلعمية) transform into epithelioid cells.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
     },

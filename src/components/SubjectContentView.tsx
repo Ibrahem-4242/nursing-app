@@ -45,8 +45,9 @@ export default function SubjectContentView({
   const sem1Lectures = lectures.filter((l) => (l.semester || defaultSubSem) === '1');
   const sem2Lectures = lectures.filter((l) => (l.semester || defaultSubSem) === '2');
 
-  const sem1Quizzes = quizzesFiles.filter((q) => (q.semester || defaultSubSem) === '1');
-  const sem2Quizzes = quizzesFiles.filter((q) => (q.semester || defaultSubSem) === '2');
+  const visibleQuizzes = isAdmin ? quizzesFiles : quizzesFiles.filter((q) => q.isLive !== false);
+  const sem1Quizzes = visibleQuizzes.filter((q) => (q.semester || defaultSubSem) === '1');
+  const sem2Quizzes = visibleQuizzes.filter((q) => (q.semester || defaultSubSem) === '2');
 
   const sem1HasContent = sem1Lectures.length > 0 || sem1Quizzes.length > 0;
   const sem2HasContent = sem2Lectures.length > 0 || sem2Quizzes.length > 0;

@@ -38,7 +38,7 @@ export default function SemesterSubjectsBrowser({
       (l) => l.subjectId === sub.id && (l.semester || defaultSem) === sem
     );
     const subQuizzes = quizzesList.filter(
-      (q) => q.subjectId === sub.id && (q.semester || defaultSem) === sem
+      (q) => (isAdmin || q.isLive !== false) && q.subjectId === sub.id && (q.semester || defaultSem) === sem
     );
     const hasContent = subLectures.length > 0 || subQuizzes.length > 0;
     const belongsToSemesterByConfig =

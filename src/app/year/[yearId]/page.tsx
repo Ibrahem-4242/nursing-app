@@ -36,7 +36,8 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
     : await CmsService.getLiveSubjects();
   const subjects = allSubjects.filter((s) => s.yearId === year.id);
   const liveLectures = await CmsService.getLiveLectures();
-  const quizzesList = await CmsService.getAllSubjectQuizFilesList();
+  const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();
+  const quizzesList = allQuizFiles.filter((q) => isAdmin || q.isLive !== false);
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
 

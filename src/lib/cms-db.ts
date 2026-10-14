@@ -853,7 +853,7 @@ export const CmsService = {
   async getLiveSubjects(): Promise<Subject[]> {
     const allSubjects = await this.getAllSubjects();
     const liveLectures = await this.getLiveLectures();
-    const allQuizFiles = await this.getAllSubjectQuizFilesList();
+    const allQuizFiles = (await this.getAllSubjectQuizFilesList()).filter((q) => q.isLive !== false);
     const counts: Record<string, number> = {};
     const quizzesBySub: Record<string, SubjectQuizFile[]> = {};
 
@@ -876,6 +876,13 @@ export const CmsService = {
         quizzesFiles: subQuizzes,
       };
     });
+  },
+
+  async getLecturesBySubject(subjectId: string): Promise<Lecture[]> {
+    const all = await this.getAllLectures();
+    return all
+      .filter((lec) => lec.subjectId === subjectId)
+      .sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
   },
 
   async getLiveLecturesBySubject(subjectId: string): Promise<Lecture[]> {
@@ -1244,6 +1251,8 @@ export const CmsService = {
       ...quizFile,
       id,
       semester: quizFile.semester === '2' ? '2' : '1',
+      isFree: quizFile.isFree !== false,
+      isLive: quizFile.isLive !== false,
       lastModified: Date.now(),
     };
     if (store.deletedQuizIds) {
@@ -1253,6 +1262,14 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return normalized;
+  },
+
+  async toggleQuizFree(id: string, isFree: boolean, customToken?: string): Promise<SubjectQuizFile | null> {
+    return this.updateSubjectQuizFile(id, { isFree }, customToken);
+  },
+
+  async toggleQuizLive(id: string, isLive: boolean, customToken?: string): Promise<SubjectQuizFile | null> {
+    return this.updateSubjectQuizFile(id, { isLive }, customToken);
   },
 
   async updateSubjectQuizFile(

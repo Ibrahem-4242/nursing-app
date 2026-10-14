@@ -13,6 +13,8 @@ import {
   Sparkles,
   BookOpen,
   Award,
+  Lock,
+  MessageCircle,
 } from 'lucide-react';
 
 interface SubjectQuizFileBoxProps {
@@ -120,10 +122,24 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
               </div>
             </div>
 
-            <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>متاح مجاناً للجميع 🎁</span>
-            </span>
+            <div className="flex items-center gap-2">
+              {quizFile.isLive === false && (
+                <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
+                  <span>مخفي عن الطلاب 🙈</span>
+                </span>
+              )}
+              {quizFile.isFree !== false ? (
+                <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>متاح مجاناً للجميع 🎁</span>
+                </span>
+              ) : (
+                <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>محتوى مقفول باشتراك 🔒</span>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Description */}
@@ -177,34 +193,66 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
                 </div>
               </div>
 
-              <a
-                href={quizFile.explanationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-teal-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
-              >
-                <ArrowDownCircle className="w-4 h-4" />
-                <span>تحميل ملف الشرح 📖</span>
-              </a>
+              {quizFile.isFree !== false ? (
+                <a
+                  href={quizFile.explanationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-teal-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
+                >
+                  <ArrowDownCircle className="w-4 h-4" />
+                  <span>تحميل ملف الشرح 📖</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>مقفول مع الكويز 🔒</span>
+                </span>
+              )}
             </div>
           )}
 
-          {/* Action Button: حملها دلوقتي */}
+          {/* Action Button: حملها دلوقتي or Locked CTA */}
           <div className="pt-2 space-y-3">
-            <button
-              onClick={handleDownloadQuizFile}
-              disabled={isDownloading}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 via-teal-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-amber-600/20 active:scale-98 transition-all duration-200 disabled:opacity-50"
-            >
-              <ArrowDownCircle className="w-6 h-6 animate-bounce" />
-              <span>حملها دلوقتي (ملف أسئلة الكويزات PDF)</span>
-            </button>
+            {quizFile.isFree !== false ? (
+              <>
+                <button
+                  onClick={handleDownloadQuizFile}
+                  disabled={isDownloading}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 via-teal-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-amber-600/20 active:scale-98 transition-all duration-200 disabled:opacity-50"
+                >
+                  <ArrowDownCircle className="w-6 h-6 animate-bounce" />
+                  <span>حملها دلوقتي (ملف أسئلة الكويزات PDF)</span>
+                </button>
 
-            {downloadSuccess && (
-              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>تم بدء تحميل ملف أسئلة الكويزات بنجاح! تفقد مجلد التنزيلات (Downloads).</span>
+                {downloadSuccess && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>تم بدء تحميل ملف أسئلة الكويزات بنجاح! تفقد مجلد التنزيلات (Downloads).</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-6 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-amber-900 dark:text-amber-200">ملف أسئلة الكويزات هذا مقفول 🔒</h4>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                    بنك أسئلة الكويزات متاح للمشتركين فقط. يمكنك التواصل معنا عبر الواتساب للاشتراك وتفعيل الملف فوراً.
+                  </p>
+                </div>
+                <a
+                  href="https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-black shadow-md transition"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>تواصل عبر الواتساب للاشتراك وتفعيل الكويز 💬</span>
+                </a>
               </div>
             )}
 

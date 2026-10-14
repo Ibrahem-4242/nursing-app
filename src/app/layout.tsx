@@ -80,7 +80,7 @@ export default async function RootLayout({
         (l) => (l.yearId || subjectYearMap.get(l.subjectId) || '1') === yr.id
       );
       const hasQuiz = quizzesList.some(
-        (q) => (subjectYearMap.get(q.subjectId) || '1') === yr.id
+        (q) => q.isLive !== false && (subjectYearMap.get(q.subjectId) || '1') === yr.id
       );
       return hasLec || hasQuiz;
     }).map((yr) => ({ id: yr.id, title: yr.title }));

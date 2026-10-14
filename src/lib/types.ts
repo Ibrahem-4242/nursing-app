@@ -49,6 +49,8 @@ export interface SubjectQuizFile {
   explanationTitle?: string;
   explanationFileSize?: string;
   lastModified?: number;
+  isFree?: boolean;
+  isLive?: boolean;
 }
 
 export interface MedicalTerm {

@@ -38,6 +38,8 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
   const allSubjects = await CmsService.getAllSubjects();
   const liveSubjects = await CmsService.getLiveSubjects();
   const liveLectures = await CmsService.getLiveLecturesBySubject(params.subId);
+  const allLectures = await CmsService.getLecturesBySubject(params.subId);
+  const lectures = isAdmin ? allLectures : liveLectures;
 
   const subject =
     liveSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
@@ -63,8 +65,8 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
   }
 
   const year = DataService.getAcademicYearById(subject.yearId);
-  const lectures = liveLectures;
-  const quizzesFiles = await CmsService.getSubjectQuizFiles(subject.id);
+  const allQuizzesFiles = await CmsService.getSubjectQuizFiles(subject.id);
+  const quizzesFiles = allQuizzesFiles.filter((q) => isAdmin || q.isLive !== false);
 
   // Strict rule: if a subject has 0 lectures and 0 quizzes, hide it from students
   if (!isAdmin && lectures.length === 0 && quizzesFiles.length === 0) {

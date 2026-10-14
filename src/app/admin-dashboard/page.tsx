@@ -58,6 +58,8 @@ export default function AdminDashboardPage() {
   const [quizExplanationFile, setQuizExplanationFile] = useState<File | null>(null);
   const [quizExplanationDriveUrl, setQuizExplanationDriveUrl] = useState('');
   const [quizExplanationTitle, setQuizExplanationTitle] = useState('');
+  const [quizIsFree, setQuizIsFree] = useState(true);
+  const [quizIsLive, setQuizIsLive] = useState(true);
   const [isUploadingQuiz, setIsUploadingQuiz] = useState(false);
   const [quizUploadFeedback, setQuizUploadFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [subjectQuizzes, setSubjectQuizzes] = useState<Record<string, any>>({});
@@ -78,6 +80,8 @@ export default function AdminDashboardPage() {
   const [editQuizInitialExplanationUrl, setEditQuizInitialExplanationUrl] = useState('');
   const [editQuizExplanationTitle, setEditQuizExplanationTitle] = useState('');
   const [editRemoveQuizExplanation, setEditRemoveQuizExplanation] = useState(false);
+  const [editQuizIsFree, setEditQuizIsFree] = useState(true);
+  const [editQuizIsLive, setEditQuizIsLive] = useState(true);
   const [isSavingQuizEdit, setIsSavingQuizEdit] = useState(false);
 
   // Stats
@@ -1035,6 +1039,8 @@ export default function AdminDashboardPage() {
       }
       formData.append('questionsCount', String(quizQuestionsCount));
       formData.append('watermark', String(quizApplyWatermark));
+      formData.append('isFree', String(quizIsFree));
+      formData.append('isLive', String(quizIsLive));
 
       if (expFileToSend) {
         formData.append('explanationFile', expFileToSend);
@@ -1117,6 +1123,8 @@ export default function AdminDashboardPage() {
     setEditQuizInitialExplanationUrl(expUrl);
     setEditQuizExplanationFile(null);
     setEditRemoveQuizExplanation(false);
+    setEditQuizIsFree(quiz.isFree !== false);
+    setEditQuizIsLive(quiz.isLive !== false);
   };
 
   // Save Quiz Edit (Supports Title, Subject, Semester, Questions Count, URL, or File replacement)
@@ -1179,6 +1187,8 @@ export default function AdminDashboardPage() {
         if (quizFileToSend) formData.append('file', quizFileToSend);
         if (resolvedQuizDriveUrl) formData.append('downloadUrl', resolvedQuizDriveUrl);
         formData.append('watermark', String(quizApplyWatermark));
+        formData.append('isFree', String(editQuizIsFree));
+        formData.append('isLive', String(editQuizIsLive));
 
         if (willRemoveExp) {
           formData.append('removeExplanation', 'true');
@@ -1207,6 +1217,8 @@ export default function AdminDashboardPage() {
           semester: editQuizSemester,
           questionsCount: Number(editQuizQuestionsCount) || 50,
           downloadUrl: resolvedQuizDriveUrl || undefined,
+          isFree: editQuizIsFree,
+          isLive: editQuizIsLive,
         };
 
         if (willRemoveExp) {
@@ -1286,6 +1298,55 @@ export default function AdminDashboardPage() {
       }
     } catch {
       alert('فشل تغيير سمستر ملف الكويز');
+      loadSubjectQuizzes();
+    }
+  };
+
+  // 1-Click Toggle Quiz Free vs Locked (قفل / فتح)
+  const handleToggleQuizFree = async (id: string, currentIsFree: boolean) => {
+    setQuizzesList((prev: any[]) =>
+      prev.map((q) => ((q.id || q.subjectId) === id ? { ...q, isFree: !currentIsFree } : q))
+    );
+
+    try {
+      const res = await fetch('/api/admin/upload-quiz-file', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id, isFree: !currentIsFree }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjectQuizzes();
+      } else {
+        loadSubjectQuizzes();
+      }
+    } catch {
+      alert('فشل تغيير حالة قفل الكويز');
+      loadSubjectQuizzes();
+    }
+  };
+
+  // 1-Click Toggle Quiz Live vs Hidden (إخفاء / إظهار)
+  const handleToggleQuizLive = async (id: string, currentIsLive: boolean) => {
+    setQuizzesList((prev: any[]) =>
+      prev.map((q) => ((q.id || q.subjectId) === id ? { ...q, isLive: !currentIsLive } : q))
+    );
+
+    try {
+      const res = await fetch('/api/admin/upload-quiz-file', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ id, isLive: !currentIsLive }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSubjectQuizzes();
+        loadSubjects();
+      } else {
+        loadSubjectQuizzes();
+      }
+    } catch {
+      alert('فشل تغيير حالة ظهور الكويز');
       loadSubjectQuizzes();
     }
   };
@@ -4452,6 +4513,73 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
+                {/* Free vs Locked & Live vs Hidden Toggles */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      حالة إتاحة الكويز (قفل / فتح):
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuizIsFree(true)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                          quizIsFree
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Gift className="w-4 h-4" />
+                        <span>متاح مجاناً 🎁</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuizIsFree(false)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                          !quizIsFree
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>مقفول باشتراك 🔒</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      حالة ظهور الكويز (إخفاء / إظهار):
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuizIsLive(true)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                          quizIsLive
+                            ? 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-600/20'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>منشور وظاهر 👁️</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuizIsLive(false)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                          !quizIsLive
+                            ? 'bg-slate-700 text-white border-slate-700 shadow-md'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <EyeOff className="w-4 h-4" />
+                        <span>مسودة مخفية 🙈</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {quizUploadFeedback && (
                   <div
                     className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 ${
@@ -4538,7 +4666,21 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3.5 px-4 font-bold text-slate-700 dark:text-slate-200">
                               <div className="flex flex-col gap-1">
-                                <span>{quiz.title}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span>{quiz.title}</span>
+                                  {quiz.isFree === false && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      <span>مقفول</span>
+                                    </span>
+                                  )}
+                                  {quiz.isLive === false && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
+                                      <EyeOff className="w-2.5 h-2.5" />
+                                      <span>مخفي</span>
+                                    </span>
+                                  )}
+                                </div>
                                 {quiz.explanationUrl && (
                                   <div className="flex items-center gap-1.5">
                                     <a
@@ -4579,7 +4721,35 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">{quiz.updatedAt || 'معتمد'}</td>
                             <td className="py-3.5 px-4 text-center">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5">
+                                {/* 1-Click Toggle Free vs Locked */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleQuizFree(qId, quiz.isFree !== false)}
+                                  className={`p-1.5 rounded-lg transition inline-flex items-center ${
+                                    quiz.isFree !== false
+                                      ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 hover:bg-emerald-100'
+                                      : 'bg-amber-50 dark:bg-amber-950 text-amber-600 hover:bg-amber-100'
+                                  }`}
+                                  title={quiz.isFree !== false ? 'الكويز متاح مجاناً للجميع (اضغط للقفل 🔒)' : 'الكويز مقفول باشتراك (اضغط للفتح 🎁)'}
+                                >
+                                  {quiz.isFree !== false ? <Gift className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
+                                </button>
+
+                                {/* 1-Click Toggle Live vs Hidden */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleQuizLive(qId, quiz.isLive !== false)}
+                                  className={`p-1.5 rounded-lg transition inline-flex items-center ${
+                                    quiz.isLive !== false
+                                      ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 hover:bg-emerald-100'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200'
+                                  }`}
+                                  title={quiz.isLive !== false ? 'الكويز منشور وظاهر للطلاب (اضغط للإخفاء 🙈)' : 'الكويز مخفي عن الطلاب (اضغط للنشر 👁️)'}
+                                >
+                                  {quiz.isLive !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </button>
+
                                 <button
                                   type="button"
                                   onClick={() => openEditQuizModal(quiz)}
@@ -4793,6 +4963,73 @@ export default function AdminDashboardPage() {
                               }}
                             />
                           </label>
+                        </div>
+                      </div>
+
+                      {/* Controls for Free/Locked and Live/Hidden in Edit Modal */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            إتاحة الكويز (مجاني / مقفول):
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditQuizIsFree(true)}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                                editQuizIsFree
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <Gift className="w-3.5 h-3.5" />
+                              <span>مجاني 🎁</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditQuizIsFree(false)}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                                !editQuizIsFree
+                                  ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>مقفول 🔒</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            حالة الظهور (نشر / إخفاء):
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditQuizIsLive(true)}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                                editQuizIsLive
+                                  ? 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-600/20'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>منشور 👁️</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditQuizIsLive(false)}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
+                                !editQuizIsLive
+                                  ? 'bg-slate-700 text-white border-slate-700 shadow-md'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                              <span>مخفي 🙈</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 

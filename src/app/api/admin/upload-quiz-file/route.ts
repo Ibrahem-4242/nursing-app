@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
     const customQuizTitle = ((formData.get('quizTitle') as string) || '').trim();
     const questionsCount = Number(formData.get('questionsCount')) || 150;
     const shouldWatermark = formData.get('watermark') !== 'false';
+    const isFree = formData.get('isFree') !== 'false';
+    const isLive = formData.get('isLive') !== 'false';
 
     if (!file && !externalDriveUrl) {
       return NextResponse.json(
@@ -123,6 +125,8 @@ export async function POST(req: NextRequest) {
         explanationUrl: savedExplanation?.url || undefined,
         explanationTitle: explanationTitle || (savedExplanation?.url ? 'ملف الشرح وتوضيح الإجابات' : undefined),
         explanationFileSize: savedExplanation?.sizeFormatted || undefined,
+        isFree,
+        isLive,
       },
       customToken
     );
@@ -138,6 +142,8 @@ export async function POST(req: NextRequest) {
     const fileNameDisplay = file ? `<code>${file.name}</code>` : 'رابط Google Drive خارجي 🌐';
     const watermarkDisplay = file && shouldWatermark ? 'تم التطبيق بنجاح ✅' : file ? 'بدون علامة' : 'ملف سحابي خارجي';
     const explanationDisplay = savedExplanation?.url ? 'مرفق ملف شرح 📖' : 'بدون ملف شرح';
+    const freeDisplay = isFree ? 'متاح مجاناً للجميع 🎁' : 'مقفول باشتراك 🔒';
+    const liveDisplay = isLive ? 'منشور وظاهر للطلاب 👁️' : 'مسودة مخفية 🙈';
 
     const telegramMsg = `📝 <b>تم إضافة ملف أسئلة كويزات جديد!</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -147,6 +153,8 @@ export async function POST(req: NextRequest) {
 📄 <b>الملف:</b> ${fileNameDisplay}
 💾 <b>الحجم / المصدر:</b> ${savedPdf.sizeFormatted}
 📖 <b>الشرح:</b> ${explanationDisplay}
+🔓 <b>حالة الإتاحة:</b> ${freeDisplay}
+👁️ <b>حالة الظهور:</b> ${liveDisplay}
 ❓ <b>عدد الأسئلة:</b> +${questionsCount} سؤال
 ⏰ <b>التوقيت:</b> ${time}
 🛡️ <b>العلامة المائية:</b> ${watermarkDisplay}`;
@@ -209,6 +217,8 @@ export async function PATCH(req: NextRequest) {
     let questionsCount: number | undefined;
     let downloadUrl: string | undefined;
     let fileSize: string | undefined;
+    let isFree: boolean | undefined;
+    let isLive: boolean | undefined;
     let file: File | null = null;
     let explanationFile: File | null = null;
     let externalExplanationUrl: string | undefined;
@@ -233,6 +243,12 @@ export async function PATCH(req: NextRequest) {
       if (formData.get('downloadUrl') !== null) {
         downloadUrl = ((formData.get('downloadUrl') as string) || '').trim();
       }
+      if (formData.get('isFree') !== null) {
+        isFree = formData.get('isFree') !== 'false';
+      }
+      if (formData.get('isLive') !== null) {
+        isLive = formData.get('isLive') !== 'false';
+      }
       file = formData.get('file') as File | null;
       explanationFile = formData.get('explanationFile') as File | null;
       if (formData.get('externalExplanationUrl') !== null) {
@@ -255,6 +271,8 @@ export async function PATCH(req: NextRequest) {
       if (body.downloadUrl !== undefined) downloadUrl = String(body.downloadUrl).trim();
       if (body.externalExplanationUrl !== undefined) externalExplanationUrl = String(body.externalExplanationUrl).trim();
       if (body.explanationTitle !== undefined) explanationTitle = String(body.explanationTitle).trim();
+      if (body.isFree !== undefined) isFree = Boolean(body.isFree);
+      if (body.isLive !== undefined) isLive = Boolean(body.isLive);
       removeExplanation = Boolean(body.removeExplanation);
       if (body.token) customToken = body.token;
     }
@@ -341,6 +359,8 @@ export async function PATCH(req: NextRequest) {
         ...(questionsCount !== undefined ? { questionsCount } : {}),
         ...(downloadUrl ? { downloadUrl } : {}),
         ...(fileSize ? { fileSize } : {}),
+        ...(isFree !== undefined ? { isFree } : {}),
+        ...(isLive !== undefined ? { isLive } : {}),
         ...(isRemovingExplanation
           ? { removeExplanation: true, explanationUrl: '' }
           : {
