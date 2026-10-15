@@ -31,13 +31,11 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
     cookies().get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
 
-  const allSubjects = isAdmin
-    ? await CmsService.getAllSubjects()
-    : await CmsService.getLiveSubjects();
+  const allSubjects = await CmsService.getLiveSubjects();
   const subjects = allSubjects.filter((s) => s.yearId === year.id);
   const liveLectures = await CmsService.getLiveLectures();
   const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();
-  const quizzesList = allQuizFiles.filter((q) => isAdmin || q.isLive !== false);
+  const quizzesList = allQuizFiles.filter((q) => q.isLive !== false);
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
 
@@ -87,7 +85,7 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
           subjects={subjects}
           lectures={liveLectures}
           quizzesList={quizzesList}
-          isAdmin={isAdmin}
+          isAdmin={false}
           initialSemester={initialSemester}
           gridCols={3}
         />

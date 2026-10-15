@@ -35,7 +35,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
   const lecture = await CmsService.getLectureById(params.lecId);
 
-  if (!lecture) {
+  if (!lecture || (lecture as any).isLive === false) {
     notFound();
   }
 
@@ -148,7 +148,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           adminNote={lecture.adminNote}
           lectureId={lecture.id}
           isFree={lecture.isFree}
-          isAdmin={isAdmin}
+          isAdmin={false}
         />
       </section>
 

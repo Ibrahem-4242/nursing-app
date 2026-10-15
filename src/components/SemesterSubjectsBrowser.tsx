@@ -18,7 +18,7 @@ interface SemesterSubjectsBrowserProps {
   subjects: Subject[];
   lectures: Lecture[];
   quizzesList: SubjectQuizFile[];
-  isAdmin: boolean;
+  isAdmin?: boolean;
   initialSemester?: '1' | '2';
   gridCols?: 3 | 4;
 }
@@ -27,7 +27,6 @@ export default function SemesterSubjectsBrowser({
   subjects,
   lectures,
   quizzesList,
-  isAdmin,
   initialSemester,
   gridCols = 4,
 }: SemesterSubjectsBrowserProps) {
@@ -35,10 +34,10 @@ export default function SemesterSubjectsBrowser({
   const getSubjectSemesterStats = (sub: Subject, sem: '1' | '2') => {
     const defaultSem = sub.semester === '2' ? '2' : '1';
     const subLectures = lectures.filter(
-      (l) => l.subjectId === sub.id && (l.semester || defaultSem) === sem
+      (l) => l.subjectId === sub.id && (l.semester || defaultSem) === sem && (l as any).isLive !== false
     );
     const subQuizzes = quizzesList.filter(
-      (q) => (isAdmin || q.isLive !== false) && q.subjectId === sub.id && (q.semester || defaultSem) === sem
+      (q) => q.isLive !== false && q.subjectId === sub.id && (q.semester || defaultSem) === sem
     );
     const hasContent = subLectures.length > 0 || subQuizzes.length > 0;
     const belongsToSemesterByConfig =
@@ -50,9 +49,7 @@ export default function SemesterSubjectsBrowser({
       totalQuestions: subQuizzes.reduce((acc, q) => acc + (q.questionsCount || 0), 0),
       hasContent,
       belongsToSemesterByConfig,
-      shouldShow: isAdmin
-        ? hasContent || belongsToSemesterByConfig
-        : hasContent,
+      shouldShow: hasContent,
     };
   };
 
@@ -68,8 +65,10 @@ export default function SemesterSubjectsBrowser({
   const sem2ContentCount = sem2Subjects.filter((i) => i.stats.hasContent).length;
 
   const defaultActiveSemester: '1' | '2' =
-    initialSemester === '2' && (isAdmin || sem2ContentCount > 0)
+    initialSemester === '2' && sem2ContentCount > 0
       ? '2'
+      : initialSemester === '1' && sem1ContentCount > 0
+      ? '1'
       : sem1ContentCount > 0
       ? '1'
       : sem2ContentCount > 0
@@ -79,87 +78,65 @@ export default function SemesterSubjectsBrowser({
   const [activeSemester, setActiveSemester] = useState<'1' | '2'>(defaultActiveSemester);
 
   useEffect(() => {
-    if (initialSemester === '1' || initialSemester === '2') {
-      if (isAdmin || (initialSemester === '1' ? sem1ContentCount > 0 : sem2ContentCount > 0)) {
-        setActiveSemester(initialSemester);
-      }
+    if (initialSemester === '1' && sem1ContentCount > 0) {
+      setActiveSemester('1');
+    } else if (initialSemester === '2' && sem2ContentCount > 0) {
+      setActiveSemester('2');
     }
-  }, [initialSemester, isAdmin, sem1ContentCount, sem2ContentCount]);
+  }, [initialSemester, sem1ContentCount, sem2ContentCount]);
 
   const currentItems = activeSemester === '1' ? sem1Subjects : sem2Subjects;
-  const showSem1Tab = isAdmin || sem1ContentCount > 0;
-  const showSem2Tab = isAdmin || sem2ContentCount > 0;
+  const showSem1Tab = sem1ContentCount > 0;
+  const showSem2Tab = sem2ContentCount > 0;
 
   return (
     <div className="space-y-8">
-      {/* Semester Selector Tabs */}
-      {(showSem1Tab || showSem2Tab) && (
+      {/* Semester Selector Tabs (shown only when both semesters have live content) */}
+      {showSem1Tab && showSem2Tab && (
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 p-2 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 w-fit mx-auto sm:mx-0">
-          {showSem1Tab && (
-            <button
-              type="button"
-              onClick={() => setActiveSemester('1')}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${
+          <button
+            type="button"
+            onClick={() => setActiveSemester('1')}
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${
+              activeSemester === '1'
+                ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/25 scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>سمستر 1 (الترم الأول)</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
                 activeSemester === '1'
-                  ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/25 scale-[1.02]'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
               }`}
             >
-              <Calendar className="w-4 h-4" />
-              <span>سمستر 1 (الترم الأول)</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                  activeSemester === '1'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
-                }`}
-              >
-                {sem1ContentCount} مواد
-              </span>
-              {isAdmin && sem1ContentCount === 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold flex items-center gap-1">
-                  <EyeOff className="w-3 h-3" />
-                  <span>فارغ للطلاب</span>
-                </span>
-              )}
-            </button>
-          )}
+              {sem1ContentCount} مواد
+            </span>
+          </button>
 
-          {showSem2Tab && (
-            <button
-              type="button"
-              onClick={() => setActiveSemester('2')}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${
+          <button
+            type="button"
+            onClick={() => setActiveSemester('2')}
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${
+              activeSemester === '2'
+                ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/25 scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>سمستر 2 (الترم الثاني)</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
                 activeSemester === '2'
-                  ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/25 scale-[1.02]'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
               }`}
             >
-              <Calendar className="w-4 h-4" />
-              <span>سمستر 2 (الترم الثاني)</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                  activeSemester === '2'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
-                }`}
-              >
-                {sem2ContentCount} مواد
-              </span>
-              {isAdmin && sem2ContentCount === 0 && (
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                    activeSemester === '2'
-                      ? 'bg-amber-400/25 text-amber-200 border border-amber-300/40'
-                      : 'bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                  }`}
-                >
-                  <EyeOff className="w-3 h-3" />
-                  <span>للأدمن فقط</span>
-                </span>
-              )}
-            </button>
-          )}
+              {sem2ContentCount} مواد
+            </span>
+          </button>
         </div>
       )}
 
@@ -173,11 +150,7 @@ export default function SemesterSubjectsBrowser({
             لا توجد مقررات منشورة في سمستر {activeSemester} حالياً 🩺
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            {isAdmin
-              ? 'أنت تشاهد هذه الصفحة كأدمن — هذا السمستر مخفي تلقائياً عن الطلاب لأنه فارغ حالياً. يمكنك إضافة محاضرات أو كويزات لسمستر ' +
-                activeSemester +
-                ' من لوحة الإدارة.'
-              : 'المقررات والمحاضرات تظهر هنا فور نشرها واعتمادها من لوحة التحكم مباشرة.'}
+            المقررات والمحاضرات تظهر هنا فور نشرها واعتمادها مباشرة.
           </p>
         </div>
       ) : (
@@ -187,26 +160,13 @@ export default function SemesterSubjectsBrowser({
           } gap-6`}
         >
           {currentItems.map(({ sub, stats }) => {
-            const isEmptyForStudents = !stats.hasContent;
-
             return (
               <Link
                 key={`${sub.id}-sem-${activeSemester}`}
                 href={`/subject/${sub.id}?semester=${activeSemester}`}
-                className={`group relative flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900 border transition-all duration-300 transform hover:-translate-y-1.5 ${
-                  isEmptyForStudents
-                    ? 'border-dashed border-amber-300 dark:border-amber-800/80 opacity-85 hover:opacity-100 hover:border-amber-400'
-                    : 'border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl'
-                }`}
+                className="group relative flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1.5"
               >
                 <div>
-                  {/* Admin-only empty indicator */}
-                  {isAdmin && isEmptyForStudents && (
-                    <div className="mb-3 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[11px] font-bold flex items-center gap-1.5">
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                      <span>يظهر للأدمن فقط (فارغ ومخفي عن الطلاب)</span>
-                    </div>
-                  )}
 
                   <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
                     <span className="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-xs font-bold border border-teal-200/60 dark:border-teal-800">

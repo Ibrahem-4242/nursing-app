@@ -29,7 +29,7 @@ interface SubjectContentViewProps {
   subject: Subject;
   lectures: Lecture[];
   quizzesFiles: SubjectQuizFile[];
-  isAdmin: boolean;
+  isAdmin?: boolean;
   initialSemester?: '1' | '2';
 }
 
@@ -37,15 +37,15 @@ export default function SubjectContentView({
   subject,
   lectures,
   quizzesFiles,
-  isAdmin,
   initialSemester,
 }: SubjectContentViewProps) {
   const defaultSubSem: '1' | '2' = subject.semester === '2' ? '2' : '1';
 
-  const sem1Lectures = lectures.filter((l) => (l.semester || defaultSubSem) === '1');
-  const sem2Lectures = lectures.filter((l) => (l.semester || defaultSubSem) === '2');
+  const liveLectures = lectures.filter((l) => (l as any).isLive !== false);
+  const sem1Lectures = liveLectures.filter((l) => (l.semester || defaultSubSem) === '1');
+  const sem2Lectures = liveLectures.filter((l) => (l.semester || defaultSubSem) === '2');
 
-  const visibleQuizzes = isAdmin ? quizzesFiles : quizzesFiles.filter((q) => q.isLive !== false);
+  const visibleQuizzes = quizzesFiles.filter((q) => q.isLive !== false);
   const sem1Quizzes = visibleQuizzes.filter((q) => (q.semester || defaultSubSem) === '1');
   const sem2Quizzes = visibleQuizzes.filter((q) => (q.semester || defaultSubSem) === '2');
 
@@ -53,8 +53,8 @@ export default function SubjectContentView({
   const sem2HasContent = sem2Lectures.length > 0 || sem2Quizzes.length > 0;
 
   const computeInitialSemester = (): '1' | '2' => {
-    if (initialSemester === '2' && (isAdmin || sem2HasContent)) return '2';
-    if (initialSemester === '1' && (isAdmin || sem1HasContent)) return '1';
+    if (initialSemester === '2' && sem2HasContent) return '2';
+    if (initialSemester === '1' && sem1HasContent) return '1';
     if (sem1HasContent) return '1';
     if (sem2HasContent) return '2';
     return defaultSubSem;
@@ -68,14 +68,14 @@ export default function SubjectContentView({
   const hasLectures = curLectures.length > 0;
   const hasQuizzes = curQuizzes.length > 0;
 
-  // Determine whether the 2-option chooser should be used
-  const shouldShowChooser = (hasLectures && hasQuizzes) || isAdmin;
+  // Determine whether the 2-option chooser should be used (strictly when both exist)
+  const shouldShowChooser = hasLectures && hasQuizzes;
 
   const computeDefaultMode = (
     lecCount: number,
     quizCount: number
   ): 'chooser' | 'lectures' | 'quizzes' => {
-    if ((lecCount > 0 && quizCount > 0) || isAdmin) {
+    if (lecCount > 0 && quizCount > 0) {
       return 'chooser';
     }
     if (lecCount > 0) return 'lectures';
@@ -98,9 +98,9 @@ export default function SubjectContentView({
   useEffect(() => {
     setViewMode(computeDefaultMode(curLectures.length, curQuizzes.length));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSemester, curLectures.length, curQuizzes.length, isAdmin]);
+  }, [activeSemester, curLectures.length, curQuizzes.length]);
 
-  const showSemesterTabs = isAdmin || (sem1HasContent && sem2HasContent);
+  const showSemesterTabs = sem1HasContent && sem2HasContent;
   const totalQuizQuestions = curQuizzes.reduce(
     (sum, q) => sum + (Number(q.questionsCount) || 0),
     0
@@ -108,75 +108,53 @@ export default function SubjectContentView({
 
   return (
     <div className="space-y-8">
-      {/* 1. Semester Tabs (Shown if both semesters have content, or always for Admin) */}
+      {/* 1. Semester Tabs (Shown ONLY if both semesters have live content) */}
       {showSemesterTabs && (
         <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-2.5">
-            {(isAdmin || sem1HasContent) && (
-              <button
-                type="button"
-                onClick={() => handleSemesterChange('1')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all ${
+            <button
+              type="button"
+              onClick={() => handleSemesterChange('1')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all ${
+                activeSemester === '1'
+                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>سمستر 1 (الترم الأول)</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                   activeSemester === '1'
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
                 }`}
               >
-                <Calendar className="w-4 h-4" />
-                <span>سمستر 1 (الترم الأول)</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    activeSemester === '1'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
-                  }`}
-                >
-                  {sem1Lectures.length} محاضرة • {sem1Quizzes.length} كويز
-                </span>
-                {isAdmin && !sem1HasContent && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30 text-[10px] font-bold flex items-center gap-1">
-                    <EyeOff className="w-3 h-3" />
-                    <span>فارغ للطلاب</span>
-                  </span>
-                )}
-              </button>
-            )}
+                {sem1Lectures.length} محاضرة • {sem1Quizzes.length} كويز
+              </span>
+            </button>
 
-            {(isAdmin || sem2HasContent) && (
-              <button
-                type="button"
-                onClick={() => handleSemesterChange('2')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all ${
+            <button
+              type="button"
+              onClick={() => handleSemesterChange('2')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all ${
+                activeSemester === '2'
+                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>سمستر 2 (الترم الثاني)</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                   activeSemester === '2'
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
                 }`}
               >
-                <Calendar className="w-4 h-4" />
-                <span>سمستر 2 (الترم الثاني)</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    activeSemester === '2'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300'
-                  }`}
-                >
-                  {sem2Lectures.length} محاضرة • {sem2Quizzes.length} كويز
-                </span>
-                {isAdmin && !sem2HasContent && (
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                      activeSemester === '2'
-                        ? 'bg-amber-400/25 text-amber-200 border border-amber-300/40'
-                        : 'bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                    }`}
-                  >
-                    <EyeOff className="w-3 h-3" />
-                    <span>للأدمن فقط</span>
-                  </span>
-                )}
-              </button>
-            )}
+                {sem2Lectures.length} محاضرة • {sem2Quizzes.length} كويز
+              </span>
+            </button>
           </div>
 
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 px-2">
@@ -203,26 +181,15 @@ export default function SubjectContentView({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Choice 1: Lectures Card */}
-            {(hasLectures || isAdmin) && (
+            {hasLectures && (
               <button
                 type="button"
                 onClick={() => setViewMode('lectures')}
-                className={`group text-right relative overflow-hidden rounded-3xl p-7 sm:p-8 bg-white dark:bg-slate-900 border-2 transition-all duration-300 transform hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between ${
-                  !hasLectures
-                    ? 'border-dashed border-amber-300 dark:border-amber-800 opacity-85 hover:opacity-100'
-                    : 'border-teal-200 dark:border-teal-800/80 hover:border-teal-500 dark:hover:border-teal-400 shadow-lg'
-                }`}
+                className="group text-right relative overflow-hidden rounded-3xl p-7 sm:p-8 bg-white dark:bg-slate-900 border-2 border-teal-200 dark:border-teal-800/80 hover:border-teal-500 dark:hover:border-teal-400 shadow-lg transition-all duration-300 transform hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between"
               >
                 <div className="absolute -top-12 -left-12 w-36 h-36 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
 
                 <div>
-                  {isAdmin && !hasLectures && (
-                    <div className="mb-4 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 w-fit">
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                      <span>يظهر للأدمن فقط (لا توجد محاضرات مرفوعة - مخفي عن الطلاب)</span>
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-between gap-3 mb-5">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-teal-500/30 group-hover:scale-105 transition-transform">
                       <BookOpen className="w-8 h-8" />
@@ -254,26 +221,15 @@ export default function SubjectContentView({
             )}
 
             {/* Choice 2: Quiz Questions Card */}
-            {(hasQuizzes || isAdmin) && (
+            {hasQuizzes && (
               <button
                 type="button"
                 onClick={() => setViewMode('quizzes')}
-                className={`group text-right relative overflow-hidden rounded-3xl p-7 sm:p-8 bg-white dark:bg-slate-900 border-2 transition-all duration-300 transform hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between ${
-                  !hasQuizzes
-                    ? 'border-dashed border-amber-300 dark:border-amber-800 opacity-85 hover:opacity-100'
-                    : 'border-amber-300/90 dark:border-amber-700/80 hover:border-amber-500 dark:hover:border-amber-400 shadow-lg'
-                }`}
+                className="group text-right relative overflow-hidden rounded-3xl p-7 sm:p-8 bg-white dark:bg-slate-900 border-2 border-amber-300/90 dark:border-amber-700/80 hover:border-amber-500 dark:hover:border-amber-400 shadow-lg transition-all duration-300 transform hover:-translate-y-1.5 hover:shadow-2xl flex flex-col justify-between"
               >
                 <div className="absolute -top-12 -left-12 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
                 <div>
-                  {isAdmin && !hasQuizzes && (
-                    <div className="mb-4 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 w-fit">
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                      <span>يظهر للأدمن فقط (لا توجد ملفات كويز - مخفي عن الطلاب)</span>
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-between gap-3 mb-5">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform">
                       <ClipboardCheck className="w-8 h-8" />
@@ -320,7 +276,7 @@ export default function SubjectContentView({
           </button>
 
           <div className="flex items-center gap-2">
-            {(hasLectures || isAdmin) && (
+            {hasLectures && (
               <button
                 type="button"
                 onClick={() => setViewMode('lectures')}
@@ -335,7 +291,7 @@ export default function SubjectContentView({
               </button>
             )}
 
-            {(hasQuizzes || isAdmin) && (
+            {hasQuizzes && (
               <button
                 type="button"
                 onClick={() => setViewMode('quizzes')}
@@ -373,12 +329,12 @@ export default function SubjectContentView({
 
           {curQuizzes.length === 0 ? (
             <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-amber-300 dark:border-amber-800 space-y-2">
-              <EyeOff className="w-8 h-8 text-amber-500 mx-auto" />
+              <ClipboardCheck className="w-8 h-8 text-amber-500 mx-auto" />
               <p className="text-sm font-black text-slate-900 dark:text-white">
-                لا توجد ملفات كويزات مرفوعة في سمستر {activeSemester} لهذه المادة حالياً
+                لا توجد ملفات كويزات منشورة في سمستر {activeSemester} لهذه المادة حالياً
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                (هذا القسم يظهر لك لأنك مسجل دخول كأدمن، وهو مخفي تماماً عن الطلاب حتى ترفع ملف كويز)
+                سيتم إضافة بنك أسئلة الكويزات والامتحانات هنا قريباً.
               </p>
             </div>
           ) : (
@@ -410,13 +366,13 @@ export default function SubjectContentView({
           </div>
 
           {curLectures.length === 0 ? (
-            <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-amber-300 dark:border-amber-800 space-y-2">
-              <EyeOff className="w-8 h-8 text-amber-500 mx-auto" />
+            <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-teal-300 dark:border-teal-800 space-y-2">
+              <BookOpen className="w-8 h-8 text-teal-500 mx-auto" />
               <p className="text-sm font-black text-slate-900 dark:text-white">
-                لا توجد محاضرات مرفوعة في سمستر {activeSemester} لهذه المادة حالياً
+                لا توجد محاضرات منشورة في سمستر {activeSemester} لهذه المادة حالياً
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                (هذا القسم يظهر لك لأنك مسجل دخول كأدمن، وهو مخفي تماماً عن الطلاب حتى ترفع محاضرة)
+                المحاضرات وملخصات الشرح تظهر هنا فور اعتمادها مباشرة.
               </p>
             </div>
           ) : (

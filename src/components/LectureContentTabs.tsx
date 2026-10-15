@@ -20,6 +20,7 @@ import {
   MessageCircle,
   EyeOff,
   HelpCircle,
+  BookOpen,
 } from 'lucide-react';
 
 interface LectureContentTabsProps {
@@ -319,16 +320,14 @@ export default function LectureContentTabs({
       )}
 
       {/* Fallback only if a lecture has 0 resources at all */}
-      {visibleTabs.length === 0 && isAdmin && (
-        <div className="bg-gradient-to-br from-amber-50/40 via-white to-slate-50 dark:from-slate-900 dark:via-slate-850 dark:to-amber-950/20 p-8 sm:p-10 rounded-3xl border border-dashed border-amber-300 dark:border-amber-800 shadow-lg text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-            <EyeOff className="w-7 h-7" />
-          </div>
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">
-            لا توجد ملفات مرفقة في هذه المحاضرة حالياً (يظهر للأدمن فقط 👁️)
+      {visibleTabs.length === 0 && (
+        <div className="p-8 sm:p-10 rounded-3xl bg-slate-100/60 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-2">
+          <BookOpen className="w-10 h-10 text-teal-600 dark:text-teal-400 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+            ملفات هذه المحاضرة قيد التجهيز والاعتماد
           </h3>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            يمكنك رفع أي ملف (PDF أو صوت أو بوربوينت أو خريطة ذهنية أو كروت Anki) من لوحة الإدارة.
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            ستظهر ملفات الـ PDF والملخصات والريكوردات هنا فور اعتمادها مباشرة.
           </p>
         </div>
       )}

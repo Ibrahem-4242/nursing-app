@@ -37,25 +37,23 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
 
   const allSubjects = await CmsService.getAllSubjects();
   const liveSubjects = await CmsService.getLiveSubjects();
-  const liveLectures = await CmsService.getLiveLecturesBySubject(params.subId);
-  const allLectures = await CmsService.getLecturesBySubject(params.subId);
-  const lectures = isAdmin ? allLectures : liveLectures;
+  const lectures = await CmsService.getLiveLecturesBySubject(params.subId);
 
   const subject =
     liveSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
     allSubjects.find((s) => s.id === params.subId || s.slug === params.subId) ||
     DataService.getSubjectById(params.subId) ||
-    (liveLectures.length > 0
+    (lectures.length > 0
       ? {
           id: params.subId,
-          yearId: liveLectures[0].yearId || '1',
-          yearName: liveLectures[0].yearTitle || 'السنة الأولى',
+          yearId: lectures[0].yearId || '1',
+          yearName: lectures[0].yearTitle || 'السنة الأولى',
           slug: params.subId,
-          title: liveLectures[0].subjectTitle || params.subId,
-          description: `مقرر ${liveLectures[0].subjectTitle || params.subId} - ملخصات ومحاضرات معتمدة`,
+          title: lectures[0].subjectTitle || params.subId,
+          description: `مقرر ${lectures[0].subjectTitle || params.subId} - ملخصات ومحاضرات معتمدة`,
           icon: 'Activity',
           color: 'teal',
-          totalLectures: liveLectures.length,
+          totalLectures: lectures.length,
           totalQuizzes: 0,
         }
       : undefined);
@@ -66,10 +64,10 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
 
   const year = DataService.getAcademicYearById(subject.yearId);
   const allQuizzesFiles = await CmsService.getSubjectQuizFiles(subject.id);
-  const quizzesFiles = allQuizzesFiles.filter((q) => isAdmin || q.isLive !== false);
+  const quizzesFiles = allQuizzesFiles.filter((q) => q.isLive !== false);
 
-  // Strict rule: if a subject has 0 lectures and 0 quizzes, hide it from students
-  if (!isAdmin && lectures.length === 0 && quizzesFiles.length === 0) {
+  // Strict rule: if a subject has 0 live lectures and 0 live quizzes, hide it from everyone
+  if (lectures.length === 0 && quizzesFiles.length === 0) {
     notFound();
   }
 
@@ -98,13 +96,6 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
               <Sparkles className="w-3.5 h-3.5" />
               <span>مقرر دراسي معتمد • {subject.yearName}</span>
             </div>
-
-            {isAdmin && lectures.length === 0 && quizzesFiles.length === 0 && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 text-amber-200 text-xs font-bold border border-amber-400/40">
-                <EyeOff className="w-3.5 h-3.5" />
-                <span>يظهر للأدمن فقط (فارغ ومخفي عن الطلاب)</span>
-              </div>
-            )}
           </div>
 
           {/* Clean Arabic title */}
@@ -138,7 +129,7 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
             subject={subject}
             lectures={lectures}
             quizzesFiles={quizzesFiles}
-            isAdmin={isAdmin}
+            isAdmin={false}
             initialSemester={initialSemester}
           />
 

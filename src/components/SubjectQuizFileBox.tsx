@@ -22,6 +22,8 @@ interface SubjectQuizFileBoxProps {
 }
 
 export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps) {
+  if (quizFile.isLive === false) return null;
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -123,11 +125,6 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
             </div>
 
             <div className="flex items-center gap-2">
-              {quizFile.isLive === false && (
-                <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
-                  <span>مخفي عن الطلاب 🙈</span>
-                </span>
-              )}
               {quizFile.isFree !== false ? (
                 <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />

@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن ت��يير نمط الحياة والتغذية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -37,7 +37,7 @@
       "id": 3,
       "front": "What five types comprise acute non-suppurative inflammation (التهاب حاد غير صديدي)?",
       "back": "The types are catarrhal, fibrinous, membranous, allergic, and necrotizing/hemorrhagic inflammation.",
-      "category": "كروت استذكار",
+      "category": "كرو�� استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
     },
     {
@@ -192,7 +192,7 @@
       "front": "How do a sinus (جيب صديدي) and a fistula (ناصور) structurally differ?",
       "back": "A sinus has one open end with a blind tract, whereas a fistula has two open ends connecting two surfaces or cavities.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي وال��ح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 26,
@@ -203,7 +203,7 @@
     },
     {
       "id": 27,
-      "front": "What is bacteremia (تجرثم ا��دم)?",
+      "front": "What is bacteremia (تجرثم الدم)?",
       "back": "It is the transient presence of bacteria within the bloodstream as a severe complication of infection.",
       "category": "كروت استذكار",
       "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
@@ -224,7 +224,7 @@
     },
     {
       "id": 30,
-      "front": "What is sepsis (ال��نتان)?",
+      "front": "What is sepsis (الإنتان)?",
       "back": "Sepsis is a life-threatening systemic organ dysfunction caused by a dysregulated host response to infection.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
@@ -308,7 +308,7 @@
     },
     {
       "id": 42,
-      "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نز��ي)?",
+      "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نزفي)?",
       "back": "It is a severe inflammatory response marked by extensive tissue necrosis and widespread vascular destruction causing hemorrhage.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
@@ -336,7 +336,7 @@
     },
     {
       "id": 46,
-      "front": "What defines chronic inflammation (التهاب مزمن)?",
+      "front": "What defines chronic inflammation (ال��هاب مزمن)?",
       "back": "It is a prolonged inflammatory reaction lasting weeks to years where tissue destruction, mononuclear cell infiltration, and repair attempts occur simultaneously.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
@@ -400,5 +400,5 @@
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
-  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
+  "adminNote": "ت��كد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
 }
