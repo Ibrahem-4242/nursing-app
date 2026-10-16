@@ -15,6 +15,10 @@ import {
   Award,
   Lock,
   MessageCircle,
+  Presentation,
+  Headphones,
+  Network,
+  Layers,
 } from 'lucide-react';
 
 interface SubjectQuizFileBoxProps {
@@ -207,6 +211,171 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
                   <span>مقفول مع الكويز 🔒</span>
                 </span>
               )}
+            </div>
+          )}
+
+          {/* PowerPoint Presentation File Box */}
+          {quizFile.pptUrl && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-600/20">
+                  <Presentation className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                      عرض تقديمي بوربوينت 📊
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {quizFile.pptFileSize || 'ملف PPTX'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {quizFile.pptTitle || 'العرض التقديمي الخاص بأسئلة الكويز (PowerPoint)'}
+                  </h4>
+                </div>
+              </div>
+
+              {quizFile.isFree !== false ? (
+                <a
+                  href={quizFile.pptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-amber-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
+                >
+                  <ArrowDownCircle className="w-4 h-4" />
+                  <span>تحميل الباوربوينت 📊</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>مقفول مع الكويز 🔒</span>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Audio Recording Box */}
+          {quizFile.audioUrl && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-600/20">
+                    <Headphones className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200">
+                        شرح وتسجيل صوتي 🎧
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {quizFile.audioFileSize || quizFile.audioDuration || 'ملف صوتي MP3'}
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                      {quizFile.audioTitle || 'التسجيل الصوتي الشامل لمراجعة أسئلة الكويز'}
+                    </h4>
+                  </div>
+                </div>
+
+                {quizFile.isFree !== false ? (
+                  <a
+                    href={quizFile.audioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
+                  >
+                    <ArrowDownCircle className="w-4 h-4" />
+                    <span>تحميل الصوت 🎧</span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>مقفول مع الكويز 🔒</span>
+                  </span>
+                )}
+              </div>
+
+              {quizFile.isFree !== false && (
+                <div className="pt-1">
+                  <audio controls className="w-full h-10 rounded-xl" src={quizFile.audioUrl} preload="none">
+                    متصفحك لا يدعم تشغيل الملف الصوتي مباشرة.
+                  </audio>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mindmap Box */}
+          {quizFile.mindmapUrl && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-purple-600/20">
+                  <Network className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200">
+                      خريطة ذهنية ذكية 🧠
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {quizFile.mindmapFileSize || 'صورة / خريطة مراجعة'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {quizFile.mindmapTitle || 'الخريطة الذهنية لمراجعة الأسئلة وتثبيت المفاهيم'}
+                  </h4>
+                </div>
+              </div>
+
+              {quizFile.isFree !== false ? (
+                <a
+                  href={quizFile.mindmapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-black shadow-lg shadow-purple-600/20 active:scale-95 transition whitespace-nowrap self-stretch sm:self-auto"
+                >
+                  <ArrowDownCircle className="w-4 h-4" />
+                  <span>تحميل الخريطة الذهنية 🧠</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>مقفول مع الكويز 🔒</span>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Flashcards / Anki Cards Box */}
+          {((quizFile.flashcards && quizFile.flashcards.length > 0) || Boolean(quizFile.flashcardsCount)) && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-cyan-50/90 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-cyan-600/20">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/60 text-cyan-800 dark:text-cyan-200">
+                      بطاقات استذكار وفلاش كاردز 🎴
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      +{quizFile.flashcardsCount || quizFile.flashcards?.length} بطاقة ذكية
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    حزمة فلاش كاردز تفاعلية للمراجعة السريعة والتكرار المتباعد
+                  </h4>
+                </div>
+              </div>
+
+              <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold shadow-md shadow-cyan-600/20">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>مرفقة ومفعلة</span>
+              </span>
             </div>
           )}
 

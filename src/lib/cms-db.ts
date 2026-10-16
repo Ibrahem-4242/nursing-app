@@ -29,7 +29,14 @@ interface CmsStore {
   visitors: VisitorEvent[];
   downloads: DownloadEvent[];
   students?: StudentUser[];
+  deletedStudentIds?: string[];
   orders?: PurchaseOrder[];
+  // Permanent counters and daily maps to guarantee mathematical accuracy
+  cumulativeVisitors?: number;
+  cumulativeDownloads?: number;
+  cumulativePageViews?: number;
+  dailyVisitorsMap?: Record<string, number>;
+  dailyDownloadsMap?: Record<string, number>;
 }
 
 const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
@@ -56,6 +63,21 @@ let memoryStore: CmsStore | null = null;
 let runtimeCustomToken = '';
 
 const BUILTIN_SYNC_TOKEN = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
+
+export function maskRawGithubUrls<T>(data: T): T {
+  if (!data) return data;
+  try {
+    const str = JSON.stringify(data);
+    if (!str.includes('raw.githubusercontent.com')) return data;
+    const masked = str.replace(
+      /https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/public\/uploads\/([^"'\\]+)/g,
+      '/api/files/$1'
+    );
+    return JSON.parse(masked);
+  } catch {
+    return data;
+  }
+}
 
 export function setRuntimeSyncToken(tok: string) {
   if (tok && tok.trim()) {
@@ -161,8 +183,9 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
 
   // 2. Direct Gist Raw CDN fetch fallback
   try {
+    const owner = process.env.GITHUB_OWNER || 'Ibrahem-4242';
     const rawRes = await fetch(
-      `https://gist.githubusercontent.com/Ibrahem-4242/${gistId}/raw/cms-store.json?t=${Date.now()}`,
+      `https://gist.githubusercontent.com/${owner}/${gistId}/raw/cms-store.json?t=${Date.now()}`,
       {
         cache: 'no-store',
         headers: {
@@ -245,10 +268,26 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       }
       store.subjectQuizzes = mergedQuizzes;
 
-      // Safely merge students
+      // Safely merge deletedStudentIds
+      const allDeletedStudents = new Set<string>();
+      (store.deletedStudentIds || []).forEach((id) => allDeletedStudents.add(id));
+      (existing.deletedStudentIds || []).forEach((id) => allDeletedStudents.add(id));
+      store.deletedStudentIds = Array.from(allDeletedStudents);
+
+      // Safely merge students (strictly excluding any tombstoned/deleted students)
       const studentMap = new Map<string, StudentUser>();
-      (existing.students || []).forEach((s) => studentMap.set(s.id || s.phone, s));
-      (store.students || []).forEach((s) => studentMap.set(s.id || s.phone, s));
+      (existing.students || []).forEach((s) => {
+        const key = s.id || s.phone;
+        if (!allDeletedStudents.has(s.id) && !allDeletedStudents.has(s.phone) && !allDeletedStudents.has(key)) {
+          studentMap.set(key, s);
+        }
+      });
+      (store.students || []).forEach((s) => {
+        const key = s.id || s.phone;
+        if (!allDeletedStudents.has(s.id) && !allDeletedStudents.has(s.phone) && !allDeletedStudents.has(key)) {
+          studentMap.set(key, s);
+        }
+      });
       store.students = Array.from(studentMap.values());
 
       // Safely merge purchase orders
@@ -256,6 +295,19 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       (existing.orders || []).forEach((o) => orderMap.set(o.id, o));
       (store.orders || []).forEach((o) => orderMap.set(o.id, o));
       store.orders = Array.from(orderMap.values());
+
+      // Safely merge telemetry counters and daily maps
+      store.cumulativeVisitors = Math.max(store.cumulativeVisitors || 0, existing.cumulativeVisitors || 0);
+      store.cumulativeDownloads = Math.max(store.cumulativeDownloads || 0, existing.cumulativeDownloads || 0);
+      store.cumulativePageViews = Math.max(store.cumulativePageViews || 0, existing.cumulativePageViews || 0);
+      store.dailyVisitorsMap = {
+        ...(existing.dailyVisitorsMap || {}),
+        ...(store.dailyVisitorsMap || {}),
+      };
+      store.dailyDownloadsMap = {
+        ...(existing.dailyDownloadsMap || {}),
+        ...(store.dailyDownloadsMap || {}),
+      };
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -484,7 +536,7 @@ function initMemoryStore(): CmsStore {
     if (!loadedStore.maintenance) {
       loadedStore.maintenance = DEFAULT_MAINTENANCE;
     }
-    memoryStore = loadedStore;
+    memoryStore = maskRawGithubUrls(loadedStore);
     return memoryStore;
   }
 
@@ -500,6 +552,7 @@ function initMemoryStore(): CmsStore {
       visitors: [],
       downloads: [],
       students: [],
+      deletedStudentIds: [],
       orders: [],
     };
 
@@ -508,7 +561,7 @@ function initMemoryStore(): CmsStore {
 
 async function getFreshStore(): Promise<CmsStore> {
   const cloudStore = await syncFromCloud();
-  const store = initMemoryStore();
+  let store = initMemoryStore();
 
   if (cloudStore && Array.isArray(cloudStore.lectures)) {
     store.announcement = cloudStore.announcement || store.announcement;
@@ -605,12 +658,22 @@ async function getFreshStore(): Promise<CmsStore> {
         ...cloudStore.maintenance,
       };
     }
+    const deletedStudentSet = new Set<string>();
+    (store.deletedStudentIds || []).forEach((id) => deletedStudentSet.add(id));
+    (cloudStore.deletedStudentIds || []).forEach((id) => deletedStudentSet.add(id));
+    store.deletedStudentIds = Array.from(deletedStudentSet);
+
     if (cloudStore.students && Array.isArray(cloudStore.students)) {
       const existingStuMap = new Map((store.students || []).map((s) => [s.id || s.phone, s]));
       for (const s of cloudStore.students) {
-        existingStuMap.set(s.id || s.phone, s);
+        const key = s.id || s.phone;
+        if (!deletedStudentSet.has(s.id) && !deletedStudentSet.has(s.phone) && !deletedStudentSet.has(key)) {
+          existingStuMap.set(key, s);
+        }
       }
-      store.students = Array.from(existingStuMap.values());
+      store.students = Array.from(existingStuMap.values()).filter(
+        (s) => !deletedStudentSet.has(s.id) && !deletedStudentSet.has(s.phone)
+      );
     }
     if (cloudStore.orders && Array.isArray(cloudStore.orders)) {
       const existingOrdMap = new Map((store.orders || []).map((o) => [o.id, o]));
@@ -619,6 +682,21 @@ async function getFreshStore(): Promise<CmsStore> {
       }
       store.orders = Array.from(existingOrdMap.values());
     }
+
+    // Safely merge telemetry counters and daily maps
+    store.cumulativeVisitors = Math.max(store.cumulativeVisitors || 0, cloudStore.cumulativeVisitors || 0);
+    store.cumulativeDownloads = Math.max(store.cumulativeDownloads || 0, cloudStore.cumulativeDownloads || 0);
+    store.cumulativePageViews = Math.max(store.cumulativePageViews || 0, cloudStore.cumulativePageViews || 0);
+    store.dailyVisitorsMap = {
+      ...(cloudStore.dailyVisitorsMap || {}),
+      ...(store.dailyVisitorsMap || {}),
+    };
+    store.dailyDownloadsMap = {
+      ...(cloudStore.dailyDownloadsMap || {}),
+      ...(store.dailyDownloadsMap || {}),
+    };
+
+    store = maskRawGithubUrls(store);
     memoryStore = store;
 
     // Save a local disk backup copy silently so offline/cold-start has it
@@ -641,6 +719,7 @@ async function getFreshStore(): Promise<CmsStore> {
 
     return memoryStore;
   }
+  store = maskRawGithubUrls(store);
   return store;
 }
 
@@ -1162,13 +1241,25 @@ export const CmsService = {
   // --- VISITOR & DOWNLOAD TELEMETRY ---
   async trackVisitor(event: Omit<VisitorEvent, 'id' | 'timestamp' | 'dateStr'>): Promise<void> {
     const store = await getFreshStore();
+    const today = getTodayString();
     const newEvent: VisitorEvent = {
       ...event,
       id: `vis-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
-      dateStr: getTodayString(),
+      dateStr: today,
     };
     if (!store.visitors) store.visitors = [];
+    if (!store.dailyVisitorsMap) store.dailyVisitorsMap = {};
+    if (!store.cumulativeVisitors) store.cumulativeVisitors = Math.max(store.visitors.length || 0, 1);
+    if (!store.cumulativePageViews) store.cumulativePageViews = Math.max(store.visitors.length || 0, 1);
+
+    store.cumulativePageViews++;
+
+    if (event.isDailyUnique !== false) {
+      store.dailyVisitorsMap[today] = (store.dailyVisitorsMap[today] || 0) + 1;
+      store.cumulativeVisitors++;
+    }
+
     store.visitors.push(newEvent);
     if (store.visitors.length > 250) store.visitors = store.visitors.slice(-250);
     persistStore(store);
@@ -1177,13 +1268,20 @@ export const CmsService = {
 
   async trackDownload(event: Omit<DownloadEvent, 'id' | 'timestamp' | 'dateStr'>): Promise<void> {
     const store = await getFreshStore();
+    const today = getTodayString();
     const newEvent: DownloadEvent = {
       ...event,
       id: `dl-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
-      dateStr: getTodayString(),
+      dateStr: today,
     };
     if (!store.downloads) store.downloads = [];
+    if (!store.dailyDownloadsMap) store.dailyDownloadsMap = {};
+    if (!store.cumulativeDownloads) store.cumulativeDownloads = Math.max(store.downloads.length || 0, 1);
+
+    store.dailyDownloadsMap[today] = (store.dailyDownloadsMap[today] || 0) + 1;
+    store.cumulativeDownloads++;
+
     store.downloads.push(newEvent);
     if (store.downloads.length > 250) store.downloads = store.downloads.slice(-250);
     persistStore(store);
@@ -1211,15 +1309,22 @@ export const CmsService = {
     const todayVisitorsList = allVisitors.filter((v) => v.dateStr === today);
     const yesterdayVisitorsList = allVisitors.filter((v) => v.dateStr === yesterday);
 
-    // Count daily unique visitors (where isDailyUnique !== false)
     const todayUnique = todayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
     const yesterdayUnique = yesterdayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
 
-    const todayDownloads = allDownloads.filter((d) => d.dateStr === today);
-    const yesterdayDownloads = allDownloads.filter((d) => d.dateStr === yesterday);
+    const visitorsCount = Math.max(store.dailyVisitorsMap?.[today] || 0, todayUnique, todayVisitorsList.length);
+    const yesterdayVisitorsCount = Math.max(store.dailyVisitorsMap?.[yesterday] || 0, yesterdayUnique, yesterdayVisitorsList.length);
+    const allTimeVisitorsCount = Math.max(store.cumulativeVisitors || 0, allVisitors.length, visitorsCount);
+
+    const todayDownloadsList = allDownloads.filter((d) => d.dateStr === today);
+    const yesterdayDownloadsList = allDownloads.filter((d) => d.dateStr === yesterday);
+
+    const downloadsCount = Math.max(store.dailyDownloadsMap?.[today] || 0, todayDownloadsList.length);
+    const yesterdayDownloadsCount = Math.max(store.dailyDownloadsMap?.[yesterday] || 0, yesterdayDownloadsList.length);
+    const allTimeDownloadsCount = Math.max(store.cumulativeDownloads || 0, allDownloads.length, downloadsCount);
 
     const breakdownMap: Record<string, { subjectTitle: string; lectureTitle: string; count: number }> = {};
-    for (const dl of todayDownloads) {
+    for (const dl of todayDownloadsList) {
       const key = `${dl.subjectTitle}:::${dl.lectureTitle}`;
       if (!breakdownMap[key]) {
         breakdownMap[key] = {
@@ -1239,13 +1344,13 @@ export const CmsService = {
 
     return {
       date: today,
-      visitors: todayUnique || todayVisitorsList.length,
-      pageViews: todayVisitorsList.length,
-      yesterdayVisitors: yesterdayUnique || yesterdayVisitorsList.length,
-      allTimeVisitors: allVisitors.length,
-      downloads: todayDownloads.length,
-      yesterdayDownloads: yesterdayDownloads.length,
-      allTimeDownloads: allDownloads.length,
+      visitors: visitorsCount,
+      pageViews: Math.max(todayVisitorsList.length, visitorsCount),
+      yesterdayVisitors: yesterdayVisitorsCount,
+      allTimeVisitors: allTimeVisitorsCount,
+      downloads: downloadsCount,
+      yesterdayDownloads: yesterdayDownloadsCount,
+      allTimeDownloads: allTimeDownloadsCount,
       breakdown,
     };
   },
@@ -1263,15 +1368,18 @@ export const CmsService = {
 
     const todayVisitorsList = (store.visitors || []).filter((v) => v.dateStr === today);
     const todayUnique = todayVisitorsList.filter((v) => v.isDailyUnique !== false).length;
-    const todayVisitors = todayUnique || todayVisitorsList.length;
+    const todayVisitors = Math.max(store.dailyVisitorsMap?.[today] || 0, todayUnique, todayVisitorsList.length);
 
-    const todayDownloads = (store.downloads || []).filter((d) => d.dateStr === today).length;
+    const todayDownloads = Math.max(
+      store.dailyDownloadsMap?.[today] || 0,
+      (store.downloads || []).filter((d) => d.dateStr === today).length
+    );
     const pendingReports = (store.brokenLinks || []).filter((r) => r.status === 'pending').length;
 
     return {
-      totalVisitors: (store.visitors || []).length,
+      totalVisitors: Math.max(store.cumulativeVisitors || 0, (store.visitors || []).length, todayVisitors),
       todayVisitors,
-      totalDownloads: (store.downloads || []).length,
+      totalDownloads: Math.max(store.cumulativeDownloads || 0, (store.downloads || []).length, todayDownloads),
       todayDownloads,
       totalLectures: store.lectures.length,
       pendingReports,
@@ -1477,7 +1585,7 @@ export const CmsService = {
   },
 
   async registerStudent(
-    data: { phone: string; name: string; university: string; password: string },
+    data: { phone: string; name: string; university: string; password: string; deviceId?: string; sessionId?: string },
     customToken?: string
   ): Promise<{ success: boolean; student?: StudentUser; message?: string }> {
     const store = await getFreshStore();
@@ -1489,6 +1597,7 @@ export const CmsService = {
       return { success: false, message: 'رقم الهاتف مسجل بالفعل! يرجى تسجيل الدخول أو إدخال رقم هاتف آخر.' };
     }
 
+    const initialDeviceId = data.deviceId ? [data.deviceId.trim()] : [];
     const newStudent: StudentUser = {
       id: `stu-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       phone: cleanPhone,
@@ -1498,6 +1607,8 @@ export const CmsService = {
       createdAt: new Date().toISOString(),
       purchasedLectureIds: [],
       isActive: true,
+      currentSessionId: data.sessionId,
+      knownDevices: initialDeviceId,
     };
 
     store.students.unshift(newStudent);
@@ -1507,21 +1618,109 @@ export const CmsService = {
     return { success: true, student: newStudent };
   },
 
+  async recordStudentLogin(
+    studentId: string,
+    deviceId: string,
+    sessionId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message?: string; student?: StudentUser; code?: string }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    if (!student.knownDevices) {
+      student.knownDevices = [];
+    }
+
+    const cleanDev = (deviceId || '').trim();
+    if (cleanDev) {
+      const isKnown = student.knownDevices.includes(cleanDev);
+      if (!isKnown) {
+        if (student.knownDevices.length >= 5) {
+          return {
+            success: false,
+            code: 'DEVICE_LIMIT_EXCEEDED',
+            message:
+              'عذراً، لقد تجاوزت الحد الأقصى للأجهزة المصرح بها (5 أجهزة). يرجى التواصل مع إدارة المنصة أو الدعم الفني لإعادة تعيين أجهزتك المصرح لها.',
+          };
+        }
+        student.knownDevices.push(cleanDev);
+      }
+    }
+
+    student.currentSessionId = sessionId;
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, student };
+  },
+
+  async resetStudentDevices(
+    studentId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    student.knownDevices = [];
+    student.currentSessionId = undefined;
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return {
+      success: true,
+      message: 'تم تصفير جميع الأجهزة والجلسات المسجلة للطالب بنجاح! يمكنه الآن الدخول من أجهزته الجديدة ✅',
+    };
+  },
+
+  async updateStudentData(
+    studentId: string,
+    updates: { name?: string; phone?: string; university?: string; password?: string },
+    customToken?: string
+  ): Promise<{ success: boolean; message?: string; student?: StudentUser }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    if (updates.name && updates.name.trim()) {
+      student.name = updates.name.trim();
+    }
+    if (updates.phone && updates.phone.trim()) {
+      const cleanPhone = updates.phone.trim();
+      const duplicate = store.students.find(
+        (s) => s.id !== student.id && s.phone === cleanPhone
+      );
+      if (duplicate) {
+        return { success: false, message: 'رقم الهاتف هذا مسجل بالفعل لطالب آخر' };
+      }
+      student.phone = cleanPhone;
+    }
+    if (updates.university && updates.university.trim()) {
+      student.university = updates.university.trim();
+    }
+    if (updates.password && updates.password.trim()) {
+      student.password = updates.password.trim();
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, student };
+  },
+
   async updateStudentPassword(
     studentId: string,
     newPass: string,
     customToken?: string
   ): Promise<boolean> {
-    const store = await getFreshStore();
-    if (!store.students) return false;
-    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
-    if (!student) return false;
-
-    student.password = newPass.trim();
-    memoryStore = store;
-    persistStore(store, customToken);
-    await syncToCloud(store, customToken);
-    return true;
+    const res = await this.updateStudentData(studentId, { password: newPass }, customToken);
+    return res.success;
   },
 
   async toggleStudentLectureAccess(
@@ -1555,7 +1754,23 @@ export const CmsService = {
 
   async deleteStudent(studentId: string, customToken?: string): Promise<boolean> {
     const store = await getFreshStore();
-    if (!store.students) return false;
+    if (!store.students) store.students = [];
+    if (!store.deletedStudentIds) store.deletedStudentIds = [];
+
+    const target = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (target) {
+      if (target.id && !store.deletedStudentIds.includes(target.id)) {
+        store.deletedStudentIds.push(target.id);
+      }
+      if (target.phone && !store.deletedStudentIds.includes(target.phone)) {
+        store.deletedStudentIds.push(target.phone);
+      }
+    } else {
+      if (!store.deletedStudentIds.includes(studentId)) {
+        store.deletedStudentIds.push(studentId);
+      }
+    }
+
     store.students = store.students.filter((s) => s.id !== studentId && s.phone !== studentId);
     memoryStore = store;
     persistStore(store, customToken);

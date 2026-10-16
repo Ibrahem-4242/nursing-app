@@ -267,50 +267,21 @@ export async function sendDailySummary(
   const time = getArabicFormattedDate();
   const dateStr = escapeHtml(info.date || 'اليوم');
 
-  // Format breakdown of subjects and lectures
+  // Format concise breakdown
   let breakdownFormatted = '';
   if (info.breakdown && info.breakdown.length > 0) {
-    const grouped: Record<string, Array<{ lecture: string; count: number }>> = {};
+    const grouped: Record<string, number> = {};
     for (const item of info.breakdown) {
-      if (!grouped[item.subjectTitle]) grouped[item.subjectTitle] = [];
-      grouped[item.subjectTitle].push({ lecture: item.lectureTitle, count: item.downloads });
+      grouped[item.subjectTitle] = (grouped[item.subjectTitle] || 0) + item.downloads;
     }
-
-    // Sort subjects by total downloads descending
-    const sortedSubjects = Object.entries(grouped).sort((a, b) => {
-      const totalA = a[1].reduce((acc, i) => acc + i.count, 0);
-      const totalB = b[1].reduce((acc, i) => acc + i.count, 0);
-      return totalB - totalA;
-    });
-
-    let linesCount = 0;
-    const maxLines = 18; // Safety ceiling to keep message below Telegram's 4096 character limit
-
-    for (const [subject, items] of sortedSubjects) {
-      if (linesCount >= maxLines) {
-        breakdownFormatted += `\n▫️ <i>... وهناك المزيد من المحاضرات الأخرى النشطة</i>\n`;
-        break;
-      }
-      const subjectTotal = items.reduce((acc, i) => acc + i.count, 0);
-      breakdownFormatted += `\n📚 <b>${escapeHtml(subject)}</b> ─ [<code>${subjectTotal}</code> تحميل]:\n`;
-      linesCount++;
-
-      // Sort lectures inside subject
-      items.sort((a, b) => b.count - a.count);
-      for (const it of items) {
-        if (linesCount >= maxLines) {
-          breakdownFormatted += `  ▫️ <i>... ومحاضرات أخرى</i>\n`;
-          break;
-        }
-        breakdownFormatted += `  ▫️ ${escapeHtml(it.lecture)}: <b>${it.count}</b> تحميل\n`;
-        linesCount++;
-      }
-    }
+    const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    breakdownFormatted = sorted
+      .map(([subj, count]) => `• ${escapeHtml(subj)}: <b>${count}</b> تحميل`)
+      .join('\n');
   } else {
-    breakdownFormatted = '\n▫️ <i>لا توجد عمليات تحميل مسجلة اليوم حتى الآن.</i>\n';
+    breakdownFormatted = '• لا توجد تحميلات مسجلة اليوم حتى الآن';
   }
 
-  // Growth / trend indicators
   const todayVis = info.totalVisitors || 0;
   const yestVis = info.yesterdayVisitors ?? 0;
   let visTrend = '';
@@ -318,7 +289,6 @@ export async function sendDailySummary(
     const diff = todayVis - yestVis;
     if (diff > 0) visTrend = ` (📈 +${diff})`;
     else if (diff < 0) visTrend = ` (📉 ${diff})`;
-    else visTrend = ` (⚖️ متساوي)`;
   }
 
   const todayDl = info.totalDownloads || 0;
@@ -328,38 +298,31 @@ export async function sendDailySummary(
     const diff = todayDl - yestDl;
     if (diff > 0) dlTrend = ` (📈 +${diff})`;
     else if (diff < 0) dlTrend = ` (📉 ${diff})`;
-    else dlTrend = ` (⚖️ متساوي)`;
   }
 
-  const text = `╔═══════════════════════╗
-   📊 <b>تقرير إحصائيات منصة ملخصات تمريض</b> 🩺
-╚═══════════════════════╝
+  const text = `📊 <b>إحصائيات منصة ملخصات تمريض</b> 🩺
+
 📅 <b>التاريخ:</b> ${dateStr}
-⏰ <b>وقت التقرير:</b> ${time} (توقيت مصر 🇪🇬)
-🌐 <b>الرابط المعتمد:</b> https://www.nursingsum.live/
-━━━━━━━━━━━━━━━━━━━━
+⏰ <b>الوقت:</b> ${time}
 
-👥 <b>حركة الزوار وتفاعل الطلاب (Traffic):</b>
-┌ 👤 <b>زوار اليوم (الفريدين):</b> <code>${todayVis}</code> زائر${visTrend}
-├ 👁️ <b>مشاهدات الصفحات اليوم:</b> <code>${info.pageViews || todayVis}</code> مشاهدة
-├ 🔄 <b>زوار الأمس:</b> <code>${yestVis}</code> زائر
-└ 🌐 <b>إجمالي الزوار الكلي:</b> <code>${info.allTimeVisitors ?? 0}</code> زائر تراكمي
+👥 <b>الزوار:</b>
+• زوار اليوم: <b>${todayVis}</b> زائر${visTrend}
+• زوار الأمس: <b>${yestVis}</b> زائر
+• إجمالي الزوار التراكمي: <b>${info.allTimeVisitors ?? todayVis}</b>
 
-📥 <b>نشاط تحميل المذكرات والملخصات (Downloads):</b>
-┌ ⚡ <b>تحميلات اليوم:</b> <code>${todayDl}</code> ملف${dlTrend}
-├ ⏳ <b>تحميلات الأمس:</b> <code>${yestDl}</code> ملف
-└ 📦 <b>إجمالي التحميلات التراكمي:</b> <code>${info.allTimeDownloads ?? 0}</code> عملية تحميل
+📥 <b>التحميلات:</b>
+• تحميلات اليوم: <b>${todayDl}</b> ملف${dlTrend}
+• تحميلات الأمس: <b>${yestDl}</b> ملف
+• إجمالي التحميلات التراكمي: <b>${info.allTimeDownloads ?? todayDl}</b>
 
-📚 <b>تفصيل التحميلات حسب المواد والمحاضرات:</b>
-${breakdownFormatted}
-━━━━━━━━━━━━━━━━━━━━
-💡 <i>أرسل كلمة <b>احصائيات</b> في أي وقت لتحديث هذه الأرقام مباشرة 🚀</i>`;
+📚 <b>أبرز المواد تحميلاً اليوم:</b>
+${breakdownFormatted}`;
 
   const inlineKeyboard = {
     inline_keyboard: [
       [
-        { text: '🔄 تحديث الإحصائيات الآن', callback_data: 'refresh_stats' },
-        { text: '🌐 فتح المنصة المباشرة', url: 'https://www.nursingsum.live/' },
+        { text: '🔄 تحديث الإحصائيات', callback_data: 'refresh_stats' },
+        { text: '🌐 فتح المنصة', url: 'https://www.nursingsum.live/' },
       ],
     ],
   };

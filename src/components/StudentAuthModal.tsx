@@ -150,8 +150,11 @@ export default function StudentAuthModal() {
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="اكتب اسمك ثلاثي أو رباعي..."
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[0-9\u0660-\u0669\u06F0-\u06F9]/g, '');
+                      setName(clean);
+                    }}
+                    placeholder="اكتب اسمك ثلاثي أو رباعي (حروف فقط بدون أرقام)..."
                     className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   />
                 </div>
@@ -186,8 +189,14 @@ export default function StudentAuthModal() {
                 type="tel"
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="مثال: 01012345678"
+                onChange={(e) => {
+                  const clean = e.target.value
+                    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632))
+                    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 1776))
+                    .replace(/[^0-9]/g, '');
+                  setPhone(clean);
+                }}
+                placeholder="أرقام فقط (مثال: 01012345678)"
                 className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
               />
             </div>

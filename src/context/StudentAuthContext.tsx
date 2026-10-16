@@ -20,6 +20,20 @@ interface StudentAuthContextType {
 
 const StudentAuthContext = createContext<StudentAuthContextType | undefined>(undefined);
 
+function getOrCreateDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    let id = localStorage.getItem('nursing_device_id');
+    if (!id) {
+      id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('nursing_device_id', id);
+    }
+    return id;
+  } catch {
+    return 'dev_unknown';
+  }
+}
+
 export function StudentAuthProvider({ children }: { children: React.ReactNode }) {
   const [student, setStudent] = useState<StudentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +44,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     try {
       const res = await fetch('/api/student/auth', { cache: 'no-store' });
       const data = await res.json();
+      if (data && data.sessionTerminated) {
+        setStudent(null);
+        alert(data.message || 'تم إنهاء الجلسة لأن حسابك فُتح من جهاز آخر 🔒');
+        return;
+      }
       if (data && data.success && data.loggedIn && data.student) {
         setStudent(data.student);
       } else {
@@ -49,10 +68,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   const login = async (phone: string, pass: string) => {
     try {
+      const deviceId = getOrCreateDeviceId();
       const res = await fetch('/api/student/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'login', phone, password: pass }),
+        body: JSON.stringify({ action: 'login', phone, password: pass, deviceId }),
       });
       const data = await res.json();
       if (data && data.success && data.student) {
@@ -68,10 +88,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   const register = async (phone: string, name: string, university: string, pass: string) => {
     try {
+      const deviceId = getOrCreateDeviceId();
       const res = await fetch('/api/student/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', phone, name, university, password: pass }),
+        body: JSON.stringify({ action: 'register', phone, name, university, password: pass, deviceId }),
       });
       const data = await res.json();
       if (data && data.success && data.student) {

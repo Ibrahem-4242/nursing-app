@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     // 1. REGISTER NEW STUDENT
     if (action === 'register') {
-      const { phone, name, university, password } = body;
+      const { phone, name, university, password, deviceId } = body;
 
       if (!phone || !name || !university || !password) {
         return NextResponse.json(
@@ -23,10 +23,23 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const cleanPhone = String(phone).trim().replace(/\s+/g, '');
-      if (cleanPhone.length < 8) {
+      // STRICT VALIDATION: Name CANNOT contain any numbers
+      if (/[0-9\u0660-\u0669\u06F0-\u06F9]/.test(String(name))) {
         return NextResponse.json(
-          { success: false, message: 'يرجى إدخال رقم هاتف صحيح' },
+          { success: false, message: 'الاسم بالكامل يجب أن يحتوي على حروف فقط وبدون أي أرقام' },
+          { status: 400 }
+        );
+      }
+
+      // STRICT VALIDATION: Phone CANNOT contain any letters
+      let cleanPhone = String(phone).trim();
+      cleanPhone = cleanPhone.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+      cleanPhone = cleanPhone.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+      cleanPhone = cleanPhone.replace(/\s+/g, '');
+
+      if (!/^[0-9]{10,15}$/.test(cleanPhone)) {
+        return NextResponse.json(
+          { success: false, message: 'رقم الهاتف يجب أن يحتوي على أرقام فقط وبدون أي حروف (مثال: 01xxxxxxxxx)' },
           { status: 400 }
         );
       }
@@ -38,11 +51,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+      const cleanDeviceId = (deviceId || '').trim();
+
       const result = await CmsService.registerStudent({
         phone: cleanPhone,
         name: String(name).trim(),
         university: String(university).trim(),
         password: String(password).trim(),
+        deviceId: cleanDeviceId,
+        sessionId,
       });
 
       if (!result.success || !result.student) {
@@ -52,7 +70,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Set cookie session (lasts 1 year)
+      // Set cookie session with studentId:::sessionId (lasts 1 year)
       const res = NextResponse.json({
         success: true,
         message: 'تم إنشاء حسابك بنجاح! مرحباً بك في منصة ملخصات تمريض 🩺',
@@ -65,7 +83,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      res.cookies.set(STUDENT_COOKIE_NAME, result.student.id, {
+      res.cookies.set(STUDENT_COOKIE_NAME, `${result.student.id}:::${sessionId}`, {
         path: '/',
         maxAge: 365 * 24 * 60 * 60,
         sameSite: 'lax',
@@ -76,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // 2. LOGIN STUDENT
     if (action === 'login') {
-      const { phone, password } = body;
+      const { phone, password, deviceId } = body;
 
       if (!phone || !password) {
         return NextResponse.json(
@@ -85,7 +103,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const cleanPhone = String(phone).trim().replace(/\s+/g, '');
+      let cleanPhone = String(phone).trim();
+      cleanPhone = cleanPhone.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+      cleanPhone = cleanPhone.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+      cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
+
       const student = await CmsService.getStudentByPhone(cleanPhone);
 
       if (!student) {
@@ -102,6 +124,22 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+      const cleanDeviceId = (deviceId || '').trim();
+
+      // Check 5 devices lifetime limit and set single active session ID
+      const record = await CmsService.recordStudentLogin(student.id, cleanDeviceId, sessionId);
+      if (!record.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: record.code || 'DEVICE_ERROR',
+            message: record.message || 'فشل تسجيل الدخول',
+          },
+          { status: 403 }
+        );
+      }
+
       const res = NextResponse.json({
         success: true,
         message: `أهلاً بك يا ${student.name}! تم تسجيل الدخول بنجاح 🎓`,
@@ -114,7 +152,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      res.cookies.set(STUDENT_COOKIE_NAME, student.id, {
+      res.cookies.set(STUDENT_COOKIE_NAME, `${student.id}:::${sessionId}`, {
         path: '/',
         maxAge: 365 * 24 * 60 * 60,
         sameSite: 'lax',
@@ -143,15 +181,37 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const cookieStore = cookies();
-    const studentId = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
 
+    if (!rawVal) {
+      return NextResponse.json({ success: true, loggedIn: false, student: null });
+    }
+
+    // Split studentId and sessionId
+    const [studentId, sessionId] = rawVal.split(':::');
     if (!studentId) {
       return NextResponse.json({ success: true, loggedIn: false, student: null });
     }
 
     const student = await CmsService.getStudentById(studentId);
     if (!student) {
-      return NextResponse.json({ success: true, loggedIn: false, student: null });
+      const res = NextResponse.json({ success: true, loggedIn: false, student: null });
+      res.cookies.delete(STUDENT_COOKIE_NAME);
+      return res;
+    }
+
+    // SINGLE ACTIVE DEVICE CONCURRENT SESSION CHECK:
+    // If student has a currentSessionId and our session doesn't match it,
+    // another device has logged in! Immediately terminate this session!
+    if (student.currentSessionId && sessionId && student.currentSessionId !== sessionId) {
+      const res = NextResponse.json({
+        success: false,
+        loggedIn: false,
+        sessionTerminated: true,
+        message: 'تم فتح حسابك من جهاز آخر، وتم إنهاء هذه الجلسة تلقائياً للحفاظ على خصوصيتك وأمان حسابك 🔒',
+      });
+      res.cookies.delete(STUDENT_COOKIE_NAME);
+      return res;
     }
 
     return NextResponse.json({
@@ -163,6 +223,7 @@ export async function GET() {
         name: student.name,
         university: student.university,
         purchasedLectureIds: student.purchasedLectureIds || [],
+        knownDevicesCount: student.knownDevices?.length || 1,
       },
     });
   } catch (err: any) {

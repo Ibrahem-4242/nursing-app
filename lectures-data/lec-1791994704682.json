@@ -377,11 +377,11 @@
       "type": "pdf",
       "title": "المحاضرة الرابعة",
       "fileSize": "694 KB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791997202149-s6074e_اناتومي__المحاضرة_الرابعة___Pdf_.pdf",
+      "downloadUrl": "/api/files/1791997202149-s6074e_اناتومي__المحاضرة_الرابعة___Pdf_.pdf",
       "pageCount": "ملف PDF معتمد",
       "updatedAt": "الأربعاء، ١٤ أكتوب�� ٢٠٢٦ في ٨:٠٠ م",
       "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة",
-      "fileUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791997202149-s6074e_اناتومي__المحاضرة_الرابعة___Pdf_.pdf"
+      "fileUrl": "/api/files/1791997202149-s6074e_اناتومي__المحاضرة_الرابعة___Pdf_.pdf"
     },
     {
       "type": "ppt",
@@ -407,11 +407,11 @@
       "type": "audio",
       "title": "التسجيل الصوتي للشرح - المحاضرة الرابعة",
       "fileSize": "21.2 MB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791994664817-kk4bi3_اناتومي__المحاضرة_الرابعة___صوت_.mp3",
+      "downloadUrl": "/api/files/1791994664817-kk4bi3_اناتومي__المحاضرة_الرابعة___صوت_.mp3",
       "pageCount": "ريكورد شرح المحاضرة 🎧",
       "updatedAt": "الأربعاء، ١٤ أكتوبر ٢٠٢٦ في ٨:٠٠ م",
       "customNote": "تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل",
-      "fileUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791994664817-kk4bi3_اناتومي__المحاضرة_الرابعة___صوت_.mp3"
+      "fileUrl": "/api/files/1791994664817-kk4bi3_اناتومي__المحاضرة_الرابعة___صوت_.mp3"
     }
   ],
   "adminNote": "تأ��د من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة.",

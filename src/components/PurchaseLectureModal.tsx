@@ -238,31 +238,45 @@ export default function PurchaseLectureModal({
                 الرقم اللي حوّلت منه (المحفظة) *:
               </label>
               <div className="relative">
-                <Phone className="absolute right-3.5 top-3 w-4 h-4 text-slate-400" />
+                <Phone className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
                 <input
                   type="tel"
                   required
+                  dir="ltr"
                   value={senderPhone}
-                  onChange={(e) => setSenderPhone(e.target.value)}
-                  placeholder="مثال: 010xxxxxxxx"
-                  className="w-full pr-10 pl-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  onChange={(e) => {
+                    const clean = e.target.value
+                      .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632))
+                      .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 1776))
+                      .replace(/[^0-9]/g, '');
+                    setSenderPhone(clean);
+                  }}
+                  placeholder="01xxxxxxxxx"
+                  className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none text-left"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                رقم للتواصل (لو حصلت مشاكل) *:
+                اكتب رقمك الشخصي *:
               </label>
               <div className="relative">
-                <Phone className="absolute right-3.5 top-3 w-4 h-4 text-slate-400" />
+                <Phone className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
                 <input
                   type="tel"
                   required
+                  dir="ltr"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="رقمك للتواصل والواتساب..."
-                  className="w-full pr-10 pl-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  onChange={(e) => {
+                    const clean = e.target.value
+                      .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632))
+                      .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 1776))
+                      .replace(/[^0-9]/g, '');
+                    setContactPhone(clean);
+                  }}
+                  placeholder="01xxxxxxxxx"
+                  className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none text-left"
                 />
               </div>
             </div>

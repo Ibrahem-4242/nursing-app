@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUploadedPdf } from '@/lib/file-storage';
+import { getUploadedPdfAsync } from '@/lib/file-storage';
 import { CmsService } from '@/lib/cms-db';
 import { cookies } from 'next/headers';
 
@@ -27,7 +27,7 @@ export async function GET(
     }
 
     const fileId = decodeURIComponent(params.fileId);
-    const file = getUploadedPdf(fileId);
+    const file = await getUploadedPdfAsync(fileId);
 
     if (!file) {
       return new NextResponse('File Not Found', { status: 404 });

@@ -51,6 +51,57 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 2. UPDATE FULL STUDENT DATA (NAME, PHONE, UNIVERSITY, PASSWORD)
+    if (action === 'update_student') {
+      const { name, phone, university, password } = body;
+
+      if (name && /[0-9\u0660-\u0669\u06F0-\u06F9]/.test(String(name))) {
+        return NextResponse.json(
+          { success: false, message: 'اسم الطالب يجب أن يحتوي على حروف فقط وبدون أي أرقام' },
+          { status: 400 }
+        );
+      }
+
+      let cleanPhone = phone ? String(phone).trim() : undefined;
+      if (cleanPhone) {
+        cleanPhone = cleanPhone.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+        cleanPhone = cleanPhone.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+        cleanPhone = cleanPhone.replace(/\s+/g, '');
+        if (!/^[0-9]{10,15}$/.test(cleanPhone)) {
+          return NextResponse.json(
+            { success: false, message: 'رقم الهاتف يجب أن يحتوي على أرقام فقط وبدون أي حروف (مثال: 01xxxxxxxxx)' },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (password && String(password).trim().length < 4) {
+        return NextResponse.json(
+          { success: false, message: 'يجب ألا يقل الباسورد عن 4 أحرف أو أرقام' },
+          { status: 400 }
+        );
+      }
+
+      const res = await CmsService.updateStudentData(studentId, {
+        name: name ? String(name).trim() : undefined,
+        phone: cleanPhone,
+        university: university ? String(university).trim() : undefined,
+        password: password ? String(password).trim() : undefined,
+      });
+
+      return NextResponse.json({
+        success: res.success,
+        message: res.success ? 'تم تحديث بيانات الطالب بنجاح! ✅' : (res.message || 'فشل تحديث البيانات'),
+        student: res.student,
+      });
+    }
+
+    // 3. RESET DEVICES
+    if (action === 'reset_devices') {
+      const res = await CmsService.resetStudentDevices(studentId);
+      return NextResponse.json(res);
+    }
+
     // 2. TOGGLE LECTURE ACCESS (GRANT OR REVOKE)
     if (action === 'toggle_lecture') {
       if (!lectureId) {

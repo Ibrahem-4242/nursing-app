@@ -57,7 +57,7 @@
     {
       "id": 6,
       "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
-      "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
+      "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموي��), and Chemical mediators (الوسائط الكيميائية).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -78,8 +78,8 @@
     {
       "id": 9,
       "front": "What factor produces Swelling (التورم) during acute inflammation?",
-      "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح السائلي الالتهابي).",
-      "category": "كروت استذكا��",
+      "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح ا��سائلي الالتهابي).",
+      "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -161,7 +161,7 @@
     },
     {
       "id": 21,
-      "front": "What enzyme-mediated process occurs inside the Phagolysosome (الفجوة البلعمية الليزوسومية)?",
+      "front": "What enzyme-mediated process occurs inside the Phagolysosome (الفجوة البلعمية الليزوس��مية)?",
       "back": "Lysosomal enzymes execute the Digestion (الهضم) and destruction of the ingested material inside the phagolysosome.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -287,7 +287,7 @@
     },
     {
       "id": 39,
-      "front": "What does Leukocytosis (زيادة خلايا الدم ال��يضاء) signify during an inflammatory response?",
+      "front": "What does Leukocytosis (زيادة خلايا الدم البيضاء) signify during an inflammatory response?",
       "back": "Leukocytosis signifies an increased total number of circulating white blood cells in the bloodstream.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -325,7 +325,7 @@
       "front": "What defines Hypersensitivity (فرط الحساسية) in the context of inflammatory cell response?",
       "back": "Hypersensitivity is an exaggerated and damaging response of inflammatory cells to an antigen or stimulus.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض وا��التهاب (Pathology & Inflammation)"
     },
     {
       "id": 45,

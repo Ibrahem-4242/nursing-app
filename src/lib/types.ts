@@ -227,6 +227,8 @@ export interface StudentUser {
   purchasedLectureIds: string[];
   isActive?: boolean;
   notes?: string;
+  currentSessionId?: string;
+  knownDevices?: string[];
 }
 
 export interface PurchaseOrder {

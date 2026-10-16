@@ -109,11 +109,12 @@ export async function saveUploadedFile(
   try {
     const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
     const token = customToken || process.env.GITHUB_SYNC_TOKEN || builtinToken;
+    const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
 
     if (token && bytes.length < 25 * 1024 * 1024) {
       const base64Content = buffer.toString('base64');
       const ghRes = await fetch(
-        `https://api.github.com/repos/Ibrahem-4242/nursing-app/contents/public/uploads/${encodeURIComponent(safeName)}`,
+        `https://api.github.com/repos/${repo}/contents/public/uploads/${encodeURIComponent(safeName)}`,
         {
           method: 'PUT',
           headers: {
@@ -129,14 +130,10 @@ export async function saveUploadedFile(
       );
 
       if (ghRes.ok) {
-        const ghData = await ghRes.json();
-        const rawUrl =
-          ghData.content?.download_url ||
-          `https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/${encodeURIComponent(safeName)}`;
-
+        // ALWAYS return internal masked proxy URL - Never expose GitHub repo to users or inspect element!
         return {
           fileId: safeName,
-          url: rawUrl,
+          url: `/api/files/${encodeURIComponent(safeName)}`,
           sizeFormatted,
         };
       }
@@ -180,6 +177,20 @@ export function getUploadedFile(fileId: string): { buffer: Buffer; filename: str
     return globalFileStorage.get(safeName)!;
   }
 
+  // 2. Check public/uploads (local repo directory)
+  try {
+    const pubPath = path.join(process.cwd(), 'public', 'uploads', safeName);
+    if (fs.existsSync(pubPath)) {
+      const buffer = fs.readFileSync(pubPath);
+      const originalName = safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'file';
+      const ext = path.extname(originalName).toLowerCase();
+      const contentType = getContentTypeForExt(ext);
+      const item = { buffer, filename: originalName, contentType };
+      globalFileStorage.set(safeName, item);
+      return item;
+    }
+  } catch {}
+
   const dir = getUploadsDirectory();
   const filePath = path.join(dir, safeName);
 
@@ -204,13 +215,71 @@ export function getUploadedFile(fileId: string): { buffer: Buffer; filename: str
   const originalName = safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'file';
   const ext = path.extname(originalName).toLowerCase();
   const contentType = getContentTypeForExt(ext);
+  const result = { buffer, filename: originalName, contentType };
+  globalFileStorage.set(safeName, result);
 
-  return {
-    buffer,
-    filename: originalName,
-    contentType,
-  };
+  return result;
 }
 
 // Backward compatibility alias
 export const getUploadedPdf = getUploadedFile;
+
+export async function getUploadedFileAsync(
+  fileId: string
+): Promise<{ buffer: Buffer; filename: string; contentType: string } | null> {
+  // 1. Try local memory / disk / public folder first
+  const local = getUploadedFile(fileId);
+  if (local) return local;
+
+  const safeName = path.basename(fileId);
+  const originalName = safeName.replace(/^[0-9]+-[a-z0-9]+_/, '') || 'file';
+  const ext = path.extname(originalName).toLowerCase();
+  const contentType = getContentTypeForExt(ext);
+
+  // 2. Fetch from GitHub repository server-side (invisible to client/inspect)
+  try {
+    const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
+    const token = process.env.GITHUB_SYNC_TOKEN || builtinToken;
+    const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
+
+    // Fetch raw content with auth token (works for both public and private repos)
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeName)}`;
+    const headers: Record<string, string> = {
+      'User-Agent': 'NursingStudyHubApp',
+    };
+    if (token) {
+      headers['Authorization'] = `token ${token}`;
+    }
+
+    const res = await fetch(rawUrl, {
+      headers,
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const arrayBuf = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+      const result = { buffer, filename: originalName, contentType };
+      globalFileStorage.set(safeName, result);
+
+      // Best effort caching to local tmp
+      try {
+        const tmpPath = path.join('/tmp', 'nursing-uploads', safeName);
+        const tmpDir = path.dirname(tmpPath);
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        fs.writeFileSync(tmpPath, buffer);
+      } catch {}
+
+      return result;
+    }
+  } catch (err) {
+    console.warn('[Storage] Server-side GitHub fetch fallback error:', err);
+  }
+
+  return null;
+}
+
+export const getUploadedPdfAsync = getUploadedFileAsync;
+

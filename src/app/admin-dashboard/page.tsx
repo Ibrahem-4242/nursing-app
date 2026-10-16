@@ -42,6 +42,9 @@ import {
   ShieldAlert,
   Smartphone,
   School,
+  UserCheck,
+  Presentation,
+  Network,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
@@ -300,6 +303,12 @@ export default function AdminDashboardPage() {
   const [selectedStudentForPassword, setSelectedStudentForPassword] = useState<StudentUser | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<StudentUser | null>(null);
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editStudentPhone, setEditStudentPhone] = useState('');
+  const [editStudentUniversity, setEditStudentUniversity] = useState('');
+  const [editStudentPassword, setEditStudentPassword] = useState('');
+  const [isUpdatingStudent, setIsUpdatingStudent] = useState(false);
   const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
   const [lectureGrantSearch, setLectureGrantSearch] = useState('');
 
@@ -375,54 +384,59 @@ export default function AdminDashboardPage() {
   const uploadFileDirectlyToCloud = async (
     targetFile: File
   ): Promise<{ url: string; sizeFormatted: string } | null> => {
-    const fallbackToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
-    const activeToken =
-      (typeof window !== 'undefined' && localStorage.getItem('nursing_sync_token')) ||
-      syncToken ||
-      serverCloudToken ||
-      fallbackToken;
-    if (!activeToken) return null;
+    try {
+      const configRes = await fetch('/api/admin/cloud-config');
+      if (!configRes.ok) return null;
+      const configData = await configRes.json();
+      if (!configData?.uploadBaseUrl) return null;
 
-    const sizeKb = Math.round(targetFile.size / 1024);
-    const sizeFormatted =
-      sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+      const activeToken =
+        (typeof window !== 'undefined' && localStorage.getItem('nursing_sync_token')) ||
+        syncToken ||
+        serverCloudToken ||
+        configData.token;
+      if (!activeToken) return null;
 
-    const base64Content = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const res = String(reader.result || '');
-        const commaIdx = res.indexOf(',');
-        resolve(commaIdx >= 0 ? res.slice(commaIdx + 1) : res);
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(targetFile);
-    });
+      const sizeKb = Math.round(targetFile.size / 1024);
+      const sizeFormatted =
+        sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
 
-    const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    const cleanFilename = targetFile.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
-    const safeName = `${fileId}_${cleanFilename}`;
+      const base64Content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = String(reader.result || '');
+          const commaIdx = res.indexOf(',');
+          resolve(commaIdx >= 0 ? res.slice(commaIdx + 1) : res);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(targetFile);
+      });
 
-    const ghRes = await fetch(
-      `https://api.github.com/repos/Ibrahem-4242/nursing-app/contents/public/uploads/${encodeURIComponent(safeName)}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `token ${activeToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: `Upload ${cleanFilename} via admin direct cloud`,
-          content: base64Content,
-        }),
+      const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      const cleanFilename = targetFile.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+      const safeName = `${fileId}_${cleanFilename}`;
+
+      const ghRes = await fetch(
+        `${configData.uploadBaseUrl}${encodeURIComponent(safeName)}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${activeToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: `Upload ${cleanFilename} via admin direct cloud`,
+            content: base64Content,
+          }),
+        }
+      );
+
+      if (ghRes.ok) {
+        // ALWAYS return internal masked proxy URL - Never expose GitHub repo to users or inspect element!
+        return { url: `/api/files/${encodeURIComponent(safeName)}`, sizeFormatted };
       }
-    );
-
-    if (ghRes.ok) {
-      const ghData = await ghRes.json();
-      const rawUrl =
-        ghData.content?.download_url ||
-        `https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/${encodeURIComponent(safeName)}`;
-      return { url: rawUrl, sizeFormatted };
+    } catch (err) {
+      console.warn('[DirectCloudUpload] Error:', err);
     }
     return null;
   };
@@ -579,6 +593,83 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleUpdateStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForEdit) return;
+
+    if (!editStudentName.trim()) {
+      alert('اسم الطالب مطلوب');
+      return;
+    }
+    if (/[0-9\u0660-\u0669\u06F0-\u06F9]/.test(editStudentName)) {
+      alert('اسم الطالب يجب أن يحتوي على حروف فقط وبدون أي أرقام');
+      return;
+    }
+
+    let cleanPhone = editStudentPhone.trim()
+      .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632))
+      .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 1776))
+      .replace(/[^0-9]/g, '');
+
+    if (!/^[0-9]{10,15}$/.test(cleanPhone)) {
+      alert('رقم الهاتف يجب أن يحتوي على أرقام فقط (مثال: 01xxxxxxxxx)');
+      return;
+    }
+
+    if (editStudentPassword.trim() && editStudentPassword.trim().length < 4) {
+      alert('كلمة المرور يجب أن تكون 4 أحرف أو أرقام على الأقل');
+      return;
+    }
+
+    setIsUpdatingStudent(true);
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          action: 'update_student',
+          studentId: selectedStudentForEdit.id,
+          name: editStudentName.trim(),
+          phone: cleanPhone,
+          university: editStudentUniversity.trim(),
+          password: editStudentPassword.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم تحديث بيانات الطالب بنجاح! ✅');
+        setSelectedStudentForEdit(null);
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل تحديث بيانات الطالب');
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء تحديث بيانات الطالب: ' + e?.message);
+    } finally {
+      setIsUpdatingStudent(false);
+    }
+  };
+
+  const handleResetStudentDevices = async (studentId: string, studentName: string) => {
+    if (!confirm(`هل أنت متأكد من تصفير جميع الأجهزة المسجلة للطالب "${studentName}"؟ سيتمكن من تسجيل الدخول من أجهزة جديدة فوراً.`)) return;
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'reset_devices', studentId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم تصفير الأجهزة بنجاح! 🔄');
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل تصفير الأجهزة');
+      }
+    } catch (err: any) {
+      alert('حدث خطأ: ' + err?.message);
+    }
+  };
+
   const handleToggleStudentLecture = async (studentId: string, lectureId: string, grant: boolean) => {
     try {
       const res = await fetch('/api/admin/students', {
@@ -623,6 +714,8 @@ export default function AdminDashboardPage() {
 
   const handleDeleteStudent = async (studentId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الطالب وجميع بياناته؟ سيتم إلغاء وصوله لجميع المحاضرات.')) return;
+    // Optimistic UI removal
+    setStudents((prev) => prev.filter((s) => s.id !== studentId && s.phone !== studentId));
     try {
       const res = await fetch('/api/admin/students', {
         method: 'POST',
@@ -631,13 +724,14 @@ export default function AdminDashboardPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('تم حذف حساب الطالب بنجاح');
         loadStudents();
       } else {
         alert(data.message || 'فشل حذف الطالب');
+        loadStudents();
       }
     } catch (e: any) {
       alert('خطأ: ' + e?.message);
+      loadStudents();
     }
   };
 
@@ -2070,16 +2164,46 @@ export default function AdminDashboardPage() {
 
   // 1-Click Toggle Open 🎁 vs Locked 🔒
   const handleToggleFree = async (id: string, currentIsFree: boolean) => {
+    const targetLec = lectures.find((l) => l.id === id);
+    let priceToSend: number | undefined = undefined;
+
+    if (currentIsFree) {
+      // The lecture was free, and the admin is clicking to LOCK it (make it paid)
+      const currentPrice = targetLec?.price && targetLec.price > 0 ? String(targetLec.price) : '50';
+      const promptVal = window.prompt(
+        `🔒 أنت الآن تقوم بقفل المحاضرة (${targetLec?.title || ''}) لتصبح مدفوعة باشتراك.\n\nمن فضلك اكتب سعر المحاضرة بالجنيه المصري (مثال: 50):`,
+        currentPrice
+      );
+      if (promptVal === null) {
+        // Admin clicked cancel -> do not change status
+        return;
+      }
+      const parsedNum = parseInt(promptVal.trim(), 10);
+      priceToSend = isNaN(parsedNum) || parsedNum <= 0 ? 50 : parsedNum;
+    }
+
     // Optimistic UI update
     setLectures((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, isFree: !currentIsFree } : l))
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              isFree: !currentIsFree,
+              price: currentIsFree ? priceToSend : l.price,
+            }
+          : l
+      )
     );
 
     try {
       const res = await fetch('/api/admin/lectures', {
         method: 'PATCH',
         headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ id, isFree: !currentIsFree }),
+        body: JSON.stringify({
+          id,
+          isFree: !currentIsFree,
+          ...(priceToSend !== undefined ? { price: priceToSend } : {}),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -3879,7 +4003,7 @@ export default function AdminDashboardPage() {
                           (f: any) => (f.type === 'questions' || f.fileType === 'questions') && (f.downloadUrl || f.fileUrl) && (f.downloadUrl || f.fileUrl) !== '#'
                         );
                         return (
-                          <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                          <tr key={lec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                             <td className="py-3.5 px-4 font-bold text-teal-600">#{lec.lectureNumber}</td>
                             <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
                               <div className="flex items-center gap-2">
@@ -4744,7 +4868,7 @@ export default function AdminDashboardPage() {
                         const count = lectures.filter((l) => l.subjectId === sub.id).length;
                         const subSem = sub.semester || '1';
                         return (
-                          <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                          <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                             <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
                               {sub.title}
                             </td>
@@ -5262,6 +5386,303 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
+                {/* Additional Multimedia Attachments for Quiz (PPT, Audio, Mindmap, Flashcards) */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-750 dark:border-slate-800 space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+                    <span className="text-base">📦</span>
+                    <h4 className="text-xs sm:text-sm font-black text-white">
+                      مرفقات إضافية للكويز (باوربوينت، تسجيل صوتي، خريطة ذهنية، فلاش كاردز):
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* PowerPoint */}
+                    <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <Presentation className="w-4 h-4" />
+                          <span>عرض بوربوينت (PPTX):</span>
+                        </label>
+                        <div className="flex rounded-lg bg-slate-900 p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setQuizPptUploadMode('file')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizPptUploadMode === 'file' ? 'bg-amber-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            ملف
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuizPptUploadMode('link')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizPptUploadMode === 'link' ? 'bg-amber-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            رابط Drive
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={quizPptTitle}
+                        onChange={(e) => setQuizPptTitle(e.target.value)}
+                        placeholder="عنوان الباوربوينت (اختياري)..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      />
+
+                      {quizPptUploadMode === 'file' ? (
+                        <div>
+                          <input
+                            type="file"
+                            id="quiz-ppt-file-input"
+                            accept=".ppt,.pptx"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setQuizPptFile(e.target.files[0]);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('quiz-ppt-file-input')?.click()}
+                            className={`w-full py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              quizPptFile
+                                ? 'bg-amber-600 text-white border-amber-600'
+                                : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-500'
+                            }`}
+                          >
+                            {quizPptFile ? `تم اختيار: ${quizPptFile.name.slice(0, 20)}` : 'اختر ملف PPTX'}
+                          </button>
+                          {quizPptFile && (
+                            <button
+                              type="button"
+                              onClick={() => setQuizPptFile(null)}
+                              className="text-[10px] text-rose-400 hover:underline block text-center w-full mt-1"
+                            >
+                              إلغاء الملف
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="url"
+                          value={quizPptDriveUrl}
+                          onChange={(e) => setQuizPptDriveUrl(e.target.value)}
+                          placeholder="رابط Google Drive للباوربوينت..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono"
+                        />
+                      )}
+                    </div>
+
+                    {/* Audio Recording */}
+                    <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                          <Headphones className="w-4 h-4" />
+                          <span>تسجيل صوتي (ريكورد MP3):</span>
+                        </label>
+                        <div className="flex rounded-lg bg-slate-900 p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setQuizAudioUploadMode('file')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizAudioUploadMode === 'file' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            ملف
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuizAudioUploadMode('link')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizAudioUploadMode === 'link' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            رابط Drive
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={quizAudioTitle}
+                        onChange={(e) => setQuizAudioTitle(e.target.value)}
+                        placeholder="عنوان التسجيل الصوتي (اختياري)..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      />
+
+                      {quizAudioUploadMode === 'file' ? (
+                        <div>
+                          <input
+                            type="file"
+                            id="quiz-audio-file-input"
+                            accept="audio/*,.mp3,.m4a,.wav,.ogg"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setQuizAudioFile(e.target.files[0]);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('quiz-audio-file-input')?.click()}
+                            className={`w-full py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              quizAudioFile
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-indigo-500'
+                            }`}
+                          >
+                            {quizAudioFile ? `تم اختيار: ${quizAudioFile.name.slice(0, 20)}` : 'اختر ملف صوتي MP3'}
+                          </button>
+                          {quizAudioFile && (
+                            <button
+                              type="button"
+                              onClick={() => setQuizAudioFile(null)}
+                              className="text-[10px] text-rose-400 hover:underline block text-center w-full mt-1"
+                            >
+                              إلغاء الملف الصوتي
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="url"
+                          value={quizAudioDriveUrl}
+                          onChange={(e) => setQuizAudioDriveUrl(e.target.value)}
+                          placeholder="رابط Google Drive للملف الصوتي..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono"
+                        />
+                      )}
+                    </div>
+
+                    {/* Mindmap */}
+                    <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                          <Network className="w-4 h-4" />
+                          <span>خريطة ذهنية (Mindmap):</span>
+                        </label>
+                        <div className="flex rounded-lg bg-slate-900 p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setQuizMindmapUploadMode('file')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizMindmapUploadMode === 'file' ? 'bg-purple-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            ملف
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuizMindmapUploadMode('link')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizMindmapUploadMode === 'link' ? 'bg-purple-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            رابط Drive
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={quizMindmapTitle}
+                        onChange={(e) => setQuizMindmapTitle(e.target.value)}
+                        placeholder="عنوان الخريطة الذهنية (اختياري)..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      />
+
+                      {quizMindmapUploadMode === 'file' ? (
+                        <div>
+                          <input
+                            type="file"
+                            id="quiz-mindmap-file-input"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setQuizMindmapFile(e.target.files[0]);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('quiz-mindmap-file-input')?.click()}
+                            className={`w-full py-2 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              quizMindmapFile
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-purple-500'
+                            }`}
+                          >
+                            {quizMindmapFile ? `تم اختيار: ${quizMindmapFile.name.slice(0, 20)}` : 'اختر ملف PDF أو صورة'}
+                          </button>
+                          {quizMindmapFile && (
+                            <button
+                              type="button"
+                              onClick={() => setQuizMindmapFile(null)}
+                              className="text-[10px] text-rose-400 hover:underline block text-center w-full mt-1"
+                            >
+                              إلغاء الخريطة
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="url"
+                          value={quizMindmapDriveUrl}
+                          onChange={(e) => setQuizMindmapDriveUrl(e.target.value)}
+                          placeholder="رابط Google Drive للخريطة الذهنية..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono"
+                        />
+                      )}
+                    </div>
+
+                    {/* Anki Flashcards */}
+                    <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5">
+                      <label className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                        <Layers className="w-4 h-4" />
+                        <span>فلاش كاردز Anki (.apkg):</span>
+                      </label>
+                      <input
+                        type="file"
+                        id="quiz-anki-file-input"
+                        accept=".apkg,.json"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setQuizAnkiFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('quiz-anki-file-input')?.click()}
+                        className={`w-full py-2.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          quizAnkiFile
+                            ? 'bg-cyan-600 text-white border-cyan-600'
+                            : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500'
+                        }`}
+                      >
+                        {quizAnkiFile ? `تم اختيار: ${quizAnkiFile.name.slice(0, 20)}` : 'اختر حزمة Anki (.apkg)'}
+                      </button>
+                      {quizAnkiFile && (
+                        <button
+                          type="button"
+                          onClick={() => setQuizAnkiFile(null)}
+                          className="text-[10px] text-rose-400 hover:underline block text-center w-full mt-1"
+                        >
+                          إلغاء حزمة الفلاش كاردز
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Watermark Toggle */}
                 {quizUploadMode === 'file' && (
                   <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
@@ -5279,9 +5700,9 @@ export default function AdminDashboardPage() {
                 )}
 
                 {/* Free vs Locked & Live vs Hidden Toggles */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-900/95 dark:bg-slate-900/95 border border-slate-700/70 shadow-inner">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-xs font-bold text-slate-200 dark:text-slate-200 mb-2">
                       حالة إتاحة الكويز (قفل / فتح):
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -5290,8 +5711,8 @@ export default function AdminDashboardPage() {
                         onClick={() => setQuizIsFree(true)}
                         className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
                           quizIsFree
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                         }`}
                       >
                         <Gift className="w-4 h-4" />
@@ -5302,8 +5723,8 @@ export default function AdminDashboardPage() {
                         onClick={() => setQuizIsFree(false)}
                         className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
                           !quizIsFree
-                            ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/30'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                         }`}
                       >
                         <Lock className="w-4 h-4" />
@@ -5313,7 +5734,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-xs font-bold text-slate-200 dark:text-slate-200 mb-2">
                       حالة ظهور الكويز (إخفاء / إظهار):
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -5322,8 +5743,8 @@ export default function AdminDashboardPage() {
                         onClick={() => setQuizIsLive(true)}
                         className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
                           quizIsLive
-                            ? 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-600/20'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            ? 'bg-teal-600 text-white border-teal-500 shadow-md shadow-teal-600/30'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                         }`}
                       >
                         <Eye className="w-4 h-4" />
@@ -5334,8 +5755,8 @@ export default function AdminDashboardPage() {
                         onClick={() => setQuizIsLive(false)}
                         className={`py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border ${
                           !quizIsLive
-                            ? 'bg-slate-700 text-white border-slate-700 shadow-md'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            ? 'bg-slate-700 text-white border-slate-600 shadow-md'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                         }`}
                       >
                         <EyeOff className="w-4 h-4" />
@@ -5425,7 +5846,7 @@ export default function AdminDashboardPage() {
                         const qSem = quiz.semester || '1';
                         const qId = quiz.id || quiz.subjectId;
                         return (
-                          <tr key={qId} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                          <tr key={qId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                             <td className="py-3.5 px-4 font-black text-slate-900 dark:text-white">
                               {subObj?.title || quiz.subjectId}
                             </td>
@@ -5731,6 +6152,214 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
+                      {/* PowerPoint in Edit Modal */}
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <Presentation className="w-4 h-4" />
+                            <span>عرض تقديمي بوربوينت (PPTX):</span>
+                          </label>
+                          {(editingQuiz?.pptUrl || editQuizPptDriveUrl || editQuizPptFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizPptDriveUrl('');
+                                setEditQuizPptFile(null);
+                                setEditRemoveQuizPpt(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizPpt ? 'سيتم حذف الباوربوينت عند الحفظ 🗑️' : 'حذف الباوربوينت 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={editQuizPptTitle}
+                          onChange={(e) => setEditQuizPptTitle(e.target.value)}
+                          placeholder="عنوان الباوربوينت..."
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizPptDriveUrl}
+                            onChange={(e) => {
+                              setEditQuizPptDriveUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuizPpt(false);
+                            }}
+                            placeholder="رابط Google Drive للباوربوينت..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <Presentation className="w-3.5 h-3.5" />
+                            <span>{editQuizPptFile ? editQuizPptFile.name.slice(0, 10) : 'رفع PPTX'}</span>
+                            <input
+                              type="file"
+                              accept=".ppt,.pptx"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuizPptFile(e.target.files[0]);
+                                  setEditRemoveQuizPpt(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Audio in Edit Modal */}
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                            <Headphones className="w-4 h-4" />
+                            <span>تسجيل صوتي (ريكورد MP3):</span>
+                          </label>
+                          {(editingQuiz?.audioUrl || editQuizAudioDriveUrl || editQuizAudioFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizAudioDriveUrl('');
+                                setEditQuizAudioFile(null);
+                                setEditRemoveQuizAudio(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizAudio ? 'سيتم حذف التسجيل الصوتي 🗑️' : 'حذف التسجيل الصوتي 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={editQuizAudioTitle}
+                          onChange={(e) => setEditQuizAudioTitle(e.target.value)}
+                          placeholder="عنوان التسجيل الصوتي..."
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizAudioDriveUrl}
+                            onChange={(e) => {
+                              setEditQuizAudioDriveUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuizAudio(false);
+                            }}
+                            placeholder="رابط Google Drive للصوت..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <Headphones className="w-3.5 h-3.5" />
+                            <span>{editQuizAudioFile ? editQuizAudioFile.name.slice(0, 10) : 'رفع MP3'}</span>
+                            <input
+                              type="file"
+                              accept="audio/*,.mp3,.m4a,.wav,.ogg"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuizAudioFile(e.target.files[0]);
+                                  setEditRemoveQuizAudio(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Mindmap in Edit Modal */}
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                            <Network className="w-4 h-4" />
+                            <span>خريطة ذهنية (Mindmap):</span>
+                          </label>
+                          {(editingQuiz?.mindmapUrl || editQuizMindmapDriveUrl || editQuizMindmapFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizMindmapDriveUrl('');
+                                setEditQuizMindmapFile(null);
+                                setEditRemoveQuizMindmap(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizMindmap ? 'سيتم حذف الخريطة 🗑️' : 'حذف الخريطة الذهنية 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={editQuizMindmapTitle}
+                          onChange={(e) => setEditQuizMindmapTitle(e.target.value)}
+                          placeholder="عنوان الخريطة الذهنية..."
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizMindmapDriveUrl}
+                            onChange={(e) => {
+                              setEditQuizMindmapDriveUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuizMindmap(false);
+                            }}
+                            placeholder="رابط Google Drive للخريطة الذهنية..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <Network className="w-3.5 h-3.5" />
+                            <span>{editQuizMindmapFile ? editQuizMindmapFile.name.slice(0, 10) : 'رفع خريطة'}</span>
+                            <input
+                              type="file"
+                              accept=".pdf,image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuizMindmapFile(e.target.files[0]);
+                                  setEditRemoveQuizMindmap(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Anki Flashcards in Edit Modal */}
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                            <Layers className="w-4 h-4" />
+                            <span>فلاش كاردز Anki (.apkg):</span>
+                          </label>
+                          {(editingQuiz?.flashcards?.length || editQuizAnkiFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizAnkiFile(null);
+                                setEditRemoveQuizFlashcards(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizFlashcards ? 'سيتم حذف الفلاش كاردز 🗑️' : 'حذف الفلاش كاردز 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <label className="w-full py-2.5 px-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 text-xs font-bold cursor-pointer transition flex items-center justify-center gap-2">
+                          <Layers className="w-4 h-4" />
+                          <span>{editQuizAnkiFile ? editQuizAnkiFile.name : (editingQuiz?.flashcards?.length ? `تحديث حزمة Anki (${editingQuiz.flashcards.length} بطاقة حالياً)` : 'رفع حزمة Anki (.apkg)')}</span>
+                          <input
+                            type="file"
+                            accept=".apkg,.json"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setEditQuizAnkiFile(e.target.files[0]);
+                                setEditRemoveQuizFlashcards(false);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+
                       {/* Controls for Free/Locked and Live/Hidden in Edit Modal */}
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -5956,7 +6585,7 @@ export default function AdminDashboardPage() {
                       .filter((o) => orderFilter === 'all' || o.status === orderFilter)
                       .map((order) => {
                         return (
-                          <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-850 transition">
+                          <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
                             {/* Student */}
                             <td className="py-3.5 px-3">
                               <div className="font-bold text-slate-900 dark:text-white">{order.studentName}</div>
@@ -6170,6 +6799,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-3">الجامعة</th>
                       <th className="py-3 px-3">رقم الهاتف</th>
                       <th className="py-3 px-3">المحاضرات المفعلة</th>
+                      <th className="py-3 px-3 text-center">الأجهزة والجلسات</th>
                       <th className="py-3 px-3">تاريخ التسجيل</th>
                       <th className="py-3 px-3 text-center">التحكم والصلاحيات</th>
                     </tr>
@@ -6186,7 +6816,7 @@ export default function AdminDashboardPage() {
                       .map((student) => {
                         const purchasedCount = student.purchasedLectureIds?.length || 0;
                         return (
-                          <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-850 transition">
+                          <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
                             {/* Name & Avatar */}
                             <td className="py-3.5 px-3">
                               <div className="flex items-center gap-2.5">
@@ -6224,6 +6854,32 @@ export default function AdminDashboardPage() {
                               </span>
                             </td>
 
+                            {/* Devices & Sessions */}
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-1">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                                    (student.knownDevices?.length || 0) >= 5
+                                      ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                                      : (student.knownDevices?.length || 0) > 2
+                                      ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                                  }`}
+                                >
+                                  <span>📱 {student.knownDevices?.length || 0} / 5 أجهزة</span>
+                                  {(student.knownDevices?.length || 0) >= 5 && <span className="text-rose-600 font-bold">(محظور)</span>}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleResetStudentDevices(student.id, student.name)}
+                                  className="text-[10px] text-teal-600 hover:text-teal-500 font-bold underline hover:no-underline transition"
+                                  title="تصفير أجهزة الطالب المسجلة"
+                                >
+                                  🔄 تصفير الأجهزة
+                                </button>
+                              </div>
+                            </td>
+
                             {/* Date */}
                             <td className="py-3.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
                               {student.createdAt || '-'}
@@ -6245,14 +6901,17 @@ export default function AdminDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setSelectedStudentForPassword(student);
-                                    setNewPasswordInput('');
+                                    setSelectedStudentForEdit(student);
+                                    setEditStudentName(student.name || '');
+                                    setEditStudentPhone(student.phone || '');
+                                    setEditStudentUniversity(student.university || '');
+                                    setEditStudentPassword(student.password || '');
                                   }}
                                   className="px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-bold text-[11px] border border-amber-200 dark:border-amber-800 flex items-center gap-1 transition"
-                                  title="تغيير كلمة مرور الطالب"
+                                  title="تعديل جميع بيانات الطالب أو تغيير الباسورد"
                                 >
-                                  <KeyRound className="w-3 h-3" />
-                                  <span>تغيير الباسورد</span>
+                                  <UserCheck className="w-3 h-3" />
+                                  <span>تعديل بيانات الطالب</span>
                                 </button>
 
                                 <button
@@ -6384,59 +7043,106 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Change Student Password Modal */}
-        {selectedStudentForPassword && (
+        {/* Edit Student Full Info Modal */}
+        {selectedStudentForEdit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in" dir="rtl">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <KeyRound className="w-5 h-5 text-amber-600" />
-                    <span>تغيير كلمة مرور الطالب 🔑</span>
+                    <UserCheck className="w-5 h-5 text-amber-600" />
+                    <span>تعديل بيانات الطالب ✏️</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    الطالب: <span className="font-bold">{selectedStudentForPassword.name}</span>
+                    الطالب: <span className="font-bold">{selectedStudentForEdit.name}</span>
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelectedStudentForPassword(null)}
+                  onClick={() => setSelectedStudentForEdit(null)}
                   className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateStudentPasswordSubmit} className="space-y-4">
+              <form onSubmit={handleUpdateStudentSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    كلمة المرور الجديدة (الباسورد الجديد):
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    اسم الطالب (حروف فقط بدون أرقام) *:
                   </label>
                   <input
                     type="text"
                     required
-                    value={newPasswordInput}
-                    onChange={(e) => setNewPasswordInput(e.target.value)}
-                    placeholder="اكتب الباسورد الجديد للطالب..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
+                    value={editStudentName}
+                    onChange={(e) => setEditStudentName(e.target.value.replace(/[0-9\u0660-\u0669\u06F0-\u06F9]/g, ''))}
+                    placeholder="اسم الطالب الثلاثي أو الرباعي..."
+                    className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    * يمكنك كتابة كلمة مرور جديدة وتسليمها للطالب ليتمكن من تسجيل الدخول فوراً.
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    * الحقل يقبل الحروف فقط ولن يسمح بكتابة أي أرقام نهائياً.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    رقم الهاتف الشخصي (أرقام فقط) *:
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    dir="ltr"
+                    value={editStudentPhone}
+                    onChange={(e) => setEditStudentPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    * الحقل يقبل الأرقام فقط ولن يسمح بكتابة أي حروف.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    الجامعة أو الكلية:
+                  </label>
+                  <input
+                    type="text"
+                    value={editStudentUniversity}
+                    onChange={(e) => setEditStudentUniversity(e.target.value)}
+                    placeholder="مثال: جامعة القاهرة، تمريض المنصورة..."
+                    className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    كلمة المرور (الباسورد):
+                  </label>
+                  <input
+                    type="text"
+                    value={editStudentPassword}
+                    onChange={(e) => setEditStudentPassword(e.target.value)}
+                    placeholder="اكتب كلمة مرور جديدة..."
+                    className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    * يمكنك تغيير الباسورد وتسليمه للطالب فوراً.
                   </p>
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <button
                     type="submit"
-                    disabled={isUpdatingPassword || !newPasswordInput.trim()}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                    disabled={isUpdatingStudent || !editStudentName.trim() || !editStudentPhone.trim()}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
                   >
-                    {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    <span>حفظ الباسورد الجديد فوراً</span>
+                    {isUpdatingStudent ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>حفظ التعديلات فوراً</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedStudentForPassword(null)}
+                    onClick={() => setSelectedStudentForEdit(null)}
                     className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs"
                   >
                     إلغاء
