@@ -17,6 +17,7 @@ import {
   GitFork,
   Layers,
   Award,
+  Headphones,
 } from 'lucide-react';
 
 import { cookies } from 'next/headers';
@@ -78,7 +79,7 @@ export default async function HomePage({
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                مرحباً بك في منصة <strong>ملخصات تمريض</strong>. بنك رقمي متكامل مخصص لطلاب <strong>السنة الأولى</strong> بكليات ومعاهد التمريض، تشمل كل محاضرة 4 موارد: <strong>ملف PDF للطباعة، عروض بوربوينت PPT، خرائط ذهنية Mind Maps، وكروت استذكار فلاش كاردز تفاعلية</strong>.
+                مرحباً بك في منصة <strong>ملخصات تمريض</strong>. بنك رقمي متكامل مخصص لطلاب <strong>السنة الأولى</strong> بكليات ومعاهد التمريض، تشمل كل محاضرة 5 موارد متكاملة: <strong>ملف PDF للطباعة، عروض بوربوينت PPT، خرائط ذهنية Mind Maps، كروت استذكار فلاش كاردز تفاعلية، وملخص صوتي وشرح Audio 🎧</strong>.
               </p>
 
               {/* Action Buttons */}
@@ -112,8 +113,8 @@ export default async function HomePage({
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">مقررات تأسيسية</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                  <span className="block text-xl font-black text-emerald-600 dark:text-emerald-400">4 في 1</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">PDF • PPT • خرائط • كروت</span>
+                  <span className="block text-xl font-black text-emerald-600 dark:text-emerald-400">5 في 1</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">PDF • PPT • خرائط • كروت • صوتيات</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
                   <span className="block text-xl font-black text-sky-600 dark:text-sky-400">100%</span>
@@ -150,7 +151,7 @@ export default async function HomePage({
                   مواد {yr.title} ({yr.stageName})
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  اختر المادة لتصفح المحاضرات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز
+                  اختر المادة لتصفح المحاضرات، وتحميل الـ PDF والبوربوينت والخرائط وفلاش كاردز والملخصات الصوتية 🎧
                 </p>
               </div>
 
@@ -175,7 +176,7 @@ export default async function HomePage({
         );
       })}
 
-      {/* 4. Pedagogical 4-Resource Breakdown */}
+      {/* 4. Pedagogical 5-Resource Breakdown */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-teal-900 via-slate-900 to-slate-950 text-white shadow-2xl border border-teal-800/30">
           <div className="max-w-3xl mb-8">
@@ -183,48 +184,58 @@ export default async function HomePage({
               هيكل المحاضرة المتكامل
             </span>
             <h3 className="text-2xl sm:text-3xl font-black leading-tight">
-              4 عناصر أساسية في كل محاضرة لمساعدتك على التفوق
+              5 عناصر أساسية في كل محاضرة لمساعدتك على التفوق 🌟
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-rose-500/40 transition">
               <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center mb-3">
                 <FileText className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1">1. ملخصات PDF ملونة</h4>
+              <h4 className="font-bold text-base text-white mb-1">1. ملخصات PDF</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 ملفات منسقة جاهزة للطباعة والمذاكرة السريعة مع الرسوم التوضيحية.
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition">
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center mb-3">
                 <Presentation className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1">2. عروض بوربوينت PPT</h4>
+              <h4 className="font-bold text-base text-white mb-1">2. عروض PPT</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 سلايدات الشرح الجامعي الرسمي مع الملاحظات الإيضاحية للمحاضرات.
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-500/40 transition">
               <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center mb-3">
                 <GitFork className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1">3. خرائط ذهنية Mind Map</h4>
+              <h4 className="font-bold text-base text-white mb-1">3. خرائط ذهنية</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 مخططات بصرية شاملة تختصر المقرر في شجرة مفاهيم مترابطة.
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center mb-3">
                 <Layers className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-base text-white mb-1">4. فلاش كاردز تفاعلية</h4>
+              <h4 className="font-bold text-base text-white mb-1">4. كروت فلاش كاردز</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 بطاقات استذكار سريعة بنظام Flip Card لترسيخ المصطلحات والأدوية.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/40 transition">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center mb-3">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <h4 className="font-bold text-base text-white mb-1">5. ملخصات صوتية Audio</h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                تسجيل وشرح صوتي مركز يلخص أهم نقاط المحاضرة لترسيخ الفهم السريع أثناء التنقل.
               </p>
             </div>
           </div>

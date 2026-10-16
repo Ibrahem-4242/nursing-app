@@ -97,7 +97,7 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
           <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />
           <span>نصائح وتوجيهات دراسية لتفوق طلاب {year.title}</span>
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-4">
           <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700">
             <span className="font-bold text-teal-800 dark:text-teal-300 block mb-1">📌 الربط بين النظري والعملي (Theory-Practice Integration):</span>
             لا تكتفِ بحفظ المصطلحات الطبية كنصوص؛ بل اربط كل مفهوم فسيولوجي بتطبيقه في الرعاية التمريضية بالمستشفى (مثل سبب قياس النبض قبل إعطاء دواء الديجوكسين).
@@ -105,6 +105,10 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
           <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700">
             <span className="font-bold text-teal-800 dark:text-teal-300 block mb-1">🗂️ التكرار المتباعد عبر الفلاش كاردز (Spaced Repetition):</span>
             استخدم بطاقات الاستذكار السريع المتوفرة في كل محاضرة لمراجعة المصطلحات والجرعات الدوائية لمدة 10 دقائق يومياً لتثبيتها في الذاكرة طويلة المدى.
+          </div>
+          <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+            <span className="font-bold text-violet-800 dark:text-violet-300 block mb-1">🎧 استغلال الملخصات الصوتية (Audio Summaries):</span>
+            استمع للملخص الصوتي السريع للمحاضرة في أوقات المواصلات والتنقل لتثبيت أهم النقاط السريرية دون عناء القراءة الطويلة.
           </div>
         </div>
       </section>

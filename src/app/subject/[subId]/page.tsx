@@ -160,7 +160,7 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
               </li>
               <li className="flex items-start gap-2.5">
                 <Headphones className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
-                <span><strong>ريكوردات صوتية:</strong> استماع مباشر لشرح المحاضرة بموجة صوتية تفاعلية وتحكم بالسرعة.</span>
+                <span><strong>ملخصات صوتية (Audio):</strong> استماع مباشر للشرح والملخص الصوتي بموجة تفاعلية وتحكم بالسرعة.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Layers className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />

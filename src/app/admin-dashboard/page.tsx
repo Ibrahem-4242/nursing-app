@@ -2837,7 +2837,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-violet-800 dark:text-violet-300 flex items-center gap-1.5">
                         <Headphones className="w-4 h-4" />
-                        <span>ريكورد المحاضرة (صوت)</span>
+                        <span>ملخص صوتي للمحاضرة (Audio)</span>
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
                         موجة صوتية 🎧
@@ -3305,7 +3305,7 @@ export default function AdminDashboardPage() {
                                 )}
                                 {hasAudioFile && (
                                   <span className="px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-bold text-[11px] whitespace-nowrap">
-                                    Audio 🎧
+                                    ملخص صوتي 🎧
                                   </span>
                                 )}
                                 {hasQuestionsFile && (
@@ -3732,7 +3732,7 @@ export default function AdminDashboardPage() {
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="block text-[11px] font-bold text-violet-700 dark:text-violet-300">
-                            رابط أو ملف صوتي للمحاضرة (ريكورد الشرح 🎧):
+                            ملخص صوتي للمحاضرة (Audio Summary 🎧):
                           </label>
                           {(editingLecture?.files?.some((f: any) => f.type === 'audio' || f.fileType === 'audio') || editAudioUrl || editAudioFile) && (
                             <button

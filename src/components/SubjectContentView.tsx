@@ -204,7 +204,7 @@ export default function SubjectContentView({
                   </h3>
 
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-                    تصفح محاضرات الشرح المرتبة لمادة {subject.title}، وحمّل ملفات الـ PDF، البوربوينت، الخرائط الذهنية، واستمع للريكوردات الصوتية والفلاش كاردز.
+                    تصفح محاضرات الشرح المرتبة لمادة {subject.title}، وحمّل ملفات الـ PDF، البوربوينت، الخرائط الذهنية، واستمع للملخصات الصوتية 🎧 والفلاش كاردز.
                   </p>
                 </div>
 
@@ -436,7 +436,7 @@ export default function SubjectContentView({
                       {hasAudio && (
                         <span className="flex items-center gap-1.5 font-bold text-violet-600 dark:text-violet-400">
                           <Headphones className="w-3.5 h-3.5" />
-                          <span>ريكورد صوتي 🎧</span>
+                          <span>ملخص صوتي 🎧</span>
                         </span>
                       )}
                       {hasQuestions && (

@@ -180,7 +180,7 @@ export default function LectureContentTabs({
               : file.type === 'ppt'
               ? 'عرض بوربوينت PPT'
               : file.type === 'audio'
-              ? 'تسجيل صوتي 🎧'
+              ? 'ملخص صوتي 🎧'
               : file.type === 'questions'
               ? 'أسئلة وتدريبات المحاضرة ❓'
               : 'خريطة ذهنية',
@@ -248,7 +248,7 @@ export default function LectureContentTabs({
     },
     {
       id: 'audio' as const,
-      label: 'ريكورد المحاضرة',
+      label: 'الملخص الصوتي',
       hasContent: !!audioFile,
       activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-600/30 scale-[1.02]',
       icon: Headphones,
@@ -362,7 +362,7 @@ export default function LectureContentTabs({
                   {activeTab === 'pdf' && 'ملخص المحاضرة المعتمد (PDF)'}
                   {activeTab === 'ppt' && 'سلايدات الشرح الجامعي (PowerPoint)'}
                   {activeTab === 'mindmap' && 'الخريطة الذهنية التفاعلية الشاملة'}
-                  {activeTab === 'audio' && 'التسجيل الصوتي لشرح المحاضرة (Audio Record)'}
+                  {activeTab === 'audio' && 'الملخص والشرح الصوتي للمحاضرة (Audio Summary)'}
                   {activeTab === 'questions' && 'بنك أسئلة وتدريبات المحاضرة (Questions PDF)'}
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
