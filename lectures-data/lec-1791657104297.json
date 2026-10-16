@@ -7,7 +7,7 @@
   "slug": "lec-1791657104297",
   "lectureNumber": 1,
   "title": "Inflammation 1",
-  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (باثولوجي)",
+  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (با��ولوجي)",
   "isFree": true,
   "price": 0,
   "viewCount": 1,
@@ -35,7 +35,7 @@
     },
     {
       "id": 3,
-      "front": "How is Inflammation (الالتهاب) defined in pathology?",
+      "front": "How is Inflammation (ال��لتهاب) defined in pathology?",
       "back": "Inflammation (الالتهاب) is defined as a protective immune-vascular response representing the reaction of living tissue against injury.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -57,7 +57,7 @@
     {
       "id": 6,
       "front": "What are the four essential Components of Inflammation (مكونات الالتهاب)?",
-      "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموي��), and Chemical mediators (الوسائط الكيميائية).",
+      "back": "The four components are the Cause (السبب), Immune cells (الخلايا المناعية), Blood vessels (الأوعية الدموية), and Chemical mediators (الوسائط الكيميائية).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -78,7 +78,7 @@
     {
       "id": 9,
       "front": "What factor produces Swelling (التورم) during acute inflammation?",
-      "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح ا��سائلي الالتهابي).",
+      "back": "Swelling (التورم) is produced by the accumulation of inflammatory fluid exudate or edema fluid (الرشح السائلي الالتهابي).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -157,11 +157,11 @@
       "front": "How is a Phagolysosome (الفجوة البلعمية الليزوسومية) formed during phagocytosis?",
       "back": "A Phagolysosome is formed by the intracellular fusion of a phagosome with a lysosome.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والالته��ب (Pathology & Inflammation)"
     },
     {
       "id": 21,
-      "front": "What enzyme-mediated process occurs inside the Phagolysosome (الفجوة البلعمية الليزوس��مية)?",
+      "front": "What enzyme-mediated process occurs inside the Phagolysosome (الفجوة البلعمية الليزوسومية)?",
       "back": "Lysosomal enzymes execute the Digestion (الهضم) and destruction of the ingested material inside the phagolysosome.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -175,7 +175,7 @@
     },
     {
       "id": 23,
-      "front": "What is the Complement System (جهاز المتممة)?",
+      "front": "What is the Complement System (جهاز ال��تممة)?",
       "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -240,7 +240,7 @@
       "id": 32,
       "front": "In which inflammation type are Cardinal Signs (العلامات الرئيسية) characteristically absent?",
       "back": "Cardinal signs are characteristically absent in Chronic Inflammation (الالتهاب المزمن).",
-      "category": "كروت استذكار",
+      "category": "كروت ��ستذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -325,7 +325,7 @@
       "front": "What defines Hypersensitivity (فرط الحساسية) in the context of inflammatory cell response?",
       "back": "Hypersensitivity is an exaggerated and damaging response of inflammatory cells to an antigen or stimulus.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض وا��التهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
       "id": 45,
@@ -360,7 +360,7 @@
       "front": "What is Diapedesis (العبور الخلوي) during leukocyte migration?",
       "back": "Diapedesis is the active passage of leukocytes through uninjured blood vessel walls into extravascular tissues.",
       "category": "كروت استذكار",
-      "clinicalPearl": "التغيرات الخلوية وزيادة الهجرة (Cellular Events & Extravasation)"
+      "clinicalPearl": "التغيرات الخ��وية وزيادة الهجرة (Cellular Events & Extravasation)"
     },
     {
       "id": 50,
@@ -385,7 +385,7 @@
       "type": "ppt",
       "title": "عروض بوربوينت - Inflammation 1",
       "fileSize": "2.6 MB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657101916-1k0o9w_المحاضرة_الاولي__باثولوجي__PowerPoint.pdf",
+      "downloadUrl": "/api/files/1791657101916-1k0o9w_المحاضرة_الاولي__باثولوجي__PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
       "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
@@ -394,7 +394,7 @@
       "type": "mindmap",
       "title": "الخر��طة الذهنية الشاملة - Inflammation 1",
       "fileSize": "1.2 MB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657103228-p3ocio_المحاضرة_الاولي__باثولوجي__MindMap.pdf",
+      "downloadUrl": "/api/files/1791657103228-p3ocio_المحاضرة_الاولي__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"

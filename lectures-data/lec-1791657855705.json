@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاج�� يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -171,7 +171,7 @@
       "front": "What is a sinus (جيب صديدي)?",
       "back": "A sinus is a blind track lined by infected granulation tissue that connects an internal abscess cavity to an outer surface.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالته��ب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 23,
@@ -259,7 +259,7 @@
     },
     {
       "id": 35,
-      "front": "In portal pyemia (قيام الدم البابي), which organ receives the septic emboli and develops abscesses?",
+      "front": "In portal pyemia (ق��ام الدم البابي), which organ receives the septic emboli and develops abscesses?",
       "back": "The liver (الكبد) is the primary organ affected.",
       "category": "كروت اس��ذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -339,7 +339,7 @@
       "front": "What defines chronic inflammation (التهاب مزمن)?",
       "back": "It is a prolonged inflammatory reaction lasting weeks to years where tissue destruction, mononuclear cell infiltration, and repair attempts occur simultaneously.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+      "clinicalPearl": "الالتهاب ا��مزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
     },
     {
       "id": 47,
@@ -385,7 +385,7 @@
       "type": "ppt",
       "title": "عروض بوربوينت - Inflammation 2",
       "fileSize": "1.8 MB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657853103-hyadk2_المحاضرة_الثانية_باثولوجي_PowerPoint.pdf",
+      "downloadUrl": "/api/files/1791657853103-hyadk2_المحاضرة_الثانية_باثولوجي_PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:��٤ م",
       "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
@@ -394,7 +394,7 @@
       "type": "mindmap",
       "title": "الخريطة الذهنية الشاملة - Inflammation 2",
       "fileSize": "1.1 MB",
-      "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
+      "downloadUrl": "/api/files/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"

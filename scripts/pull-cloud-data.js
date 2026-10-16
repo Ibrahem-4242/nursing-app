@@ -38,11 +38,19 @@ const req = https.get(options, (res) => {
               // Merge with local vault if present
               let localLectures = [];
               let localDeleted = [];
+              let localStudents = [];
+              let localDeletedStudents = [];
+              let localOrders = [];
+              let localDeletedOrders = [];
               if (fs.existsSync(storePath)) {
                 try {
                   const local = JSON.parse(fs.readFileSync(storePath, 'utf8'));
                   if (Array.isArray(local.lectures)) localLectures = local.lectures;
                   if (Array.isArray(local.deletedLectureIds)) localDeleted = local.deletedLectureIds;
+                  if (Array.isArray(local.students)) localStudents = local.students;
+                  if (Array.isArray(local.deletedStudentIds)) localDeletedStudents = local.deletedStudentIds;
+                  if (Array.isArray(local.orders)) localOrders = localOrders;
+                  if (Array.isArray(local.deletedOrderIds)) localDeletedOrders = local.deletedOrderIds;
                 } catch {}
               }
 
@@ -58,6 +66,36 @@ const req = https.get(options, (res) => {
 
               cloudStore.lectures = Array.from(mergedMap.values());
               cloudStore.deletedLectureIds = Array.from(allDeleted);
+
+              // Merge students safely (never tombstone phone numbers)
+              const allDeletedStudents = new Set([
+                ...(cloudStore.deletedStudentIds || []).filter(id => !/^[0-9]{8,15}$/.test(id)),
+                ...localDeletedStudents.filter(id => !/^[0-9]{8,15}$/.test(id))
+              ]);
+              const studentMap = new Map();
+              for (const s of localStudents) {
+                if (s && s.id && !allDeletedStudents.has(s.id)) studentMap.set(s.id, s);
+              }
+              for (const s of (cloudStore.students || [])) {
+                if (s && s.id && !allDeletedStudents.has(s.id)) studentMap.set(s.id, s);
+              }
+              cloudStore.students = Array.from(studentMap.values());
+              cloudStore.deletedStudentIds = Array.from(allDeletedStudents);
+
+              // Merge orders safely
+              const allDeletedOrders = new Set([
+                ...(cloudStore.deletedOrderIds || []),
+                ...localDeletedOrders
+              ]);
+              const orderMap = new Map();
+              for (const o of localOrders) {
+                if (o && o.id && !allDeletedOrders.has(o.id)) orderMap.set(o.id, o);
+              }
+              for (const o of (cloudStore.orders || [])) {
+                if (o && o.id && !allDeletedOrders.has(o.id)) orderMap.set(o.id, o);
+              }
+              cloudStore.orders = Array.from(orderMap.values());
+              cloudStore.deletedOrderIds = Array.from(allDeletedOrders);
 
               fs.writeFileSync(storePath, JSON.stringify(cloudStore, null, 2), 'utf8');
               fs.writeFileSync(vaultPath, JSON.stringify(cloudStore.lectures, null, 2), 'utf8');

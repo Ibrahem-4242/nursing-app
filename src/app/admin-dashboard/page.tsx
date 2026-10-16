@@ -542,6 +542,8 @@ export default function AdminDashboardPage() {
 
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الطلب نهائياً من السجلات؟')) return;
+    // Optimistic UI removal
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
     try {
       const res = await fetch('/api/admin/orders', {
         method: 'POST',
@@ -553,9 +555,11 @@ export default function AdminDashboardPage() {
         loadOrders();
       } else {
         alert('فشل حذف الطلب');
+        loadOrders();
       }
     } catch (e: any) {
       alert('خطأ أثناء حذف الطلب: ' + e?.message);
+      loadOrders();
     }
   };
 

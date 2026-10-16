@@ -31,6 +31,7 @@ interface CmsStore {
   students?: StudentUser[];
   deletedStudentIds?: string[];
   orders?: PurchaseOrder[];
+  deletedOrderIds?: string[];
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -268,32 +269,48 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       }
       store.subjectQuizzes = mergedQuizzes;
 
-      // Safely merge deletedStudentIds
+      // Safely merge deletedStudentIds (ONLY student IDs, NEVER phone numbers)
       const allDeletedStudents = new Set<string>();
-      (store.deletedStudentIds || []).forEach((id) => allDeletedStudents.add(id));
-      (existing.deletedStudentIds || []).forEach((id) => allDeletedStudents.add(id));
+      (store.deletedStudentIds || []).forEach((id) => {
+        if (id && !/^[0-9]{8,15}$/.test(id)) allDeletedStudents.add(id);
+      });
+      (existing.deletedStudentIds || []).forEach((id) => {
+        if (id && !/^[0-9]{8,15}$/.test(id)) allDeletedStudents.add(id);
+      });
       store.deletedStudentIds = Array.from(allDeletedStudents);
 
-      // Safely merge students (strictly excluding any tombstoned/deleted students)
+      // Safely merge students (strictly excluding tombstoned IDs)
       const studentMap = new Map<string, StudentUser>();
       (existing.students || []).forEach((s) => {
-        const key = s.id || s.phone;
-        if (!allDeletedStudents.has(s.id) && !allDeletedStudents.has(s.phone) && !allDeletedStudents.has(key)) {
-          studentMap.set(key, s);
+        if (s && s.id && !allDeletedStudents.has(s.id)) {
+          studentMap.set(s.id, s);
         }
       });
       (store.students || []).forEach((s) => {
-        const key = s.id || s.phone;
-        if (!allDeletedStudents.has(s.id) && !allDeletedStudents.has(s.phone) && !allDeletedStudents.has(key)) {
-          studentMap.set(key, s);
+        if (s && s.id && !allDeletedStudents.has(s.id)) {
+          studentMap.set(s.id, s);
         }
       });
       store.students = Array.from(studentMap.values());
 
-      // Safely merge purchase orders
+      // Safely merge deletedOrderIds
+      const allDeletedOrders = new Set<string>();
+      (store.deletedOrderIds || []).forEach((id) => allDeletedOrders.add(id));
+      (existing.deletedOrderIds || []).forEach((id) => allDeletedOrders.add(id));
+      store.deletedOrderIds = Array.from(allDeletedOrders);
+
+      // Safely merge purchase orders (strictly excluding deletedOrderIds)
       const orderMap = new Map<string, PurchaseOrder>();
-      (existing.orders || []).forEach((o) => orderMap.set(o.id, o));
-      (store.orders || []).forEach((o) => orderMap.set(o.id, o));
+      (existing.orders || []).forEach((o) => {
+        if (o && o.id && !allDeletedOrders.has(o.id)) {
+          orderMap.set(o.id, o);
+        }
+      });
+      (store.orders || []).forEach((o) => {
+        if (o && o.id && !allDeletedOrders.has(o.id)) {
+          orderMap.set(o.id, o);
+        }
+      });
       store.orders = Array.from(orderMap.values());
 
       // Safely merge telemetry counters and daily maps
@@ -458,7 +475,7 @@ function initMemoryStore(): CmsStore {
 
   let loadedStore: CmsStore | null = null;
 
-  for (const candidate of [rootDataPath, tmpPath]) {
+  for (const candidate of [tmpPath, rootDataPath]) {
     try {
       if (fs.existsSync(candidate)) {
         const content = fs.readFileSync(candidate, 'utf-8');
@@ -554,6 +571,7 @@ function initMemoryStore(): CmsStore {
       students: [],
       deletedStudentIds: [],
       orders: [],
+      deletedOrderIds: [],
     };
 
     return memoryStore;
@@ -659,28 +677,41 @@ async function getFreshStore(): Promise<CmsStore> {
       };
     }
     const deletedStudentSet = new Set<string>();
-    (store.deletedStudentIds || []).forEach((id) => deletedStudentSet.add(id));
-    (cloudStore.deletedStudentIds || []).forEach((id) => deletedStudentSet.add(id));
+    (store.deletedStudentIds || []).forEach((id) => {
+      if (id && !/^[0-9]{8,15}$/.test(id)) deletedStudentSet.add(id);
+    });
+    (cloudStore.deletedStudentIds || []).forEach((id) => {
+      if (id && !/^[0-9]{8,15}$/.test(id)) deletedStudentSet.add(id);
+    });
     store.deletedStudentIds = Array.from(deletedStudentSet);
 
     if (cloudStore.students && Array.isArray(cloudStore.students)) {
-      const existingStuMap = new Map((store.students || []).map((s) => [s.id || s.phone, s]));
+      const existingStuMap = new Map((store.students || []).map((s) => [s.id, s]));
       for (const s of cloudStore.students) {
-        const key = s.id || s.phone;
-        if (!deletedStudentSet.has(s.id) && !deletedStudentSet.has(s.phone) && !deletedStudentSet.has(key)) {
-          existingStuMap.set(key, s);
+        if (s && s.id && !deletedStudentSet.has(s.id)) {
+          existingStuMap.set(s.id, s);
         }
       }
       store.students = Array.from(existingStuMap.values()).filter(
-        (s) => !deletedStudentSet.has(s.id) && !deletedStudentSet.has(s.phone)
+        (s) => s && s.id && !deletedStudentSet.has(s.id)
       );
     }
+
+    const deletedOrderSet = new Set<string>();
+    (store.deletedOrderIds || []).forEach((id) => deletedOrderSet.add(id));
+    (cloudStore.deletedOrderIds || []).forEach((id) => deletedOrderSet.add(id));
+    store.deletedOrderIds = Array.from(deletedOrderSet);
+
     if (cloudStore.orders && Array.isArray(cloudStore.orders)) {
       const existingOrdMap = new Map((store.orders || []).map((o) => [o.id, o]));
       for (const o of cloudStore.orders) {
-        existingOrdMap.set(o.id, o);
+        if (o && o.id && !deletedOrderSet.has(o.id)) {
+          existingOrdMap.set(o.id, o);
+        }
       }
-      store.orders = Array.from(existingOrdMap.values());
+      store.orders = Array.from(existingOrdMap.values()).filter(
+        (o) => o && o.id && !deletedOrderSet.has(o.id)
+      );
     }
 
     // Safely merge telemetry counters and daily maps
@@ -1611,6 +1642,13 @@ export const CmsService = {
       knownDevices: initialDeviceId,
     };
 
+    // Ensure cleanPhone and newStudent.id are never tombstoned in deletedStudentIds
+    if (store.deletedStudentIds) {
+      store.deletedStudentIds = store.deletedStudentIds.filter(
+        (id) => id !== cleanPhone && id !== newStudent.id && !/^[0-9]{8,15}$/.test(id)
+      );
+    }
+
     store.students.unshift(newStudent);
     memoryStore = store;
     persistStore(store, customToken);
@@ -1758,20 +1796,16 @@ export const CmsService = {
     if (!store.deletedStudentIds) store.deletedStudentIds = [];
 
     const target = store.students.find((s) => s.id === studentId || s.phone === studentId);
-    if (target) {
-      if (target.id && !store.deletedStudentIds.includes(target.id)) {
-        store.deletedStudentIds.push(target.id);
-      }
-      if (target.phone && !store.deletedStudentIds.includes(target.phone)) {
-        store.deletedStudentIds.push(target.phone);
-      }
-    } else {
-      if (!store.deletedStudentIds.includes(studentId)) {
-        store.deletedStudentIds.push(studentId);
-      }
+    const actualId = target ? target.id : studentId;
+    // Only tombstone student IDs (stu-...), NEVER raw phone numbers!
+    if (actualId && !/^[0-9]{8,15}$/.test(actualId) && !store.deletedStudentIds.includes(actualId)) {
+      store.deletedStudentIds.push(actualId);
     }
 
-    store.students = store.students.filter((s) => s.id !== studentId && s.phone !== studentId);
+    store.students = store.students.filter((s) => s.id !== actualId && s.id !== studentId);
+    // Sanitize and purge any raw phone numbers from deletedStudentIds
+    store.deletedStudentIds = store.deletedStudentIds.filter((id) => !/^[0-9]{8,15}$/.test(id));
+
     memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
@@ -1866,8 +1900,11 @@ export const CmsService = {
 
   async deleteOrder(orderId: string, customToken?: string): Promise<boolean> {
     const store = await getFreshStore();
-    if (!store.orders) return false;
-    store.orders = store.orders.filter((o) => o.id !== orderId);
+    if (!store.deletedOrderIds) store.deletedOrderIds = [];
+    if (orderId && !store.deletedOrderIds.includes(orderId)) {
+      store.deletedOrderIds.push(orderId);
+    }
+    store.orders = (store.orders || []).filter((o) => o.id !== orderId);
     memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
