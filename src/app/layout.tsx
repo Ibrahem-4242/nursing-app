@@ -56,6 +56,9 @@ export const metadata: Metadata = {
 
 import { ACADEMIC_YEARS } from '@/lib/mock-data';
 import { CmsService } from '@/lib/cms-db';
+import { cookies } from 'next/headers';
+import MaintenanceWrapper from '@/components/MaintenanceWrapper';
+import { MaintenanceConfig } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,12 +68,33 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   let activeYears = [{ id: '1', title: 'السنة الأولى' }];
+  let maintenanceConfig: MaintenanceConfig = {
+    isEnabled: false,
+    title: 'المنصة في وضع الصيانة والتحديث المؤقت 🛠️',
+    message:
+      'نقوم حالياً بإجراء تحديثات وتحسينات دورية لإضافة محاضرات ومحتوى تعليمي جديد وتطوير تجربة التعلم لجميع طلاب تمريض. سنعود إليكم خلال وقت قصير بإذن الله.',
+    estimatedReturn: 'خلال وقت قصير جداً',
+    contactWhatsapp: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
+    updatedAt: new Date().toISOString(),
+  };
+
+  const cookieStore = cookies();
+  const isAdmin =
+    cookieStore.get('nursing_admin_token')?.value ===
+    'secret_session_5143545638_verified';
+
   try {
-    const [liveLectures, quizzesList, allSubjects] = await Promise.all([
+    const [liveLectures, quizzesList, allSubjects, fetchedMaintenance] = await Promise.all([
       CmsService.getLiveLectures(),
       CmsService.getAllSubjectQuizFilesList(),
       CmsService.getAllSubjects(),
+      CmsService.getMaintenanceConfig(),
     ]);
+
+    if (fetchedMaintenance) {
+      maintenanceConfig = fetchedMaintenance;
+    }
+
     const subjectYearMap = new Map<string, string>();
     allSubjects.forEach((s) => subjectYearMap.set(s.id, s.yearId));
 
@@ -117,10 +141,12 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
-        <AnnouncementBar />
-        <Navbar activeYears={activeYears} />
-        <main className="flex-1">{children}</main>
-        <Footer activeYears={activeYears} />
+        <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
+          <AnnouncementBar />
+          <Navbar activeYears={activeYears} />
+          <main className="flex-1">{children}</main>
+          <Footer activeYears={activeYears} />
+        </MaintenanceWrapper>
         <VisitorTracker />
         <Analytics />
       </body>

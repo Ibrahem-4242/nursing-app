@@ -4,6 +4,7 @@ import {
   Lecture,
   Subject,
   AnnouncementConfig,
+  MaintenanceConfig,
   BrokenLinkReport,
   ComplaintRecord,
   VisitorEvent,
@@ -15,6 +16,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 
 interface CmsStore {
   announcement: AnnouncementConfig;
+  maintenance?: MaintenanceConfig;
   lectures: Lecture[];
   deletedLectureIds?: string[];
   deletedQuizIds?: string[];
@@ -32,6 +34,15 @@ const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   isActive: true,
   linkText: 'انضم لجروب الواتساب',
   linkUrl: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
+  updatedAt: new Date().toISOString(),
+};
+
+const DEFAULT_MAINTENANCE: MaintenanceConfig = {
+  isEnabled: false,
+  title: 'المنصة في وضع الصيانة والتحديث المؤقت 🛠️',
+  message: 'نقوم حالياً بإجراء تحديثات وتحسينات دورية لإضافة محاضرات ومحتوى تعليمي جديد وتطوير تجربة التعلم لجميع طلاب تمريض. سنعود إليكم خلال وقت قصير بإذن الله.',
+  estimatedReturn: 'خلال وقت قصير جداً',
+  contactWhatsapp: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
   updatedAt: new Date().toISOString(),
 };
 
@@ -454,6 +465,9 @@ function initMemoryStore(): CmsStore {
   }
 
   if (loadedStore) {
+    if (!loadedStore.maintenance) {
+      loadedStore.maintenance = DEFAULT_MAINTENANCE;
+    }
     memoryStore = loadedStore;
     return memoryStore;
   }
@@ -461,6 +475,7 @@ function initMemoryStore(): CmsStore {
   // Pure clean store with curriculum subjects (fundamentals excluded)
   memoryStore = {
     announcement: DEFAULT_ANNOUNCEMENT,
+    maintenance: DEFAULT_MAINTENANCE,
     lectures: [],
     deletedLectureIds: [],
     subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
@@ -567,6 +582,12 @@ async function getFreshStore(): Promise<CmsStore> {
       }
       store.downloads = Array.from(existingDlMap.values());
     }
+    if (cloudStore.maintenance) {
+      store.maintenance = {
+        ...DEFAULT_MAINTENANCE,
+        ...cloudStore.maintenance,
+      };
+    }
     memoryStore = store;
 
     // Save a local disk backup copy silently so offline/cold-start has it
@@ -668,6 +689,30 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return store.announcement;
+  },
+
+  // --- MAINTENANCE & LOCKDOWN ---
+  async getMaintenanceConfig(): Promise<MaintenanceConfig> {
+    const store = await getFreshStore();
+    return store.maintenance || DEFAULT_MAINTENANCE;
+  },
+
+  async updateMaintenanceConfig(
+    config: Partial<MaintenanceConfig>,
+    customToken?: string
+  ): Promise<MaintenanceConfig> {
+    const store = await getFreshStore();
+    const current = store.maintenance || DEFAULT_MAINTENANCE;
+    const updated: MaintenanceConfig = {
+      ...current,
+      ...config,
+      updatedAt: new Date().toISOString(),
+    };
+    store.maintenance = updated;
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return updated;
   },
 
   // --- LECTURES & CONTENT ---

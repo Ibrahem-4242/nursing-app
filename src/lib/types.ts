@@ -153,6 +153,15 @@ export interface AnnouncementConfig {
   updatedAt: string;
 }
 
+export interface MaintenanceConfig {
+  isEnabled: boolean;
+  title: string;
+  message: string;
+  estimatedReturn?: string;
+  contactWhatsapp?: string;
+  updatedAt: string;
+}
+
 export interface BrokenLinkReport {
   id: string;
   lectureId?: string;

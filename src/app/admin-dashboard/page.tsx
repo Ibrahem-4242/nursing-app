@@ -32,16 +32,19 @@ import {
   X,
   BookOpen,
   Lock,
+  Unlock,
+  Wrench,
   Gift,
   Headphones,
   Plus,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
+import MaintenanceScreen from '@/components/MaintenanceScreen';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'announcement' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
@@ -203,6 +206,18 @@ export default function AdminDashboardPage() {
   const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
   const [announcementFeedback, setAnnouncementFeedback] = useState<string | null>(null);
 
+  // Maintenance / Platform Lockdown State
+  const [maintenanceIsEnabled, setMaintenanceIsEnabled] = useState(false);
+  const [maintenanceTitle, setMaintenanceTitle] = useState('المنصة في وضع الصيانة والتحديث المؤقت 🛠️');
+  const [maintenanceMessage, setMaintenanceMessage] = useState(
+    'نقوم حالياً بإجراء تحديثات وتحسينات دورية لإضافة محاضرات ومحتوى تعليمي جديد وتطوير تجربة التعلم لجميع طلاب تمريض. سنعود إليكم خلال وقت قصير بإذن الله.'
+  );
+  const [maintenanceEstimatedReturn, setMaintenanceEstimatedReturn] = useState('خلال وقت قصير جداً');
+  const [maintenanceWhatsapp, setMaintenanceWhatsapp] = useState('https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti');
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
+  const [maintenanceFeedback, setMaintenanceFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showMaintenancePreviewModal, setShowMaintenancePreviewModal] = useState(false);
+
   // Reports state
   const [reports, setReports] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -343,6 +358,7 @@ export default function AdminDashboardPage() {
     loadLectures();
     loadSubjectQuizzes();
     loadAnnouncement();
+    loadMaintenance();
     loadReports();
   };
 
@@ -646,6 +662,66 @@ export default function AdminDashboardPage() {
       }
     } catch (e) {
       console.warn('Failed to load announcement:', e);
+    }
+  };
+
+  const loadMaintenance = async () => {
+    try {
+      const res = await fetch(`/api/admin/maintenance?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.maintenance) {
+        setMaintenanceIsEnabled(Boolean(data.maintenance.isEnabled));
+        if (data.maintenance.title) setMaintenanceTitle(data.maintenance.title);
+        if (data.maintenance.message) setMaintenanceMessage(data.maintenance.message);
+        if (data.maintenance.estimatedReturn !== undefined)
+          setMaintenanceEstimatedReturn(data.maintenance.estimatedReturn);
+        if (data.maintenance.contactWhatsapp !== undefined)
+          setMaintenanceWhatsapp(data.maintenance.contactWhatsapp);
+      }
+    } catch (e) {
+      console.warn('Failed to load maintenance config:', e);
+    }
+  };
+
+  const handleSaveMaintenance = async (targetEnabled?: boolean) => {
+    setIsSavingMaintenance(true);
+    setMaintenanceFeedback(null);
+    try {
+      const isEnabledValue =
+        targetEnabled !== undefined ? targetEnabled : maintenanceIsEnabled;
+      const res = await fetch('/api/admin/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isEnabled: isEnabledValue,
+          title: maintenanceTitle,
+          message: maintenanceMessage,
+          estimatedReturn: maintenanceEstimatedReturn,
+          contactWhatsapp: maintenanceWhatsapp,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.maintenance) {
+        setMaintenanceIsEnabled(Boolean(data.maintenance.isEnabled));
+        setMaintenanceFeedback({
+          type: 'success',
+          message: data.maintenance.isEnabled
+            ? 'تم قفل المنصة بنجاح 🔒 — تظهر للطلاب شاشة الصيانة، وتظل متاحة لك لمعاينتها كمشرف.'
+            : 'تم فتح المنصة بنجاح 🎉 — المنصة الآن متاحة لجميع الطلاب والزوار.',
+        });
+      } else {
+        setMaintenanceFeedback({
+          type: 'error',
+          message: data.message || 'حدث خطأ أثناء تعديل حالة القفل.',
+        });
+      }
+    } catch {
+      setMaintenanceFeedback({
+        type: 'error',
+        message: 'فشل الاتصال بالخادم، يرجى التحقق من الشبكة.',
+      });
+    } finally {
+      setIsSavingMaintenance(false);
     }
   };
 
@@ -1874,7 +1950,30 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Quick Maintenance Status & Toggle Button */}
+            <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 border ${
+                maintenanceIsEnabled
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30 animate-pulse'
+                  : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+              }`}
+              title="إدارة قفل المنصة ووضع الصيانة"
+            >
+              {maintenanceIsEnabled ? (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>المنصة مقفولة (صيانة)</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>المنصة مفتوحة للطلاب</span>
+                </>
+              )}
+            </button>
+
             <Link
               href="/"
               target="_blank"
@@ -2075,6 +2174,31 @@ export default function AdminDashboardPage() {
           >
             <Megaphone className="w-4 h-4" />
             <span>شريط التنبيهات والإعلانات</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('maintenance')}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'maintenance'
+                ? maintenanceIsEnabled
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'bg-teal-600 text-white shadow-md'
+                : maintenanceIsEnabled
+                ? 'bg-rose-950/40 text-rose-300 border border-rose-500/30 hover:bg-rose-900/50'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            {maintenanceIsEnabled ? (
+              <Lock className="w-4 h-4 text-rose-300 animate-pulse" />
+            ) : (
+              <Wrench className="w-4 h-4" />
+            )}
+            <span>قفل المنصة (الصيانة)</span>
+            {maintenanceIsEnabled && (
+              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black animate-pulse">
+                مقفولة
+              </span>
+            )}
           </button>
 
           <button
@@ -5170,6 +5294,310 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {/* TAB: Platform Lockdown & Maintenance */}
+        {activeTab === 'maintenance' && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm space-y-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-500/20">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <span>قفل المنصة ووضع الصيانة (Maintenance Mode)</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
+                  يمكنك إغلاق المنصة أمام الطلاب بضغطة زر واحدة أثناء تحديث المذكرات أو الصيانة.
+                  المنصة تظل <span className="font-bold text-teal-600 dark:text-teal-400">متاحة لك وحدك للمعاينة</span> كأدمن من أي صفحة!
+                </p>
+              </div>
+
+              {/* Master Status Pill */}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-2 border shadow-sm ${
+                    maintenanceIsEnabled
+                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse'
+                      : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                  }`}
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      maintenanceIsEnabled ? 'bg-rose-500' : 'bg-emerald-500'
+                    }`}
+                  />
+                  <span>
+                    {maintenanceIsEnabled
+                      ? 'المنصة مقفولة حالياً (وضع الصيانة مفعل) 🔒'
+                      : 'المنصة مفتوحة وتعمل بشكل طبيعي 🟢'}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Action Banner */}
+            <div
+              className={`p-5 sm:p-6 rounded-3xl border transition-all ${
+                maintenanceIsEnabled
+                  ? 'bg-gradient-to-r from-rose-950/40 via-amber-950/20 to-slate-900 border-rose-500/40 text-white shadow-lg shadow-rose-950/20'
+                  : 'bg-gradient-to-r from-emerald-950/30 via-slate-900 to-teal-950/30 border-emerald-500/30 text-white shadow-lg'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
+                      maintenanceIsEnabled
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    }`}
+                  >
+                    {maintenanceIsEnabled ? '🔒' : '🌟'}
+                  </div>
+                  <div>
+                    <h4 className="text-base font-extrabold">
+                      {maintenanceIsEnabled
+                        ? 'المنصة محجوبة الآن عن الطلاب والزوار'
+                        : 'المنصة متاحة للجميع بدون قيود'}
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      {maintenanceIsEnabled
+                        ? 'أي زائر يدخل المنصة سيظهر له عنوان الصيانة ورسالتك المخصصة وزر الواتساب. يمكنك تصفح الموقع بحرية للمعاينة.'
+                        : 'جميع صفحات المحاضرات والمواد والكويزات تعمل بشكل مباشر لجميع الطلاب.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {maintenanceIsEnabled ? (
+                    <button
+                      type="button"
+                      disabled={isSavingMaintenance}
+                      onClick={() => handleSaveMaintenance(false)}
+                      className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs sm:text-sm font-black transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {isSavingMaintenance ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Unlock className="w-4 h-4" />
+                      )}
+                      <span>فتح المنصة للطلاب الآن 🎉</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isSavingMaintenance}
+                      onClick={() => handleSaveMaintenance(true)}
+                      className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs sm:text-sm font-black transition shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {isSavingMaintenance ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                      <span>قفل المنصة وتفعيل الصيانة 🔒</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Maintenance Settings Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveMaintenance();
+              }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-teal-600" />
+                  <span>تخصيص الرسالة ومحتوى شاشة الصيانة</span>
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaintenanceTitle('المنصة في وضع الصيانة والتحديث المؤقت 🛠️');
+                    setMaintenanceMessage(
+                      'نقوم حالياً بإجراء تحديثات وتحسينات دورية لإضافة محاضرات ومحتوى تعليمي جديد وتطوير تجربة التعلم لجميع طلاب تمريض. سنعود إليكم خلال وقت قصير بإذن الله.'
+                    );
+                    setMaintenanceEstimatedReturn('خلال وقت قصير جداً');
+                    setMaintenanceWhatsapp('https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti');
+                  }}
+                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 font-bold"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>استعادة النص المقترح</span>
+                </button>
+              </div>
+
+              {/* Title Field */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  عنوان شاشة الصيانة:
+                </label>
+                <input
+                  type="text"
+                  value={maintenanceTitle}
+                  onChange={(e) => setMaintenanceTitle(e.target.value)}
+                  placeholder="المنصة في وضع الصيانة والتحديث المؤقت 🛠️"
+                  required
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              {/* Message Field */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    الرسالة المخصصة للطلاب (تظهر بوضوح في منتصف الشاشة):
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    {maintenanceMessage.length} حرف
+                  </span>
+                </div>
+                <textarea
+                  value={maintenanceMessage}
+                  onChange={(e) => setMaintenanceMessage(e.target.value)}
+                  placeholder="اكتب هنا الرسالة التي تريد أن يراها الطالب عند محاولته دخول المنصة..."
+                  rows={4}
+                  required
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Estimated Return & WhatsApp Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    الموعد المتوقع للعودة والافتتاح (اختياري):
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={maintenanceEstimatedReturn}
+                      onChange={(e) => setMaintenanceEstimatedReturn(e.target.value)}
+                      placeholder="مثال: اليوم في تمام الساعة 9:00 مساءً"
+                      className="w-full pl-4 pr-10 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                    <Clock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    رابط أو رقم واتساب للدعم السريع:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={maintenanceWhatsapp}
+                      onChange={(e) => setMaintenanceWhatsapp(e.target.value)}
+                      placeholder="https://chat.whatsapp.com/..."
+                      className="w-full pl-4 pr-10 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-left font-mono"
+                      dir="ltr"
+                    />
+                    <MessageCircle className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback Alert */}
+              {maintenanceFeedback && (
+                <div
+                  className={`p-4 rounded-2xl border text-xs sm:text-sm font-bold text-center flex items-center justify-center gap-2 ${
+                    maintenanceFeedback.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                  }`}
+                >
+                  {maintenanceFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  )}
+                  <span>{maintenanceFeedback.message}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingMaintenance}
+                  className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-extrabold text-sm shadow-md shadow-teal-600/30 transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {isSavingMaintenance ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  <span>حفظ وتطبيق إعدادات الصيانة 💾</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMaintenancePreviewModal(true)}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm transition flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
+                >
+                  <Eye className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  <span>معاينة شاشة القفل كما يراها الطالب 👁️</span>
+                </button>
+
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm transition flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
+                >
+                  <ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>معاينة المنصة كمشرف 🌐</span>
+                </Link>
+              </div>
+            </form>
+
+            {/* Live Visual Preview Box */}
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>محاكاة مصغرة حية لما سيظهر للطلاب:</span>
+                </h4>
+                <span className="text-[11px] text-slate-400">تحديث مباشر أثناء الكتابة</span>
+              </div>
+
+              <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 text-center relative overflow-hidden shadow-xl max-w-2xl mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mx-auto mb-4">
+                  <Wrench className="w-8 h-8 text-teal-400" />
+                </div>
+
+                <h3 className="text-lg sm:text-xl font-extrabold text-white mb-3">
+                  {maintenanceTitle || 'المنصة في وضع الصيانة والتحديث المؤقت 🛠️'}
+                </h3>
+
+                <p className="text-xs sm:text-sm text-slate-300 bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-4 whitespace-pre-line leading-relaxed text-right">
+                  {maintenanceMessage || 'نقوم حالياً بإجراء تحديثات وتحسينات دورية...'}
+                </p>
+
+                {maintenanceEstimatedReturn && (
+                  <div className="inline-flex items-center gap-2 bg-teal-950/60 border border-teal-500/30 text-teal-200 text-xs font-bold px-3 py-1.5 rounded-xl mb-4">
+                    <Clock className="w-3.5 h-3.5 text-teal-400" />
+                    <span>الموعد المتوقع للعودة: {maintenanceEstimatedReturn}</span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>تواصل مع الدعم عبر واتساب</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 4: Broken Link Reports */}
         {activeTab === 'reports' && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
@@ -5586,6 +6014,41 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Full Screen Student Preview Modal */}
+        {showMaintenancePreviewModal && (
+          <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
+            <div className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <span className="text-xs bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full border border-amber-500/30 font-bold flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>محاكاة حية لشاشة الطالب أثناء القفل</span>
+                </span>
+                <span className="text-xs text-slate-400 hidden sm:inline">
+                  هذا هو بالضبط ما يراه أي طالب أو زائر يدخل المنصة وهي مغلقة
+                </span>
+              </div>
+              <button
+                onClick={() => setShowMaintenancePreviewModal(false)}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition shadow"
+              >
+                إغلاق المعاينة ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <MaintenanceScreen
+                config={{
+                  isEnabled: true,
+                  title: maintenanceTitle,
+                  message: maintenanceMessage,
+                  estimatedReturn: maintenanceEstimatedReturn,
+                  contactWhatsapp: maintenanceWhatsapp,
+                  updatedAt: new Date().toISOString(),
+                }}
+              />
             </div>
           </div>
         )}

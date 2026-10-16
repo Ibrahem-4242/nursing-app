@@ -364,3 +364,47 @@ ${breakdownFormatted}
 
   return sendTelegramMessage(text, 'HTML', targetChatId, inlineKeyboard);
 }
+
+export async function notifyMaintenanceChanged(
+  isEnabled: boolean,
+  title: string,
+  message: string,
+  estimatedReturn?: string
+): Promise<boolean> {
+  const time = getArabicFormattedDate();
+  const statusEmoji = isEnabled ? '🔒🚨' : '🎉🔓';
+  const statusHeading = isEnabled
+    ? '<b>تم قفل المنصة وتفعيل وضع الصيانة 🛠️</b>'
+    : '<b>تم فتح المنصة واستئناف العمل بشكل طبيعي 🌟</b>';
+
+  const lines = [
+    `${statusEmoji} <b>تنبيه إدارة المنصة | وضع الصيانة</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    statusHeading,
+    `⏰ <b>التوقيت:</b> <code>${escapeHtml(time)}</code>`,
+  ];
+
+  if (isEnabled) {
+    if (title) lines.push(`📌 <b>عنوان التنبيه:</b> <code>${escapeHtml(title)}</code>`);
+    if (message) lines.push(`💬 <b>الرسالة المعروضة للطلاب:</b>\n<i>${escapeHtml(message)}</i>`);
+    if (estimatedReturn) lines.push(`⏳ <b>موعد العودة المتوقع:</b> <code>${escapeHtml(estimatedReturn)}</code>`);
+    lines.push(`\n⚠️ <i>ملاحظة: يمكنك كأدمن معاينة وتصفح المنصة بشكل طبيعي أثناء القفل طالما أنك مسجل الدخول.</i>`);
+  } else {
+    lines.push(`\n✅ <i>المنصة متاحة الآن لجميع الطلاب والزوار بدون قيود.</i>`);
+  }
+
+  lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`🌐 <b>رابط المنصة:</b> <a href="${SITE_URL}">${SITE_URL}</a>`);
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        { text: '⚙️ لوحة التحكم', url: `${SITE_URL}/admin-dashboard` },
+        { text: '🌐 معاينة المنصة', url: `${SITE_URL}/` },
+      ],
+    ],
+  };
+
+  return sendTelegramMessage(lines.join('\n'), 'HTML', undefined, inlineKeyboard);
+}
+

@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن ت��يير نمط الحياة والتغذية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -37,7 +37,7 @@
       "id": 3,
       "front": "What five types comprise acute non-suppurative inflammation (التهاب حاد غير صديدي)?",
       "back": "The types are catarrhal, fibrinous, membranous, allergic, and necrotizing/hemorrhagic inflammation.",
-      "category": "كرو�� استذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
     },
     {
@@ -164,7 +164,7 @@
       "front": "What is an ulcer (قرحة)?",
       "back": "An ulcer is a local defect or breach in the surface of an organ or tissue produced by the sloughing of inflammatory necrotic tissue.",
       "category": "كروت اس��ذكار",
-      "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
+      "clinicalPearl": "مضاع��ات الالتهاب (Ulcer, Sinus & Fistula Complications)"
     },
     {
       "id": 22,
@@ -192,7 +192,7 @@
       "front": "How do a sinus (جيب صديدي) and a fistula (ناصور) structurally differ?",
       "back": "A sinus has one open end with a blind tract, whereas a fistula has two open ends connecting two surfaces or cavities.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي وال��ح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 26,
@@ -336,7 +336,7 @@
     },
     {
       "id": 46,
-      "front": "What defines chronic inflammation (ال��هاب مزمن)?",
+      "front": "What defines chronic inflammation (التهاب مزمن)?",
       "back": "It is a prolonged inflammatory reaction lasting weeks to years where tissue destruction, mononuclear cell infiltration, and repair attempts occur simultaneously.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
@@ -395,10 +395,10 @@
       "title": "الخريطة الذهنية الشاملة - Inflammation 2",
       "fileSize": "1.1 MB",
       "downloadUrl": "https://raw.githubusercontent.com/Ibrahem-4242/nursing-app/main/public/uploads/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
-      "pageCount": "خريطة ذهنية عالية الدقة",
+      "pageCount": "خريطة ذهني�� عالية الدقة",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
-  "adminNote": "ت��كد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
+  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
 }
