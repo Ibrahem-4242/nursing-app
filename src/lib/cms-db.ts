@@ -10,6 +10,8 @@ import {
   VisitorEvent,
   DownloadEvent,
   SubjectQuizFile,
+  StudentUser,
+  PurchaseOrder,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -26,6 +28,8 @@ interface CmsStore {
   complaints: ComplaintRecord[];
   visitors: VisitorEvent[];
   downloads: DownloadEvent[];
+  students?: StudentUser[];
+  orders?: PurchaseOrder[];
 }
 
 const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
@@ -240,6 +244,18 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         }
       }
       store.subjectQuizzes = mergedQuizzes;
+
+      // Safely merge students
+      const studentMap = new Map<string, StudentUser>();
+      (existing.students || []).forEach((s) => studentMap.set(s.id || s.phone, s));
+      (store.students || []).forEach((s) => studentMap.set(s.id || s.phone, s));
+      store.students = Array.from(studentMap.values());
+
+      // Safely merge purchase orders
+      const orderMap = new Map<string, PurchaseOrder>();
+      (existing.orders || []).forEach((o) => orderMap.set(o.id, o));
+      (store.orders || []).forEach((o) => orderMap.set(o.id, o));
+      store.orders = Array.from(orderMap.values());
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -472,22 +488,23 @@ function initMemoryStore(): CmsStore {
     return memoryStore;
   }
 
-  // Pure clean store with curriculum subjects (fundamentals excluded)
-  memoryStore = {
-    announcement: DEFAULT_ANNOUNCEMENT,
-    maintenance: DEFAULT_MAINTENANCE,
-    lectures: [],
-    deletedLectureIds: [],
-    subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
-    subjectQuizzes: {},
-    brokenLinks: [],
-    complaints: [],
-    visitors: [],
-    downloads: [],
-  };
+    memoryStore = {
+      announcement: DEFAULT_ANNOUNCEMENT,
+      maintenance: DEFAULT_MAINTENANCE,
+      lectures: [],
+      deletedLectureIds: [],
+      subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
+      subjectQuizzes: {},
+      brokenLinks: [],
+      complaints: [],
+      visitors: [],
+      downloads: [],
+      students: [],
+      orders: [],
+    };
 
-  return memoryStore;
-}
+    return memoryStore;
+  }
 
 async function getFreshStore(): Promise<CmsStore> {
   const cloudStore = await syncFromCloud();
@@ -587,6 +604,20 @@ async function getFreshStore(): Promise<CmsStore> {
         ...DEFAULT_MAINTENANCE,
         ...cloudStore.maintenance,
       };
+    }
+    if (cloudStore.students && Array.isArray(cloudStore.students)) {
+      const existingStuMap = new Map((store.students || []).map((s) => [s.id || s.phone, s]));
+      for (const s of cloudStore.students) {
+        existingStuMap.set(s.id || s.phone, s);
+      }
+      store.students = Array.from(existingStuMap.values());
+    }
+    if (cloudStore.orders && Array.isArray(cloudStore.orders)) {
+      const existingOrdMap = new Map((store.orders || []).map((o) => [o.id, o]));
+      for (const o of cloudStore.orders) {
+        existingOrdMap.set(o.id, o);
+      }
+      store.orders = Array.from(existingOrdMap.values());
     }
     memoryStore = store;
 
@@ -1352,6 +1383,45 @@ export const CmsService = {
       delete (updated as any).explanationFileSize;
     }
 
+    if (
+      (updates as any).removePpt ||
+      updates.pptUrl === '' ||
+      (updates.pptUrl === undefined && 'pptUrl' in updates)
+    ) {
+      delete (updated as any).pptUrl;
+      delete (updated as any).pptTitle;
+      delete (updated as any).pptFileSize;
+    }
+
+    if (
+      (updates as any).removeAudio ||
+      updates.audioUrl === '' ||
+      (updates.audioUrl === undefined && 'audioUrl' in updates)
+    ) {
+      delete (updated as any).audioUrl;
+      delete (updated as any).audioTitle;
+      delete (updated as any).audioFileSize;
+      delete (updated as any).audioDuration;
+    }
+
+    if (
+      (updates as any).removeMindmap ||
+      updates.mindmapUrl === '' ||
+      (updates.mindmapUrl === undefined && 'mindmapUrl' in updates)
+    ) {
+      delete (updated as any).mindmapUrl;
+      delete (updated as any).mindmapTitle;
+      delete (updated as any).mindmapFileSize;
+    }
+
+    if (
+      (updates as any).removeFlashcards ||
+      (updates.flashcards && updates.flashcards.length === 0)
+    ) {
+      delete (updated as any).flashcards;
+      delete (updated as any).flashcardsCount;
+    }
+
     store.subjectQuizzes[targetKey] = updated;
     memoryStore = store;
     persistStore(store, customToken);
@@ -1388,5 +1458,206 @@ export const CmsService = {
     }
     return map;
   },
+
+  // --- STUDENT ACCOUNTS (حسابات الطلاب والاشتراكات) ---
+  async getStudents(): Promise<StudentUser[]> {
+    const store = await getFreshStore();
+    return store.students || [];
+  },
+
+  async getStudentById(id: string): Promise<StudentUser | null> {
+    const students = await this.getStudents();
+    return students.find((s) => s.id === id || s.phone === id) || null;
+  },
+
+  async getStudentByPhone(phone: string): Promise<StudentUser | null> {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const students = await this.getStudents();
+    return students.find((s) => s.phone.trim().replace(/\s+/g, '') === cleanPhone) || null;
+  },
+
+  async registerStudent(
+    data: { phone: string; name: string; university: string; password: string },
+    customToken?: string
+  ): Promise<{ success: boolean; student?: StudentUser; message?: string }> {
+    const store = await getFreshStore();
+    if (!store.students) store.students = [];
+
+    const cleanPhone = data.phone.trim().replace(/\s+/g, '');
+    const existing = store.students.find((s) => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+    if (existing) {
+      return { success: false, message: 'رقم الهاتف مسجل بالفعل! يرجى تسجيل الدخول أو إدخال رقم هاتف آخر.' };
+    }
+
+    const newStudent: StudentUser = {
+      id: `stu-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      phone: cleanPhone,
+      name: data.name.trim(),
+      university: data.university.trim(),
+      password: data.password.trim(),
+      createdAt: new Date().toISOString(),
+      purchasedLectureIds: [],
+      isActive: true,
+    };
+
+    store.students.unshift(newStudent);
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, student: newStudent };
+  },
+
+  async updateStudentPassword(
+    studentId: string,
+    newPass: string,
+    customToken?: string
+  ): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    student.password = newPass.trim();
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async toggleStudentLectureAccess(
+    studentId: string,
+    lectureId: string,
+    grant: boolean,
+    customToken?: string
+  ): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    if (!Array.isArray(student.purchasedLectureIds)) {
+      student.purchasedLectureIds = [];
+    }
+
+    if (grant) {
+      if (!student.purchasedLectureIds.includes(lectureId)) {
+        student.purchasedLectureIds.push(lectureId);
+      }
+    } else {
+      student.purchasedLectureIds = student.purchasedLectureIds.filter((id) => id !== lectureId);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async deleteStudent(studentId: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    store.students = store.students.filter((s) => s.id !== studentId && s.phone !== studentId);
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  // --- PURCHASE ORDERS (طلبات الشراء والمدفوعات) ---
+  async getOrders(): Promise<PurchaseOrder[]> {
+    const store = await getFreshStore();
+    return store.orders || [];
+  },
+
+  async getOrderById(orderId: string): Promise<PurchaseOrder | null> {
+    const orders = await this.getOrders();
+    return orders.find((o) => o.id === orderId) || null;
+  },
+
+  async getOrdersByStudent(studentId: string): Promise<PurchaseOrder[]> {
+    const orders = await this.getOrders();
+    return orders.filter((o) => o.studentId === studentId || o.studentPhone === studentId);
+  },
+
+  async createOrder(
+    data: Omit<PurchaseOrder, 'id' | 'status' | 'createdAt'>,
+    customToken?: string
+  ): Promise<PurchaseOrder> {
+    const store = await getFreshStore();
+    if (!store.orders) store.orders = [];
+
+    const newOrder: PurchaseOrder = {
+      ...data,
+      id: `ord-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    store.orders.unshift(newOrder);
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return newOrder;
+  },
+
+  async approveOrder(
+    orderId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; order?: PurchaseOrder; message?: string }> {
+    const store = await getFreshStore();
+    if (!store.orders) return { success: false, message: 'لا توجد طلبات' };
+    const order = store.orders.find((o) => o.id === orderId);
+    if (!order) return { success: false, message: 'الطلب غير موجود' };
+
+    order.status = 'approved';
+    order.reviewedAt = new Date().toISOString();
+
+    // Grant lecture access to student immediately
+    if (store.students) {
+      const student = store.students.find((s) => s.id === order.studentId || s.phone === order.studentPhone);
+      if (student) {
+        if (!Array.isArray(student.purchasedLectureIds)) student.purchasedLectureIds = [];
+        if (!student.purchasedLectureIds.includes(order.lectureId)) {
+          student.purchasedLectureIds.push(order.lectureId);
+        }
+      }
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, order };
+  },
+
+  async rejectOrder(
+    orderId: string,
+    rejectionReason: string,
+    customToken?: string
+  ): Promise<{ success: boolean; order?: PurchaseOrder; message?: string }> {
+    const store = await getFreshStore();
+    if (!store.orders) return { success: false, message: 'لا توجد طلبات' };
+    const order = store.orders.find((o) => o.id === orderId);
+    if (!order) return { success: false, message: 'الطلب غير موجود' };
+
+    order.status = 'rejected';
+    order.rejectionReason = rejectionReason.trim() || 'لم يتم استلام المبلغ على المحفظة';
+    order.reviewedAt = new Date().toISOString();
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, order };
+  },
+
+  async deleteOrder(orderId: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.orders) return false;
+    store.orders = store.orders.filter((o) => o.id !== orderId);
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
 };
+
 

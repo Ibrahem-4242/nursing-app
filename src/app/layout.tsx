@@ -61,6 +61,8 @@ import { CmsService } from '@/lib/cms-db';
 import { cookies } from 'next/headers';
 import MaintenanceWrapper from '@/components/MaintenanceWrapper';
 import { MaintenanceConfig } from '@/lib/types';
+import { StudentAuthProvider } from '@/context/StudentAuthContext';
+import StudentAuthModal from '@/components/StudentAuthModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,14 +145,17 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
-        <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
-          <AnnouncementBar />
-          <Navbar activeYears={activeYears} />
-          <main className="flex-1">{children}</main>
-          <Footer activeYears={activeYears} />
-        </MaintenanceWrapper>
-        <VisitorTracker />
-        <Analytics />
+        <StudentAuthProvider>
+          <StudentAuthModal />
+          <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
+            <AnnouncementBar />
+            <Navbar activeYears={activeYears} />
+            <main className="flex-1">{children}</main>
+            <Footer activeYears={activeYears} />
+          </MaintenanceWrapper>
+          <VisitorTracker />
+          <Analytics />
+        </StudentAuthProvider>
       </body>
     </html>
   );

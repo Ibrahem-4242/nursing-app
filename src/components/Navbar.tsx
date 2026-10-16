@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Stethoscope, Menu, X, MessageCircle } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import ThemeToggle from '@/components/ThemeToggle';
+import StudentNavbarPill from '@/components/StudentNavbarPill';
 
 interface NavbarProps {
   activeYears?: { id: string; title: string }[];
@@ -55,9 +56,10 @@ export default function Navbar({
           </Link>
         </nav>
 
-        {/* Right Controls: Dark Mode Toggle & WhatsApp Group Action */}
+        {/* Right Controls: Dark Mode Toggle, Student Account Pill, & WhatsApp Group */}
         <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
           <ThemeToggle />
+          <StudentNavbarPill />
 
           <a
             href={BOT_CONFIG.whatsappGroupLink}
@@ -86,6 +88,11 @@ export default function Navbar({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 pt-3 pb-6 space-y-2.5 shadow-xl animate-in slide-in-from-top-2">
+          {/* Mobile Student Account Pill */}
+          <div className="pb-1">
+            <StudentNavbarPill isMobile onNavigate={() => setMobileMenuOpen(false)} />
+          </div>
+
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}

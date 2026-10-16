@@ -87,7 +87,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { id, isLive, isFree, semester } = body;
+  const { id, isLive, isFree, price, semester } = body;
 
   if (!id) {
     return NextResponse.json({ success: false, message: 'معرف المحاضرة مطلوب' }, { status: 400 });
@@ -105,6 +105,9 @@ export async function PATCH(req: NextRequest) {
   }
   if (isFree !== undefined) {
     existing.isFree = !!isFree;
+  }
+  if (price !== undefined) {
+    existing.price = Number(price);
   }
   if (semester === '1' || semester === '2') {
     existing.semester = semester;
@@ -138,6 +141,7 @@ export async function PUT(req: NextRequest) {
   let adminNote: string | undefined;
   let overview: string | undefined;
   let isFree: boolean | undefined;
+  let price: number | undefined;
   let pdfUrl: string | undefined;
   let pptUrl: string | undefined;
   let mindmapUrl: string | undefined;
@@ -171,6 +175,9 @@ export async function PUT(req: NextRequest) {
     if (formData.get('isFree') !== null) {
       isFree = formData.get('isFree') !== 'false';
     }
+    if (formData.get('price') !== null) {
+      price = Number(formData.get('price'));
+    }
     pdfUrl = (formData.get('pdfUrl') as string) || undefined;
     pptUrl = (formData.get('pptUrl') as string) || undefined;
     mindmapUrl = (formData.get('mindmapUrl') as string) || undefined;
@@ -200,6 +207,7 @@ export async function PUT(req: NextRequest) {
     adminNote = body.adminNote;
     overview = body.overview;
     isFree = body.isFree !== undefined ? Boolean(body.isFree) : undefined;
+    if (body.price !== undefined) price = Number(body.price);
     pdfUrl = body.pdfUrl;
     pptUrl = body.pptUrl;
     mindmapUrl = body.mindmapUrl;
@@ -257,6 +265,7 @@ export async function PUT(req: NextRequest) {
   if (adminNote !== undefined) existing.adminNote = adminNote.trim();
   if (overview !== undefined) existing.overview = overview.trim();
   if (isFree !== undefined) existing.isFree = isFree;
+  if (price !== undefined) existing.price = price;
 
   // Update or Remove PDF
   if (removePdf || (pdfUrl !== undefined && !pdfUrl.trim() && !pdfFile)) {

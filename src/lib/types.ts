@@ -48,6 +48,18 @@ export interface SubjectQuizFile {
   explanationUrl?: string;
   explanationTitle?: string;
   explanationFileSize?: string;
+  pptUrl?: string;
+  pptTitle?: string;
+  pptFileSize?: string;
+  audioUrl?: string;
+  audioTitle?: string;
+  audioFileSize?: string;
+  audioDuration?: string;
+  mindmapUrl?: string;
+  mindmapTitle?: string;
+  mindmapFileSize?: string;
+  flashcards?: Flashcard[];
+  flashcardsCount?: number;
   lastModified?: number;
   isFree?: boolean;
   isLive?: boolean;
@@ -203,5 +215,37 @@ export interface DownloadEvent {
   subjectTitle: string;
   fileType: string;
   fileName?: string;
+}
+
+export interface StudentUser {
+  id: string;
+  phone: string;
+  name: string;
+  university: string;
+  password: string;
+  createdAt: string;
+  purchasedLectureIds: string[];
+  isActive?: boolean;
+  notes?: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentPhone: string;
+  studentUniversity: string;
+  lectureId: string;
+  lectureTitle: string;
+  subjectTitle: string;
+  price: number;
+  senderPhone: string;
+  contactPhone: string;
+  userMessage?: string;
+  screenshotUrl?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  createdAt: string;
+  reviewedAt?: string;
 }
 

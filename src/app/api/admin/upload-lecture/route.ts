@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
     const overview = (formData.get('overview') as string) || '';
     const shouldWatermark = formData.get('watermark') !== 'false';
     const isFree = formData.get('isFree') !== 'false';
+    const rawPrice = formData.get('price');
+    const price = !isFree ? (rawPrice ? Number(rawPrice) : 50) : 0;
 
     const hasPdf = Boolean(file || externalPdfUrl);
     const hasPpt = Boolean(pptFile || externalPptUrl);
@@ -271,7 +273,7 @@ export async function POST(req: NextRequest) {
       title: lectureTitle.trim(),
       subtitle: `شرح وملخص معتمد لمادة ${subjectObj.title}`,
       isFree,
-      price: isFree ? 0 : 10,
+      price,
       viewCount: 1,
       readingMinutes: 10,
       threeDModelType: 'heart',

@@ -37,14 +37,20 @@ import {
   Gift,
   Headphones,
   Plus,
+  CreditCard,
+  KeyRound,
+  ShieldAlert,
+  Smartphone,
+  School,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
+import { PurchaseOrder, StudentUser } from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
@@ -61,6 +67,28 @@ export default function AdminDashboardPage() {
   const [quizExplanationFile, setQuizExplanationFile] = useState<File | null>(null);
   const [quizExplanationDriveUrl, setQuizExplanationDriveUrl] = useState('');
   const [quizExplanationTitle, setQuizExplanationTitle] = useState('');
+
+  // Quiz Multimedia Attachments state (PPT, Audio, Mindmap, Flashcards)
+  const [quizPptUploadMode, setQuizPptUploadMode] = useState<'file' | 'link'>('file');
+  const [quizPptFile, setQuizPptFile] = useState<File | null>(null);
+  const [quizPptDriveUrl, setQuizPptDriveUrl] = useState('');
+  const [quizPptTitle, setQuizPptTitle] = useState('');
+
+  const [quizAudioUploadMode, setQuizAudioUploadMode] = useState<'file' | 'link'>('file');
+  const [quizAudioFile, setQuizAudioFile] = useState<File | null>(null);
+  const [quizAudioDriveUrl, setQuizAudioDriveUrl] = useState('');
+  const [quizAudioTitle, setQuizAudioTitle] = useState('');
+
+  const [quizMindmapUploadMode, setQuizMindmapUploadMode] = useState<'file' | 'link'>('file');
+  const [quizMindmapFile, setQuizMindmapFile] = useState<File | null>(null);
+  const [quizMindmapDriveUrl, setQuizMindmapDriveUrl] = useState('');
+  const [quizMindmapTitle, setQuizMindmapTitle] = useState('');
+
+  const [quizAnkiFile, setQuizAnkiFile] = useState<File | null>(null);
+  const [quizParsedCardsJson, setQuizParsedCardsJson] = useState<string | null>(null);
+  const [quizParsedCardsCount, setQuizParsedCardsCount] = useState<number>(0);
+  const [isQuizParsingAnki, setIsQuizParsingAnki] = useState(false);
+
   const [quizIsFree, setQuizIsFree] = useState(true);
   const [quizIsLive, setQuizIsLive] = useState(true);
   const [isUploadingQuiz, setIsUploadingQuiz] = useState(false);
@@ -83,6 +111,32 @@ export default function AdminDashboardPage() {
   const [editQuizInitialExplanationUrl, setEditQuizInitialExplanationUrl] = useState('');
   const [editQuizExplanationTitle, setEditQuizExplanationTitle] = useState('');
   const [editRemoveQuizExplanation, setEditRemoveQuizExplanation] = useState(false);
+
+  // Edit Quiz Multimedia state
+  const [editQuizPptFile, setEditQuizPptFile] = useState<File | null>(null);
+  const [editQuizPptDriveUrl, setEditQuizPptDriveUrl] = useState('');
+  const [editQuizInitialPptUrl, setEditQuizInitialPptUrl] = useState('');
+  const [editQuizPptTitle, setEditQuizPptTitle] = useState('');
+  const [editRemoveQuizPpt, setEditRemoveQuizPpt] = useState(false);
+
+  const [editQuizAudioFile, setEditQuizAudioFile] = useState<File | null>(null);
+  const [editQuizAudioDriveUrl, setEditQuizAudioDriveUrl] = useState('');
+  const [editQuizInitialAudioUrl, setEditQuizInitialAudioUrl] = useState('');
+  const [editQuizAudioTitle, setEditQuizAudioTitle] = useState('');
+  const [editRemoveQuizAudio, setEditRemoveQuizAudio] = useState(false);
+
+  const [editQuizMindmapFile, setEditQuizMindmapFile] = useState<File | null>(null);
+  const [editQuizMindmapDriveUrl, setEditQuizMindmapDriveUrl] = useState('');
+  const [editQuizInitialMindmapUrl, setEditQuizInitialMindmapUrl] = useState('');
+  const [editQuizMindmapTitle, setEditQuizMindmapTitle] = useState('');
+  const [editRemoveQuizMindmap, setEditRemoveQuizMindmap] = useState(false);
+
+  const [editQuizAnkiFile, setEditQuizAnkiFile] = useState<File | null>(null);
+  const [editQuizParsedCardsJson, setEditQuizParsedCardsJson] = useState<string | null>(null);
+  const [editQuizParsedCardsCount, setEditQuizParsedCardsCount] = useState<number>(0);
+  const [isEditQuizParsingAnki, setIsEditQuizParsingAnki] = useState(false);
+  const [editRemoveQuizFlashcards, setEditRemoveQuizFlashcards] = useState(false);
+
   const [editQuizIsFree, setEditQuizIsFree] = useState(true);
   const [editQuizIsLive, setEditQuizIsLive] = useState(true);
   const [isSavingQuizEdit, setIsSavingQuizEdit] = useState(false);
@@ -106,6 +160,7 @@ export default function AdminDashboardPage() {
   const [adminNote, setAdminNote] = useState('');
   const [overview, setOverview] = useState('');
   const [isFree, setIsFree] = useState(true);
+  const [price, setPrice] = useState(50);
   const [uploadMode, setUploadMode] = useState<'file' | 'link' | 'none'>('file');
   const [externalPdfUrl, setExternalPdfUrl] = useState('');
   const [pptUploadMode, setPptUploadMode] = useState<'file' | 'link'>('file');
@@ -172,6 +227,7 @@ export default function AdminDashboardPage() {
   const [editAdminNote, setEditAdminNote] = useState('');
   const [editOverview, setEditOverview] = useState('');
   const [editIsFree, setEditIsFree] = useState(true);
+  const [editPrice, setEditPrice] = useState(50);
   const [editPdfUrl, setEditPdfUrl] = useState('');
   const [editInitPdfUrl, setEditInitPdfUrl] = useState('');
   const [editPptUrl, setEditPptUrl] = useState('');
@@ -227,6 +283,25 @@ export default function AdminDashboardPage() {
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [telegramFeedback, setTelegramFeedback] = useState<string | null>(null);
   const [isSendingDailyReport, setIsSendingDailyReport] = useState(false);
+
+  // Orders & Payments state
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [selectedOrderForReject, setSelectedOrderForReject] = useState<PurchaseOrder | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [isRejectingOrder, setIsRejectingOrder] = useState(false);
+  const [viewingScreenshotUrl, setViewingScreenshotUrl] = useState<string | null>(null);
+
+  // Students & Accounts state
+  const [students, setStudents] = useState<StudentUser[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [selectedStudentForPassword, setSelectedStudentForPassword] = useState<StudentUser | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
+  const [lectureGrantSearch, setLectureGrantSearch] = useState('');
 
   // Cloud Sync Token state (GitHub Gist synchronization)
   const [syncToken, setSyncToken] = useState<string>('');
@@ -360,6 +435,210 @@ export default function AdminDashboardPage() {
     loadAnnouncement();
     loadMaintenance();
     loadReports();
+    loadOrders();
+    loadStudents();
+  };
+
+  const loadOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const res = await fetch(`/api/admin/orders?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && data.orders) {
+        setOrders(data.orders);
+      }
+    } catch (e) {
+      console.warn('Failed to load orders:', e);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const loadStudents = async () => {
+    setIsLoadingStudents(true);
+    try {
+      const res = await fetch(`/api/admin/students?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && data.students) {
+        setStudents(data.students);
+      }
+    } catch (e) {
+      console.warn('Failed to load students:', e);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
+
+  const handleApproveOrder = async (orderId: string) => {
+    if (!confirm('هل أنت متأكد من قبول هذا الطلب وتفعيل المحاضرة فوراً في حساب الطالب؟')) return;
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'approve', orderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم قبول الطلب وتفعيل المحاضرة للطالب ✅');
+        loadOrders();
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل قبول الطلب');
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء اعتماد الطلب: ' + e?.message);
+    }
+  };
+
+  const handleRejectOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForReject) return;
+    setIsRejectingOrder(true);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          action: 'reject',
+          orderId: selectedOrderForReject.id,
+          reason: rejectionReasonInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم تسجيل رفض الطلب وإبلاغ الطالب بالسبب ✅');
+        setSelectedOrderForReject(null);
+        setRejectionReasonInput('');
+        loadOrders();
+      } else {
+        alert(data.message || 'فشل رفض الطلب');
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء رفض الطلب: ' + e?.message);
+    } finally {
+      setIsRejectingOrder(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الطلب نهائياً من السجلات؟')) return;
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'delete', orderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadOrders();
+      } else {
+        alert('فشل حذف الطلب');
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء حذف الطلب: ' + e?.message);
+    }
+  };
+
+  const handleUpdateStudentPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForPassword) return;
+    if (!newPasswordInput || newPasswordInput.trim().length < 4) {
+      alert('يجب أن تكون كلمة المرور 4 أحرف أو أرقام على الأقل');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          action: 'update_password',
+          studentId: selectedStudentForPassword.id,
+          newPassword: newPasswordInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم تحديث كلمة مرور الطالب بنجاح! 🔑');
+        setSelectedStudentForPassword(null);
+        setNewPasswordInput('');
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل تحديث كلمة المرور');
+      }
+    } catch (e: any) {
+      alert('خطأ أثناء تحديث كلمة المرور: ' + e?.message);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleToggleStudentLecture = async (studentId: string, lectureId: string, grant: boolean) => {
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          action: 'toggle_lecture',
+          studentId,
+          lectureId,
+          grant,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id !== studentId) return s;
+            const curPurchased = s.purchasedLectureIds || [];
+            const newPurchased = grant
+              ? Array.from(new Set([...curPurchased, lectureId]))
+              : curPurchased.filter((id) => id !== lectureId);
+            return { ...s, purchasedLectureIds: newPurchased };
+          })
+        );
+        if (selectedStudentForLectures && selectedStudentForLectures.id === studentId) {
+          setSelectedStudentForLectures((prev) => {
+            if (!prev) return null;
+            const curPurchased = prev.purchasedLectureIds || [];
+            const newPurchased = grant
+              ? Array.from(new Set([...curPurchased, lectureId]))
+              : curPurchased.filter((id) => id !== lectureId);
+            return { ...prev, purchasedLectureIds: newPurchased };
+          });
+        }
+      } else {
+        alert(data.message || 'فشل تعديل إتاحة المحاضرة');
+      }
+    } catch (e: any) {
+      alert('خطأ: ' + e?.message);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الطالب وجميع بياناته؟ سيتم إلغاء وصوله لجميع المحاضرات.')) return;
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'delete', studentId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('تم حذف حساب الطالب بنجاح');
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل حذف الطالب');
+      }
+    } catch (e: any) {
+      alert('خطأ: ' + e?.message);
+    }
   };
 
   const loadSubjects = async () => {
@@ -917,6 +1196,7 @@ export default function AdminDashboardPage() {
       formData.append('adminNote', adminNote.trim());
       formData.append('overview', overview.trim());
       formData.append('isFree', String(isFree));
+      formData.append('price', String(price));
       formData.append('watermark', String(applyWatermark));
 
       if (typeof window !== 'undefined') {
@@ -962,6 +1242,7 @@ export default function AdminDashboardPage() {
         setAdminNote('');
         setOverview('');
         setIsFree(true);
+        setPrice(50);
         setFile(null);
         setAnkiFile(null);
         setParsedCardsJson(null);
@@ -1042,7 +1323,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Upload Subject Quiz Questions PDF
+  // Upload Subject Quiz Questions PDF & Multimedia
   const handleUploadQuizFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (quizUploadMode === 'file' && !quizFile) {
@@ -1070,6 +1351,30 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (quizPptUploadMode === 'file' && quizPptFile && quizPptFile.size > 25 * 1024 * 1024) {
+      setQuizUploadFeedback({
+        type: 'error',
+        message: 'حجم ملف الباوربوينت يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+      });
+      return;
+    }
+
+    if (quizAudioUploadMode === 'file' && quizAudioFile && quizAudioFile.size > 25 * 1024 * 1024) {
+      setQuizUploadFeedback({
+        type: 'error',
+        message: 'حجم الملف الصوتي يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+      });
+      return;
+    }
+
+    if (quizMindmapUploadMode === 'file' && quizMindmapFile && quizMindmapFile.size > 25 * 1024 * 1024) {
+      setQuizUploadFeedback({
+        type: 'error',
+        message: 'حجم ملف الخريطة الذهنية يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+      });
+      return;
+    }
+
     setIsUploadingQuiz(true);
     setQuizUploadFeedback(null);
 
@@ -1079,6 +1384,15 @@ export default function AdminDashboardPage() {
 
       let resolvedExpUrl = quizExplanationMode === 'link' ? quizExplanationDriveUrl.trim() : '';
       let expFileToSend: File | null = quizExplanationMode === 'file' ? quizExplanationFile : null;
+
+      let resolvedPptUrl = quizPptUploadMode === 'link' ? quizPptDriveUrl.trim() : '';
+      let pptFileToSend: File | null = quizPptUploadMode === 'file' ? quizPptFile : null;
+
+      let resolvedAudioUrl = quizAudioUploadMode === 'link' ? quizAudioDriveUrl.trim() : '';
+      let audioFileToSend: File | null = quizAudioUploadMode === 'file' ? quizAudioFile : null;
+
+      let resolvedMindmapUrl = quizMindmapUploadMode === 'link' ? quizMindmapDriveUrl.trim() : '';
+      let mindmapFileToSend: File | null = quizMindmapUploadMode === 'file' ? quizMindmapFile : null;
 
       // Direct cloud offload for files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
@@ -1101,6 +1415,36 @@ export default function AdminDashboardPage() {
         }
       }
 
+      if (pptFileToSend && pptFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        if (directUploaded) {
+          resolvedPptUrl = directUploaded.url;
+          pptFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع ملف الباوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      if (audioFileToSend && audioFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        if (directUploaded) {
+          resolvedAudioUrl = directUploaded.url;
+          audioFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      if (mindmapFileToSend && mindmapFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        if (directUploaded) {
+          resolvedMindmapUrl = directUploaded.url;
+          mindmapFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
       const formData = new FormData();
       if (quizFileToSend) {
         formData.append('file', quizFileToSend);
@@ -1118,14 +1462,51 @@ export default function AdminDashboardPage() {
       formData.append('isFree', String(quizIsFree));
       formData.append('isLive', String(quizIsLive));
 
+      // Explanation
       if (expFileToSend) {
         formData.append('explanationFile', expFileToSend);
       } else if (resolvedExpUrl) {
         formData.append('externalExplanationUrl', resolvedExpUrl);
       }
-
       if (quizExplanationTitle.trim()) {
         formData.append('explanationTitle', quizExplanationTitle.trim());
+      }
+
+      // PowerPoint
+      if (pptFileToSend) {
+        formData.append('pptFile', pptFileToSend);
+      } else if (resolvedPptUrl) {
+        formData.append('externalPptUrl', resolvedPptUrl);
+      }
+      if (quizPptTitle.trim()) {
+        formData.append('pptTitle', quizPptTitle.trim());
+      }
+
+      // Audio
+      if (audioFileToSend) {
+        formData.append('audioFile', audioFileToSend);
+      } else if (resolvedAudioUrl) {
+        formData.append('externalAudioUrl', resolvedAudioUrl);
+      }
+      if (quizAudioTitle.trim()) {
+        formData.append('audioTitle', quizAudioTitle.trim());
+      }
+
+      // Mindmap
+      if (mindmapFileToSend) {
+        formData.append('mindmapFile', mindmapFileToSend);
+      } else if (resolvedMindmapUrl) {
+        formData.append('externalMindmapUrl', resolvedMindmapUrl);
+      }
+      if (quizMindmapTitle.trim()) {
+        formData.append('mindmapTitle', quizMindmapTitle.trim());
+      }
+
+      // Flashcards
+      if (quizParsedCardsJson) {
+        formData.append('flashcardsJson', quizParsedCardsJson);
+      } else if (quizAnkiFile) {
+        formData.append('ankiFile', quizAnkiFile);
       }
 
       if (typeof window !== 'undefined') {
@@ -1168,6 +1549,21 @@ export default function AdminDashboardPage() {
         setQuizExplanationDriveUrl('');
         setQuizExplanationTitle('');
         setQuizExplanationMode('file');
+
+        // Reset multimedia
+        setQuizPptFile(null);
+        setQuizPptDriveUrl('');
+        setQuizPptTitle('');
+        setQuizAudioFile(null);
+        setQuizAudioDriveUrl('');
+        setQuizAudioTitle('');
+        setQuizMindmapFile(null);
+        setQuizMindmapDriveUrl('');
+        setQuizMindmapTitle('');
+        setQuizAnkiFile(null);
+        setQuizParsedCardsJson(null);
+        setQuizParsedCardsCount(0);
+
         loadSubjectQuizzes();
       } else {
         setQuizUploadFeedback({ type: 'error', message: data?.message || 'فشل الرفع' });
@@ -1199,6 +1595,37 @@ export default function AdminDashboardPage() {
     setEditQuizInitialExplanationUrl(expUrl);
     setEditQuizExplanationFile(null);
     setEditRemoveQuizExplanation(false);
+
+    // PPT
+    const pUrl = (quiz.pptUrl || '').trim();
+    setEditQuizPptDriveUrl(pUrl);
+    setEditQuizInitialPptUrl(pUrl);
+    setEditQuizPptTitle(quiz.pptTitle || '');
+    setEditQuizPptFile(null);
+    setEditRemoveQuizPpt(false);
+
+    // Audio
+    const aUrl = (quiz.audioUrl || '').trim();
+    setEditQuizAudioDriveUrl(aUrl);
+    setEditQuizInitialAudioUrl(aUrl);
+    setEditQuizAudioTitle(quiz.audioTitle || '');
+    setEditQuizAudioFile(null);
+    setEditRemoveQuizAudio(false);
+
+    // Mindmap
+    const mUrl = (quiz.mindmapUrl || '').trim();
+    setEditQuizMindmapDriveUrl(mUrl);
+    setEditQuizInitialMindmapUrl(mUrl);
+    setEditQuizMindmapTitle(quiz.mindmapTitle || '');
+    setEditQuizMindmapFile(null);
+    setEditRemoveQuizMindmap(false);
+
+    // Flashcards
+    setEditQuizAnkiFile(null);
+    setEditQuizParsedCardsJson(null);
+    setEditQuizParsedCardsCount(quiz.flashcards?.length || 0);
+    setEditRemoveQuizFlashcards(false);
+
     setEditQuizIsFree(quiz.isFree !== false);
     setEditQuizIsLive(quiz.isLive !== false);
   };
@@ -1218,6 +1645,21 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (editQuizPptFile && editQuizPptFile.size > 25 * 1024 * 1024) {
+      alert('حجم ملف الباوربوينت أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+      return;
+    }
+
+    if (editQuizAudioFile && editQuizAudioFile.size > 25 * 1024 * 1024) {
+      alert('حجم الملف الصوتي أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+      return;
+    }
+
+    if (editQuizMindmapFile && editQuizMindmapFile.size > 25 * 1024 * 1024) {
+      alert('حجم ملف الخريطة الذهنية أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+      return;
+    }
+
     setIsSavingQuizEdit(true);
     try {
       const quizId = editingQuiz.id || editingQuiz.subjectId;
@@ -1225,11 +1667,32 @@ export default function AdminDashboardPage() {
         editRemoveQuizExplanation ||
         (Boolean(editQuizInitialExplanationUrl) && !editQuizExplanationDriveUrl.trim() && !editQuizExplanationFile);
 
+      const willRemovePpt =
+        editRemoveQuizPpt ||
+        (Boolean(editQuizInitialPptUrl) && !editQuizPptDriveUrl.trim() && !editQuizPptFile);
+
+      const willRemoveAudio =
+        editRemoveQuizAudio ||
+        (Boolean(editQuizInitialAudioUrl) && !editQuizAudioDriveUrl.trim() && !editQuizAudioFile);
+
+      const willRemoveMindmap =
+        editRemoveQuizMindmap ||
+        (Boolean(editQuizInitialMindmapUrl) && !editQuizMindmapDriveUrl.trim() && !editQuizMindmapFile);
+
       let resolvedQuizDriveUrl = editQuizDriveUrl.trim();
       let quizFileToSend: File | null = editQuizFile;
 
       let resolvedExpUrl = editQuizExplanationDriveUrl.trim();
       let expFileToSend: File | null = editQuizExplanationFile;
+
+      let resolvedPptUrl = editQuizPptDriveUrl.trim();
+      let pptFileToSend: File | null = editQuizPptFile;
+
+      let resolvedAudioUrl = editQuizAudioDriveUrl.trim();
+      let audioFileToSend: File | null = editQuizAudioFile;
+
+      let resolvedMindmapUrl = editQuizMindmapDriveUrl.trim();
+      let mindmapFileToSend: File | null = editQuizMindmapFile;
 
       // Direct cloud offload for large files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
@@ -1252,8 +1715,41 @@ export default function AdminDashboardPage() {
         }
       }
 
+      if (pptFileToSend && pptFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        if (directUploaded) {
+          resolvedPptUrl = directUploaded.url;
+          pptFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع ملف الباوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      if (audioFileToSend && audioFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        if (directUploaded) {
+          resolvedAudioUrl = directUploaded.url;
+          audioFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      if (mindmapFileToSend && mindmapFileToSend.size > 2.5 * 1024 * 1024) {
+        const directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        if (directUploaded) {
+          resolvedMindmapUrl = directUploaded.url;
+          mindmapFileToSend = null;
+        } else {
+          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+        }
+      }
+
+      const hasFilesToUpload =
+        quizFileToSend || expFileToSend || pptFileToSend || audioFileToSend || mindmapFileToSend || editQuizAnkiFile;
+
       let res: Response;
-      if (quizFileToSend || expFileToSend) {
+      if (hasFilesToUpload) {
         const formData = new FormData();
         formData.append('id', quizId);
         formData.append('title', editQuizTitle.trim());
@@ -1266,6 +1762,7 @@ export default function AdminDashboardPage() {
         formData.append('isFree', String(editQuizIsFree));
         formData.append('isLive', String(editQuizIsLive));
 
+        // Explanation
         if (willRemoveExp) {
           formData.append('removeExplanation', 'true');
         } else if (expFileToSend) {
@@ -1278,6 +1775,48 @@ export default function AdminDashboardPage() {
           if (editQuizExplanationTitle.trim()) {
             formData.append('explanationTitle', editQuizExplanationTitle.trim());
           }
+        }
+
+        // PPT
+        if (willRemovePpt) {
+          formData.append('removePpt', 'true');
+        } else if (pptFileToSend) {
+          formData.append('pptFile', pptFileToSend);
+          if (editQuizPptTitle.trim()) formData.append('pptTitle', editQuizPptTitle.trim());
+        } else if (resolvedPptUrl) {
+          formData.append('externalPptUrl', resolvedPptUrl);
+          if (editQuizPptTitle.trim()) formData.append('pptTitle', editQuizPptTitle.trim());
+        }
+
+        // Audio
+        if (willRemoveAudio) {
+          formData.append('removeAudio', 'true');
+        } else if (audioFileToSend) {
+          formData.append('audioFile', audioFileToSend);
+          if (editQuizAudioTitle.trim()) formData.append('audioTitle', editQuizAudioTitle.trim());
+        } else if (resolvedAudioUrl) {
+          formData.append('externalAudioUrl', resolvedAudioUrl);
+          if (editQuizAudioTitle.trim()) formData.append('audioTitle', editQuizAudioTitle.trim());
+        }
+
+        // Mindmap
+        if (willRemoveMindmap) {
+          formData.append('removeMindmap', 'true');
+        } else if (mindmapFileToSend) {
+          formData.append('mindmapFile', mindmapFileToSend);
+          if (editQuizMindmapTitle.trim()) formData.append('mindmapTitle', editQuizMindmapTitle.trim());
+        } else if (resolvedMindmapUrl) {
+          formData.append('externalMindmapUrl', resolvedMindmapUrl);
+          if (editQuizMindmapTitle.trim()) formData.append('mindmapTitle', editQuizMindmapTitle.trim());
+        }
+
+        // Flashcards
+        if (editRemoveQuizFlashcards) {
+          formData.append('removeFlashcards', 'true');
+        } else if (editQuizParsedCardsJson) {
+          formData.append('flashcardsJson', editQuizParsedCardsJson);
+        } else if (editQuizAnkiFile) {
+          formData.append('ankiFile', editQuizAnkiFile);
         }
 
         res = await fetch('/api/admin/upload-quiz-file', {
@@ -1301,12 +1840,38 @@ export default function AdminDashboardPage() {
           bodyPayload.removeExplanation = true;
           bodyPayload.externalExplanationUrl = '';
         } else {
-          if (resolvedExpUrl) {
-            bodyPayload.externalExplanationUrl = resolvedExpUrl;
-          }
-          if (editQuizExplanationTitle.trim()) {
-            bodyPayload.explanationTitle = editQuizExplanationTitle.trim();
-          }
+          if (resolvedExpUrl) bodyPayload.externalExplanationUrl = resolvedExpUrl;
+          if (editQuizExplanationTitle.trim()) bodyPayload.explanationTitle = editQuizExplanationTitle.trim();
+        }
+
+        if (willRemovePpt) {
+          bodyPayload.removePpt = true;
+          bodyPayload.externalPptUrl = '';
+        } else {
+          if (resolvedPptUrl) bodyPayload.externalPptUrl = resolvedPptUrl;
+          if (editQuizPptTitle.trim()) bodyPayload.pptTitle = editQuizPptTitle.trim();
+        }
+
+        if (willRemoveAudio) {
+          bodyPayload.removeAudio = true;
+          bodyPayload.externalAudioUrl = '';
+        } else {
+          if (resolvedAudioUrl) bodyPayload.externalAudioUrl = resolvedAudioUrl;
+          if (editQuizAudioTitle.trim()) bodyPayload.audioTitle = editQuizAudioTitle.trim();
+        }
+
+        if (willRemoveMindmap) {
+          bodyPayload.removeMindmap = true;
+          bodyPayload.externalMindmapUrl = '';
+        } else {
+          if (resolvedMindmapUrl) bodyPayload.externalMindmapUrl = resolvedMindmapUrl;
+          if (editQuizMindmapTitle.trim()) bodyPayload.mindmapTitle = editQuizMindmapTitle.trim();
+        }
+
+        if (editRemoveQuizFlashcards) {
+          bodyPayload.removeFlashcards = true;
+        } else if (editQuizParsedCardsJson) {
+          bodyPayload.flashcardsJson = editQuizParsedCardsJson;
         }
 
         res = await fetch('/api/admin/upload-quiz-file', {
@@ -1563,6 +2128,7 @@ export default function AdminDashboardPage() {
     setEditAdminNote(lec.adminNote || '');
     setEditOverview(lec.overview || '');
     setEditIsFree(lec.isFree !== false);
+    setEditPrice(lec.price || 50);
     const pdf = lec.files?.find((f: any) => f.type === 'pdf' || f.fileType === 'summary');
     const ppt = lec.files?.find((f: any) => f.type === 'ppt' || f.fileType === 'presentation' || f.fileType === 'powerpoint');
     const mm = lec.files?.find((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
@@ -1741,6 +2307,7 @@ export default function AdminDashboardPage() {
         formData.append('adminNote', editAdminNote.trim());
         formData.append('overview', editOverview.trim());
         formData.append('isFree', String(editIsFree));
+        formData.append('price', String(editPrice));
         formData.append('pdfUrl', willRemovePdf ? '' : resolvedPdfUrl.trim());
         formData.append('pptUrl', willRemovePpt ? '' : resolvedPptUrl.trim());
         formData.append('mindmapUrl', willRemoveMm ? '' : resolvedMmUrl.trim());
@@ -1779,6 +2346,7 @@ export default function AdminDashboardPage() {
             adminNote: editAdminNote.trim(),
             overview: editOverview.trim(),
             isFree: editIsFree,
+            price: editPrice,
             pdfUrl: willRemovePdf ? '' : resolvedPdfUrl.trim(),
             pptUrl: willRemovePpt ? '' : resolvedPptUrl.trim(),
             mindmapUrl: willRemoveMm ? '' : resolvedMmUrl.trim(),
@@ -2162,6 +2730,41 @@ export default function AdminDashboardPage() {
           >
             <HelpCircle className="w-4 h-4" />
             <span>أسئلة الكويزات لكل مادة</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('orders');
+              loadOrders();
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition relative ${
+              activeTab === 'orders'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>طلبات الشراء والمدفوعات 💳</span>
+            {orders.filter((o) => o.status === 'pending').length > 0 && (
+              <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
+                {orders.filter((o) => o.status === 'pending').length} جديد
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('students');
+              loadStudents();
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'students'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>حسابات الطلاب والاشتراكات 👥 ({students.length})</span>
           </button>
 
           <button
@@ -3080,6 +3683,28 @@ export default function AdminDashboardPage() {
                     <span>مقفولة (تتطلب اشتراك) 🔒</span>
                   </button>
                 </div>
+
+                {!isFree && (
+                  <div className="mt-3 p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2 animate-in fade-in">
+                    <label className="block text-xs font-black text-amber-900 dark:text-amber-200">
+                      سعر المحاضرة بالجنيه المصري (ج.م) 💰:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={price}
+                        onChange={(e) => setPrice(Number(e.target.value) || 0)}
+                        className="w-32 py-2 px-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-bold text-center"
+                      />
+                      <span className="text-xs font-bold text-amber-800 dark:text-amber-300">جنيه مصري (EGP)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      * سيتطلب من الطالب تسجيل الدخول أو إنشاء حساب لشراء هذه المحاضرة والتحويل عبر محفظة 01148243443
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Optional Admin Note */}
@@ -3517,6 +4142,22 @@ export default function AdminDashboardPage() {
                           <option value="free">مجانية للجميع 🎁</option>
                           <option value="paid">مدفوعة / مقفولة 🔒</option>
                         </select>
+                        {!editIsFree && (
+                          <div className="mt-2 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">سعر المحاضرة:</span>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={editPrice}
+                                onChange={(e) => setEditPrice(Number(e.target.value) || 0)}
+                                className="w-20 py-1 px-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold text-center"
+                              />
+                              <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300">ج.م</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -5178,6 +5819,740 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Orders & Payments (طلبات الشراء والمدفوعات 💳) */}
+        {activeTab === 'orders' && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-600" />
+                  <span>طلبات الشراء والتحويلات المالية 💳</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  مراجعة تحويلات فودافون كاش، اعتماد وتفعيل المحاضرات فورياً للطلاب، أو رفض الدفع مع توضيح السبب.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => loadOrders()}
+                  disabled={isLoadingOrders}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                  <span>تحديث الطلبات</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Stats Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-center">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold block mb-1">إجمالي الطلبات</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white">{orders.length}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
+                <span className="text-xs text-amber-800 dark:text-amber-300 font-bold block mb-1">تنتظر المراجعة ⏳</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400">
+                  {orders.filter((o) => o.status === 'pending').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
+                <span className="text-xs text-emerald-800 dark:text-emerald-300 font-bold block mb-1">طلبات مقبولة ومفعلة ✅</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                  {orders.filter((o) => o.status === 'approved').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
+                <span className="text-xs text-rose-800 dark:text-rose-300 font-bold block mb-1">طلبات مرفوضة ❌</span>
+                <span className="text-xl font-black text-rose-600 dark:text-rose-400">
+                  {orders.filter((o) => o.status === 'rejected').length}
+                </span>
+              </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+              <button
+                type="button"
+                onClick={() => setOrderFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  orderFilter === 'all'
+                    ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                الكل ({orders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderFilter('pending')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  orderFilter === 'pending'
+                    ? 'bg-amber-600 text-white'
+                    : 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50'
+                }`}
+              >
+                قيد المراجعة ({orders.filter((o) => o.status === 'pending').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderFilter('approved')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  orderFilter === 'approved'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
+                }`}
+              >
+                المقبولة ({orders.filter((o) => o.status === 'approved').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderFilter('rejected')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  orderFilter === 'rejected'
+                    ? 'bg-rose-600 text-white'
+                    : 'text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50'
+                }`}
+              >
+                المرفوضة ({orders.filter((o) => o.status === 'rejected').length})
+              </button>
+            </div>
+
+            {/* Orders List / Table */}
+            {isLoadingOrders ? (
+              <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+                <span className="text-xs">جاري تحميل طلبات الشراء...</span>
+              </div>
+            ) : orders.filter((o) => orderFilter === 'all' || o.status === orderFilter).length === 0 ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <CreditCard className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا توجد طلبات شراء في هذا القسم حالياً</p>
+                <p className="text-xs text-slate-400">أي طلب تحويل يرسله الطالب سيظهر هنا فوراً مع إشعار تيليجرام.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                      <th className="py-3 px-3">الطالب</th>
+                      <th className="py-3 px-3">المحاضرة والمادة</th>
+                      <th className="py-3 px-3">المبلغ</th>
+                      <th className="py-3 px-3">بيانات التحويل</th>
+                      <th className="py-3 px-3">رسالة الطالب</th>
+                      <th className="py-3 px-3">الإيصال</th>
+                      <th className="py-3 px-3">الحالة</th>
+                      <th className="py-3 px-3 text-center">الإجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {orders
+                      .filter((o) => orderFilter === 'all' || o.status === orderFilter)
+                      .map((order) => {
+                        return (
+                          <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-850 transition">
+                            {/* Student */}
+                            <td className="py-3.5 px-3">
+                              <div className="font-bold text-slate-900 dark:text-white">{order.studentName}</div>
+                              <div className="text-[11px] text-slate-500 font-semibold">{order.studentUniversity}</div>
+                              <div className="text-[10px] text-teal-600 font-mono mt-0.5" dir="ltr">
+                                {order.studentPhone}
+                              </div>
+                            </td>
+
+                            {/* Lecture */}
+                            <td className="py-3.5 px-3 max-w-[200px]">
+                              <div className="font-bold text-slate-800 dark:text-slate-200 truncate">{order.lectureTitle}</div>
+                              <div className="text-[11px] text-slate-500 truncate">{order.subjectTitle}</div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{order.createdAt}</div>
+                            </td>
+
+                            {/* Price */}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              <span className="font-black text-sm text-slate-900 dark:text-white">{order.price || 50}</span>
+                              <span className="text-[10px] text-slate-500 font-bold mr-1">ج.م</span>
+                            </td>
+
+                            {/* Transfer Info */}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              <div className="text-[11px] text-slate-700 dark:text-slate-300">
+                                <span className="text-slate-400">حول من: </span>
+                                <span className="font-mono font-bold text-teal-600" dir="ltr">{order.senderPhone}</span>
+                              </div>
+                              {order.contactPhone && (
+                                <div className="text-[10px] text-slate-500">
+                                  <span>تواصل: </span>
+                                  <span className="font-mono" dir="ltr">{order.contactPhone}</span>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Student Message */}
+                            <td className="py-3.5 px-3 max-w-[160px]">
+                              {order.userMessage ? (
+                                <div className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/60" title={order.userMessage}>
+                                  {order.userMessage}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[10px]">-</span>
+                              )}
+                            </td>
+
+                            {/* Screenshot */}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              {order.screenshotUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingScreenshotUrl(order.screenshotUrl || null)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 font-bold text-[11px] border border-teal-200 dark:border-teal-800 transition"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>معاينة الإيصال</span>
+                                </button>
+                              ) : (
+                                <span className="text-slate-400 text-[10px]">بدون صورة</span>
+                              )}
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              {order.status === 'pending' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold text-[10px] animate-pulse">
+                                  <Clock className="w-3 h-3" />
+                                  <span>بانتظار التأكيد</span>
+                                </span>
+                              )}
+                              {order.status === 'approved' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>مقبول ومفعل 🎓</span>
+                                </span>
+                              )}
+                              {order.status === 'rejected' && (
+                                <div className="space-y-0.5">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 font-bold text-[10px]">
+                                    <X className="w-3 h-3" />
+                                    <span>مرفوض ❌</span>
+                                  </span>
+                                  {order.rejectionReason && (
+                                    <div className="text-[10px] text-rose-600 dark:text-rose-400 max-w-[130px] truncate" title={order.rejectionReason}>
+                                      {order.rejectionReason}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                {order.status === 'pending' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveOrder(order.id)}
+                                      className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm transition"
+                                      title="قبول وتفعيل المحاضرة فوراً"
+                                    >
+                                      موافقة وتفعيل ✅
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedOrderForReject(order);
+                                        setRejectionReasonInput('لم يتم استلام المبلغ على فودافون كاش - يرجى التأكد من الرقم والتحويل');
+                                      }}
+                                      className="py-1 px-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-200 dark:border-rose-800 transition"
+                                      title="رفض الطلب مع ذكر السبب"
+                                    >
+                                      رفض ❌
+                                    </button>
+                                  </>
+                                )}
+
+                                {order.status === 'approved' && (
+                                  <span className="text-emerald-600 text-xs font-bold">مفعل في الحساب</span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition"
+                                  title="حذف هذا الطلب من السجل"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: Students Accounts (حسابات الطلاب والاشتراكات 👥) */}
+        {activeTab === 'students' && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-teal-600" />
+                  <span>حسابات الطلاب والاشتراكات 👥</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  إدارة الطلاب المسجلين بالمنصة، تغيير كلمات المرور، وفتح أو قفل المحاضرات على كل طالب بحرية تامة.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => loadStudents()}
+                  disabled={isLoadingStudents}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStudents ? 'animate-spin' : ''}`} />
+                  <span>تحديث الطلاب</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search and Stats */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <input
+                type="text"
+                placeholder="ابحث بالاسم أو رقم الهاتف أو الجامعة..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                className="w-full sm:w-80 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500"
+              />
+
+              <div className="text-xs font-bold text-slate-600 dark:text-slate-400 self-end sm:self-auto">
+                إجمالي الطلاب المسجلين: <span className="text-teal-600 font-black">{students.length}</span> طالب
+              </div>
+            </div>
+
+            {/* Students Table */}
+            {isLoadingStudents ? (
+              <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+                <span className="text-xs">جاري تحميل بيانات الطلاب...</span>
+              </div>
+            ) : students.filter(
+                (s) =>
+                  !studentSearch.trim() ||
+                  s.name.includes(studentSearch.trim()) ||
+                  s.phone.includes(studentSearch.trim()) ||
+                  s.university.includes(studentSearch.trim())
+              ).length === 0 ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا يوجد طلاب مسجلين يطابقون البحث</p>
+                <p className="text-xs text-slate-400">عندما يقوم أي طالب بإنشاء حساب لشراء المحاضرات، سيظهر هنا مباشرة.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                      <th className="py-3 px-3">الطالب</th>
+                      <th className="py-3 px-3">الجامعة</th>
+                      <th className="py-3 px-3">رقم الهاتف</th>
+                      <th className="py-3 px-3">المحاضرات المفعلة</th>
+                      <th className="py-3 px-3">تاريخ التسجيل</th>
+                      <th className="py-3 px-3 text-center">التحكم والصلاحيات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {students
+                      .filter(
+                        (s) =>
+                          !studentSearch.trim() ||
+                          s.name.includes(studentSearch.trim()) ||
+                          s.phone.includes(studentSearch.trim()) ||
+                          s.university.includes(studentSearch.trim())
+                      )
+                      .map((student) => {
+                        const purchasedCount = student.purchasedLectureIds?.length || 0;
+                        return (
+                          <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-850 transition">
+                            {/* Name & Avatar */}
+                            <td className="py-3.5 px-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-teal-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                  {student.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-slate-900 dark:text-white">{student.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono">ID: {student.id.slice(0, 10)}...</div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* University */}
+                            <td className="py-3.5 px-3">
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{student.university}</span>
+                            </td>
+
+                            {/* Phone */}
+                            <td className="py-3.5 px-3 font-mono font-bold text-slate-800 dark:text-slate-200" dir="ltr">
+                              {student.phone}
+                            </td>
+
+                            {/* Purchased Lectures Count */}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                                  purchasedCount > 0
+                                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                }`}
+                              >
+                                <BookOpen className="w-3.5 h-3.5" />
+                                <span>{purchasedCount} محاضرة</span>
+                              </span>
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-3.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                              {student.createdAt || '-'}
+                            </td>
+
+                            {/* Controls */}
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedStudentForLectures(student)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 font-bold text-[11px] border border-teal-200 dark:border-teal-800 flex items-center gap-1 transition"
+                                  title="فتح أو قفل المحاضرات على هذا الطالب"
+                                >
+                                  <BookOpen className="w-3 h-3" />
+                                  <span>المحاضرات المفتوحة</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedStudentForPassword(student);
+                                    setNewPasswordInput('');
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-bold text-[11px] border border-amber-200 dark:border-amber-800 flex items-center gap-1 transition"
+                                  title="تغيير كلمة مرور الطالب"
+                                >
+                                  <KeyRound className="w-3 h-3" />
+                                  <span>تغيير الباسورد</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStudent(student.id)}
+                                  className="p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition"
+                                  title="حذف حساب الطالب"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Viewing Screenshot Modal */}
+        {viewingScreenshotUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in"
+            dir="rtl"
+            onClick={() => setViewingScreenshotUrl(null)}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-teal-600" />
+                  <span>معاينة إيصال تحويل فودافون كاش</span>
+                </h4>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={viewingScreenshotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 hover:bg-teal-100 text-xs font-bold inline-flex items-center gap-1"
+                    title="فتح في نافذة جديدة"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>فتح بالحجم الأصلي</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setViewingScreenshotUrl(null)}
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 dark:bg-slate-950 rounded-2xl p-2 min-h-[300px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={viewingScreenshotUrl}
+                  alt="إيصال التحويل"
+                  className="max-h-[70vh] w-auto object-contain rounded-xl shadow-md"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Order Modal */}
+        {selectedOrderForReject && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in" dir="rtl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="text-lg font-black text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                    <X className="w-5 h-5" />
+                    <span>رفض طلب الدفع ❌</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    الطالب: <span className="font-bold">{selectedOrderForReject.studentName}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderForReject(null)}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRejectOrderSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    سبب رفض التحويل (يظهر للطالب):
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={rejectionReasonInput}
+                    onChange={(e) => setRejectionReasonInput(e.target.value)}
+                    placeholder="اكتب سبب الرفض هنا ليراه الطالب (مثال: لم يتم استلام المبلغ على فودافون كاش، الرقم المحول منه غير صحيح، إلخ)..."
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isRejectingOrder}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                  >
+                    {isRejectingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                    <span>تأكيد الرفض مع إشعار تيليجرام</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForReject(null)}
+                    className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Change Student Password Modal */}
+        {selectedStudentForPassword && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in" dir="rtl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-amber-600" />
+                    <span>تغيير كلمة مرور الطالب 🔑</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    الطالب: <span className="font-bold">{selectedStudentForPassword.name}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForPassword(null)}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateStudentPasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    كلمة المرور الجديدة (الباسورد الجديد):
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="اكتب الباسورد الجديد للطالب..."
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    * يمكنك كتابة كلمة مرور جديدة وتسليمها للطالب ليتمكن من تسجيل الدخول فوراً.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isUpdatingPassword || !newPasswordInput.trim()}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                  >
+                    {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>حفظ الباسورد الجديد فوراً</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForPassword(null)}
+                    className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Manage Student Lectures Modal */}
+        {selectedStudentForLectures && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in" dir="rtl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-teal-600" />
+                    <span>إدارة المحاضرات المفتوحة للطالب 🎓</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    الطالب: <span className="font-bold text-slate-800 dark:text-slate-200">{selectedStudentForLectures.name}</span> ({selectedStudentForLectures.university}) - يمكنك فتح أي محاضرة بضغطة زر أو قفلها وسحبها فوراً.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForLectures(null)}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-shrink-0">
+                <input
+                  type="text"
+                  placeholder="ابحث عن محاضرة لفتحها أو قفلها..."
+                  value={lectureGrantSearch}
+                  onChange={(e) => setLectureGrantSearch(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 dark:divide-slate-800/60">
+                {lectures
+                  .filter(
+                    (lec) =>
+                      !lectureGrantSearch.trim() ||
+                      lec.title.toLowerCase().includes(lectureGrantSearch.toLowerCase().trim()) ||
+                      lec.subjectTitle.toLowerCase().includes(lectureGrantSearch.toLowerCase().trim())
+                  )
+                  .map((lec) => {
+                    const isGranted = (selectedStudentForLectures.purchasedLectureIds || []).includes(lec.id);
+                    return (
+                      <div
+                        key={lec.id}
+                        className={`p-3 rounded-2xl flex items-center justify-between gap-3 transition ${
+                          isGranted
+                            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60'
+                            : 'bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800'
+                        }`}
+                      >
+                        <div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span>{lec.title}</span>
+                            {!lec.isFree && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-bold">
+                                مدفوعة ({lec.price || 50} ج.م)
+                              </span>
+                            )}
+                            {lec.isFree && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                                مجانية عامة
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                            {lec.subjectTitle} • {lec.yearTitle}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStudentLecture(selectedStudentForLectures.id, lec.id, !isGranted)}
+                          className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition shadow-sm ${
+                            isGranted
+                              ? 'bg-emerald-600 hover:bg-rose-600 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 hover:bg-emerald-600 hover:text-white text-slate-800 dark:text-slate-200'
+                          }`}
+                        >
+                          {isGranted ? (
+                            <>
+                              <Unlock className="w-3.5 h-3.5" />
+                              <span>مفتوحة (اضغط للقفل)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>مقفولة (اضغط للفتح)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForLectures(null)}
+                  className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
+                >
+                  إغلاق
+                </button>
+              </div>
             </div>
           </div>
         )}

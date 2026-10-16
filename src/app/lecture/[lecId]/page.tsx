@@ -145,9 +145,11 @@ export default async function LecturePage({ params }: LecturePageProps) {
           files={lecture.files}
           flashcards={lecture.flashcards}
           subjectTitle={lecture.subjectTitle}
+          lectureTitle={lecture.title}
           adminNote={lecture.adminNote}
           lectureId={lecture.id}
           isFree={lecture.isFree}
+          price={lecture.price || 50}
           isAdmin={false}
         />
       </section>

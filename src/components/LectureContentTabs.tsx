@@ -6,6 +6,8 @@ import Flashcards3D from '@/components/Flashcards3D';
 import AudioWavePlayer from '@/components/AudioWavePlayer';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
+import PurchaseLectureModal from '@/components/PurchaseLectureModal';
+import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
   FileText,
   Presentation,
@@ -27,9 +29,11 @@ interface LectureContentTabsProps {
   files: LectureFile[];
   flashcards: Flashcard[];
   subjectTitle: string;
+  lectureTitle?: string;
   adminNote?: string;
   lectureId?: string;
   isFree?: boolean;
+  price?: number;
   isAdmin?: boolean;
 }
 
@@ -37,9 +41,11 @@ export default function LectureContentTabs({
   files,
   flashcards,
   subjectTitle,
+  lectureTitle,
   adminNote,
   lectureId,
   isFree = true,
+  price = 50,
   isAdmin = false,
 }: LectureContentTabsProps) {
   const getFileUrl = (f: any) => (f?.downloadUrl || f?.fileUrl || '').trim();
@@ -111,6 +117,11 @@ export default function LectureContentTabs({
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+
+  const { student, isLecturePurchased, openAuthModal } = useStudentAuth();
+  const isPurchasedByStudent = Boolean(lectureId && isLecturePurchased(lectureId));
+  const isUnlocked = isFree || isPurchasedByStudent || isAdmin;
 
   const getActiveFile = () => {
     switch (activeTab) {
@@ -376,21 +387,21 @@ export default function LectureContentTabs({
               </div>
             </div>
 
-            {isFree ? (
+            {isUnlocked ? (
               <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>متاح للتحميل المجاني</span>
+                <span>{isFree ? 'متاح للتحميل المجاني' : 'تم تفعيل المحاضرة بحسابك 🎓'}</span>
               </span>
             ) : (
               <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
                 <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>محتوى مقفول 🔒</span>
+                <span>محاضرة مدفوعة ({price} ج.م) 🔒</span>
               </span>
             )}
           </div>
 
-          {/* Interactive Animated Sound Wave Player when Audio Tab is active & free */}
-          {activeTab === 'audio' && isFree && activeFile.downloadUrl && (
+          {/* Interactive Animated Sound Wave Player when Audio Tab is active & unlocked */}
+          {activeTab === 'audio' && isUnlocked && activeFile.downloadUrl && (
             <AudioWavePlayer
               audioUrl={activeFile.downloadUrl}
               title={activeFile.title}
@@ -416,9 +427,9 @@ export default function LectureContentTabs({
             </div>
           )}
 
-          {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON */}
+          {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON OR PURCHASE PROMPT */}
           <div className="pt-2 space-y-3">
-            {isFree ? (
+            {isUnlocked ? (
               <>
                 <button
                   onClick={() => handleDownloadNow(activeFile)}
@@ -436,25 +447,48 @@ export default function LectureContentTabs({
                 )}
               </>
             ) : (
-              <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-                  <Lock className="w-6 h-6" />
+              <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-slate-850 dark:to-amber-950/30 border-2 border-amber-300/80 dark:border-amber-700/80 text-center space-y-4 shadow-lg">
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto shadow-inner">
+                  <Lock className="w-7 h-7" />
                 </div>
                 <div>
-                  <h4 className="text-base font-black text-amber-900 dark:text-amber-200">هذه المحاضرة مقفولة 🔒</h4>
-                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
-                    المحتوى متاح للمشتركين فقط. يمكنك التواصل معنا عبر الواتساب للاشتراك وفتح المحاضرة فوراً.
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 text-xs font-black mb-2">
+                    <span>سعر المحاضرة: {price} ج.م فقط 🇪🇬</span>
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                    هذه المحاضرة مخصصة للمشتركين 🔒
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-lg mx-auto leading-relaxed">
+                    يمكنك شراء المحاضرة بسهولة عبر فودافون كاش وتفعيلها فوراً في حسابك لتفتح معك في أي وقت ومن أي جهاز.
                   </p>
                 </div>
-                <a
-                  href="https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>تواصل عبر الواتساب للاشتراك وتفعيل المحاضرة 💬</span>
-                </a>
+
+                {student ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPurchaseModalOpen(true)}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/30 active:scale-95 transition"
+                  >
+                    <span>شراء وتفعيل المحاضرة الآن ({price} ج.م) 💳</span>
+                  </button>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('register')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-teal-600/25 active:scale-95 transition"
+                    >
+                      <span>عمل حساب جديد للشراء 👤</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('login')}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition"
+                    >
+                      <span>تسجيل الدخول بالحساب</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -475,9 +509,40 @@ export default function LectureContentTabs({
 
       {/* 3. Interactive Flashcards Section (When Flashcards Tab is selected) */}
       {activeTab === 'flashcards' && (
-        <div className="animate-in fade-in duration-300">
-          <Flashcards3D cards={flashcards} subjectTitle={subjectTitle} />
-        </div>
+        isUnlocked ? (
+          <div className="animate-in fade-in duration-300">
+            <Flashcards3D cards={flashcards} subjectTitle={subjectTitle} />
+          </div>
+        ) : (
+          <div className="p-8 sm:p-10 rounded-3xl bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300/80 dark:border-amber-700/80 text-center space-y-4 shadow-lg">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h4 className="text-lg font-black text-slate-900 dark:text-white">
+              كروت الاستذكار الذكية مخصصة للمشتركين 🎴
+            </h4>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
+              تحتوي هذه المحاضرة على {flashcards.length} كارت ذكي ثلاثي الأبعاد. قم بتفعيل المحاضرة لتتمكن من التدريب عليها.
+            </p>
+            {student ? (
+              <button
+                type="button"
+                onClick={() => setIsPurchaseModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition"
+              >
+                شراء وتفعيل المحاضرة ({price} ج.م) 💳
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuthModal('register')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition"
+              >
+                إنشاء حساب لتفعيل المحاضرة 👤
+              </button>
+            )}
+          </div>
+        )
       )}
 
       {/* WhatsApp Modal after Download */}
@@ -495,6 +560,16 @@ export default function LectureContentTabs({
         subjectTitle={subjectTitle}
         linkUrl={activeFile?.downloadUrl || ''}
         lectureId={lectureId}
+      />
+
+      {/* Purchase Lecture Modal */}
+      <PurchaseLectureModal
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        lectureId={lectureId || ''}
+        lectureTitle={lectureTitle || activeFile?.title || 'المحاضرة'}
+        subjectTitle={subjectTitle}
+        price={price}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { saveUploadedFile } from '@/lib/file-storage';
 import { CmsService } from '@/lib/cms-db';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
+import { parseAnkiPackage } from '@/lib/anki-parser';
 
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
@@ -32,6 +33,23 @@ export async function POST(req: NextRequest) {
     const explanationFile = formData.get('explanationFile') as File | null;
     const externalExplanationUrl = ((formData.get('externalExplanationUrl') as string) || '').trim();
     const explanationTitle = ((formData.get('explanationTitle') as string) || '').trim();
+
+    // Multimedia attachments
+    const pptFile = formData.get('pptFile') as File | null;
+    const externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
+    const pptTitle = ((formData.get('pptTitle') as string) || '').trim();
+
+    const audioFile = formData.get('audioFile') as File | null;
+    const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
+    const audioTitle = ((formData.get('audioTitle') as string) || '').trim();
+
+    const mindmapFile = formData.get('mindmapFile') as File | null;
+    const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
+    const mindmapTitle = ((formData.get('mindmapTitle') as string) || '').trim();
+
+    const ankiFile = formData.get('ankiFile') as File | null;
+    const flashcardsJson = ((formData.get('flashcardsJson') as string) || '').trim();
+
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const rawSemester = ((formData.get('semester') as string) || '').trim();
     const semester: '1' | '2' = rawSemester === '2' ? '2' : '1';
@@ -101,6 +119,60 @@ export async function POST(req: NextRequest) {
       savedExplanation = { url: externalExplanationUrl, sizeFormatted: 'رابط خارجي 🌐' };
     }
 
+    // Process PowerPoint File / URL (عرض تقديمي بوربوينت)
+    let savedPpt: { url: string; sizeFormatted: string } | null = null;
+    if (pptFile) {
+      const pptBuffer = await pptFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(pptBuffer), pptFile.name, customToken);
+      savedPpt = { url: saved.url, sizeFormatted: saved.sizeFormatted };
+    } else if (externalPptUrl) {
+      savedPpt = { url: externalPptUrl, sizeFormatted: 'عرض بوربوينت 📊' };
+    }
+
+    // Process Audio File / URL (تسجيل وملخص صوتي)
+    let savedAudio: { url: string; sizeFormatted: string } | null = null;
+    if (audioFile) {
+      const audioBuffer = await audioFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(audioBuffer), audioFile.name, customToken);
+      savedAudio = { url: saved.url, sizeFormatted: saved.sizeFormatted };
+    } else if (externalAudioUrl) {
+      savedAudio = { url: externalAudioUrl, sizeFormatted: 'تسجيل صوتي 🎧' };
+    }
+
+    // Process Mindmap File / URL (خريطة ذهنية)
+    let savedMindmap: { url: string; sizeFormatted: string } | null = null;
+    if (mindmapFile) {
+      const mindmapBuffer = await mindmapFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(mindmapBuffer), mindmapFile.name, customToken);
+      savedMindmap = { url: saved.url, sizeFormatted: saved.sizeFormatted };
+    } else if (externalMindmapUrl) {
+      savedMindmap = { url: externalMindmapUrl, sizeFormatted: 'خريطة ذهنية 🧠' };
+    }
+
+    // Process Flashcards (بطاقات استذكار - JSON جاهز أو حزمة Anki .apkg)
+    let parsedFlashcards: any[] | null = null;
+    if (flashcardsJson) {
+      try {
+        const parsed = JSON.parse(flashcardsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsedFlashcards = parsed;
+        }
+      } catch (err) {
+        console.warn('[UploadQuizFile] flashcardsJson parse error:', err);
+      }
+    }
+    if (!parsedFlashcards && ankiFile) {
+      try {
+        const ankiBuffer = await ankiFile.arrayBuffer();
+        const cards = await parseAnkiPackage(ankiBuffer);
+        if (cards && cards.length > 0) {
+          parsedFlashcards = cards;
+        }
+      } catch (ankiErr) {
+        console.warn('[UploadQuizFile] Anki parse error:', ankiErr);
+      }
+    }
+
     // Check existing quizzes for this subject to auto-number if no custom title provided
     const existingForSub = await CmsService.getSubjectQuizFiles(subjectId);
     const defaultTitle =
@@ -125,6 +197,17 @@ export async function POST(req: NextRequest) {
         explanationUrl: savedExplanation?.url || undefined,
         explanationTitle: explanationTitle || (savedExplanation?.url ? 'ملف الشرح وتوضيح الإجابات' : undefined),
         explanationFileSize: savedExplanation?.sizeFormatted || undefined,
+        pptUrl: savedPpt?.url || undefined,
+        pptTitle: pptTitle || (savedPpt ? 'العرض التقديمي (PowerPoint)' : undefined),
+        pptFileSize: savedPpt?.sizeFormatted || undefined,
+        audioUrl: savedAudio?.url || undefined,
+        audioTitle: audioTitle || (savedAudio ? 'شرح وتسجيل صوتي للكويز' : undefined),
+        audioFileSize: savedAudio?.sizeFormatted || undefined,
+        mindmapUrl: savedMindmap?.url || undefined,
+        mindmapTitle: mindmapTitle || (savedMindmap ? 'خريطة ذهنية للأسئلة والمراجعة' : undefined),
+        mindmapFileSize: savedMindmap?.sizeFormatted || undefined,
+        flashcards: parsedFlashcards && parsedFlashcards.length > 0 ? parsedFlashcards : undefined,
+        flashcardsCount: parsedFlashcards && parsedFlashcards.length > 0 ? parsedFlashcards.length : undefined,
         isFree,
         isLive,
       },
@@ -142,17 +225,23 @@ export async function POST(req: NextRequest) {
     const fileNameDisplay = file ? `<code>${file.name}</code>` : 'رابط Google Drive خارجي 🌐';
     const watermarkDisplay = file && shouldWatermark ? 'تم التطبيق بنجاح ✅' : file ? 'بدون علامة' : 'ملف سحابي خارجي';
     const explanationDisplay = savedExplanation?.url ? 'مرفق ملف شرح 📖' : 'بدون ملف شرح';
+    const pptDisplay = savedPpt?.url ? 'مرفق باوربوينت 📊' : '';
+    const audioDisplay = savedAudio?.url ? 'مرفق ريكورد صوتي 🎧' : '';
+    const cardsDisplay = parsedFlashcards?.length ? `مرفق بطاقات استذكار 🎴 (+${parsedFlashcards.length} كارت)` : '';
+    const mindmapDisplay = savedMindmap?.url ? 'مرفق خريطة ذهنية 🧠' : '';
     const freeDisplay = isFree ? 'متاح مجاناً للجميع 🎁' : 'مقفول باشتراك 🔒';
     const liveDisplay = isLive ? 'منشور وظاهر للطلاب 👁️' : 'مسودة مخفية 🙈';
 
-    const telegramMsg = `📝 <b>تم إضافة ملف أسئلة كويزات جديد!</b>
+    const extraMedia = [explanationDisplay, pptDisplay, audioDisplay, cardsDisplay, mindmapDisplay].filter(Boolean).join(' | ');
+
+    const telegramMsg = `📝 <b>تم إضافة ملف أسئلة كويزات جديد مع مرفقات شاملة!</b>
 ━━━━━━━━━━━━━━━━━━━━
 📚 <b>المادة:</b> ${subjectObj.title}
 📅 <b>الفصل الدراسي:</b> سمستر ${semester} (${semester === '2' ? 'الترم الثاني' : 'الترم الأول'})
 🏷️ <b>العنوان:</b> ${finalTitle}
 📄 <b>الملف:</b> ${fileNameDisplay}
 💾 <b>الحجم / المصدر:</b> ${savedPdf.sizeFormatted}
-📖 <b>الشرح:</b> ${explanationDisplay}
+📦 <b>المرفقات:</b> ${extraMedia || 'ملف الأسئلة فقط'}
 🔓 <b>حالة الإتاحة:</b> ${freeDisplay}
 👁️ <b>حالة الظهور:</b> ${liveDisplay}
 ❓ <b>عدد الأسئلة:</b> +${questionsCount} سؤال
@@ -224,6 +313,27 @@ export async function PATCH(req: NextRequest) {
     let externalExplanationUrl: string | undefined;
     let explanationTitle: string | undefined;
     let removeExplanation = false;
+
+    // Multimedia in PATCH
+    let pptFile: File | null = null;
+    let externalPptUrl: string | undefined;
+    let pptTitle: string | undefined;
+    let removePpt = false;
+
+    let audioFile: File | null = null;
+    let externalAudioUrl: string | undefined;
+    let audioTitle: string | undefined;
+    let removeAudio = false;
+
+    let mindmapFile: File | null = null;
+    let externalMindmapUrl: string | undefined;
+    let mindmapTitle: string | undefined;
+    let removeMindmap = false;
+
+    let ankiFile: File | null = null;
+    let flashcardsJson: string | undefined;
+    let removeFlashcards = false;
+
     let shouldWatermark = true;
     let customToken =
       req.headers.get('x-github-token') ||
@@ -258,6 +368,41 @@ export async function PATCH(req: NextRequest) {
         explanationTitle = ((formData.get('explanationTitle') as string) || '').trim();
       }
       removeExplanation = formData.get('removeExplanation') === 'true';
+
+      // Multimedia
+      pptFile = formData.get('pptFile') as File | null;
+      if (formData.get('externalPptUrl') !== null) {
+        externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
+      }
+      if (formData.get('pptTitle') !== null) {
+        pptTitle = ((formData.get('pptTitle') as string) || '').trim();
+      }
+      removePpt = formData.get('removePpt') === 'true';
+
+      audioFile = formData.get('audioFile') as File | null;
+      if (formData.get('externalAudioUrl') !== null) {
+        externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
+      }
+      if (formData.get('audioTitle') !== null) {
+        audioTitle = ((formData.get('audioTitle') as string) || '').trim();
+      }
+      removeAudio = formData.get('removeAudio') === 'true';
+
+      mindmapFile = formData.get('mindmapFile') as File | null;
+      if (formData.get('externalMindmapUrl') !== null) {
+        externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
+      }
+      if (formData.get('mindmapTitle') !== null) {
+        mindmapTitle = ((formData.get('mindmapTitle') as string) || '').trim();
+      }
+      removeMindmap = formData.get('removeMindmap') === 'true';
+
+      ankiFile = formData.get('ankiFile') as File | null;
+      if (formData.get('flashcardsJson') !== null) {
+        flashcardsJson = ((formData.get('flashcardsJson') as string) || '').trim();
+      }
+      removeFlashcards = formData.get('removeFlashcards') === 'true';
+
       shouldWatermark = formData.get('watermark') !== 'false';
       const fToken = ((formData.get('githubToken') as string) || '').trim();
       if (fToken) customToken = fToken;
@@ -274,6 +419,22 @@ export async function PATCH(req: NextRequest) {
       if (body.isFree !== undefined) isFree = Boolean(body.isFree);
       if (body.isLive !== undefined) isLive = Boolean(body.isLive);
       removeExplanation = Boolean(body.removeExplanation);
+
+      if (body.externalPptUrl !== undefined) externalPptUrl = String(body.externalPptUrl).trim();
+      if (body.pptTitle !== undefined) pptTitle = String(body.pptTitle).trim();
+      removePpt = Boolean(body.removePpt);
+
+      if (body.externalAudioUrl !== undefined) externalAudioUrl = String(body.externalAudioUrl).trim();
+      if (body.audioTitle !== undefined) audioTitle = String(body.audioTitle).trim();
+      removeAudio = Boolean(body.removeAudio);
+
+      if (body.externalMindmapUrl !== undefined) externalMindmapUrl = String(body.externalMindmapUrl).trim();
+      if (body.mindmapTitle !== undefined) mindmapTitle = String(body.mindmapTitle).trim();
+      removeMindmap = Boolean(body.removeMindmap);
+
+      if (body.flashcardsJson !== undefined) flashcardsJson = String(body.flashcardsJson).trim();
+      removeFlashcards = Boolean(body.removeFlashcards);
+
       if (body.token) customToken = body.token;
     }
 
@@ -334,6 +495,115 @@ export async function PATCH(req: NextRequest) {
       updatedExplanationTitle = explanationTitle;
     }
 
+    // Process PPT updates
+    let updatedPptUrl: string | undefined = undefined;
+    let updatedPptSize: string | undefined = undefined;
+    let updatedPptTitle: string | undefined = undefined;
+    if (removePpt) {
+      updatedPptUrl = '';
+      updatedPptSize = '';
+      updatedPptTitle = '';
+    } else if (pptFile) {
+      const pptBuf = await pptFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(pptBuf), pptFile.name, customToken);
+      updatedPptUrl = saved.url;
+      updatedPptSize = saved.sizeFormatted;
+      updatedPptTitle = pptTitle || 'العرض التقديمي (PowerPoint)';
+    } else if (externalPptUrl !== undefined) {
+      if (externalPptUrl) {
+        updatedPptUrl = externalPptUrl;
+        updatedPptSize = 'عرض بوربوينت 📊';
+        updatedPptTitle = pptTitle || 'العرض التقديمي (PowerPoint)';
+      } else {
+        updatedPptUrl = '';
+        updatedPptSize = '';
+        updatedPptTitle = '';
+      }
+    } else if (pptTitle !== undefined) {
+      updatedPptTitle = pptTitle;
+    }
+
+    // Process Audio updates
+    let updatedAudioUrl: string | undefined = undefined;
+    let updatedAudioSize: string | undefined = undefined;
+    let updatedAudioTitle: string | undefined = undefined;
+    if (removeAudio) {
+      updatedAudioUrl = '';
+      updatedAudioSize = '';
+      updatedAudioTitle = '';
+    } else if (audioFile) {
+      const audioBuf = await audioFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(audioBuf), audioFile.name, customToken);
+      updatedAudioUrl = saved.url;
+      updatedAudioSize = saved.sizeFormatted;
+      updatedAudioTitle = audioTitle || 'تسجيل وملخص صوتي';
+    } else if (externalAudioUrl !== undefined) {
+      if (externalAudioUrl) {
+        updatedAudioUrl = externalAudioUrl;
+        updatedAudioSize = 'تسجيل صوتي 🎧';
+        updatedAudioTitle = audioTitle || 'تسجيل وملخص صوتي';
+      } else {
+        updatedAudioUrl = '';
+        updatedAudioSize = '';
+        updatedAudioTitle = '';
+      }
+    } else if (audioTitle !== undefined) {
+      updatedAudioTitle = audioTitle;
+    }
+
+    // Process Mindmap updates
+    let updatedMindmapUrl: string | undefined = undefined;
+    let updatedMindmapSize: string | undefined = undefined;
+    let updatedMindmapTitle: string | undefined = undefined;
+    if (removeMindmap) {
+      updatedMindmapUrl = '';
+      updatedMindmapSize = '';
+      updatedMindmapTitle = '';
+    } else if (mindmapFile) {
+      const mindBuf = await mindmapFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(mindBuf), mindmapFile.name, customToken);
+      updatedMindmapUrl = saved.url;
+      updatedMindmapSize = saved.sizeFormatted;
+      updatedMindmapTitle = mindmapTitle || 'خريطة ذهنية للمراجعة';
+    } else if (externalMindmapUrl !== undefined) {
+      if (externalMindmapUrl) {
+        updatedMindmapUrl = externalMindmapUrl;
+        updatedMindmapSize = 'خريطة ذهنية 🧠';
+        updatedMindmapTitle = mindmapTitle || 'خريطة ذهنية للمراجعة';
+      } else {
+        updatedMindmapUrl = '';
+        updatedMindmapSize = '';
+        updatedMindmapTitle = '';
+      }
+    } else if (mindmapTitle !== undefined) {
+      updatedMindmapTitle = mindmapTitle;
+    }
+
+    // Process Flashcards updates
+    let updatedFlashcards: any[] | null | undefined = undefined;
+    if (removeFlashcards) {
+      updatedFlashcards = null;
+    } else if (flashcardsJson) {
+      try {
+        const parsed = JSON.parse(flashcardsJson);
+        if (Array.isArray(parsed)) {
+          updatedFlashcards = parsed;
+        }
+      } catch (err) {
+        console.warn('[EditQuizFile] flashcardsJson parse error:', err);
+      }
+    } else if (ankiFile) {
+      try {
+        const ankiBuf = await ankiFile.arrayBuffer();
+        const cards = await parseAnkiPackage(ankiBuf);
+        if (cards && cards.length > 0) {
+          updatedFlashcards = cards;
+        }
+      } catch (err) {
+        console.warn('[EditQuizFile] Anki parse error:', err);
+      }
+    }
+
     let subjectTitle: string | undefined;
     if (subjectId) {
       const allSubjects = await CmsService.getAllSubjects();
@@ -348,6 +618,10 @@ export async function PATCH(req: NextRequest) {
     const isRemovingExplanation =
       removeExplanation ||
       (externalExplanationUrl !== undefined && !externalExplanationUrl.trim() && !explanationFile);
+
+    const isRemovingPpt = removePpt || (externalPptUrl !== undefined && !externalPptUrl.trim() && !pptFile);
+    const isRemovingAudio = removeAudio || (externalAudioUrl !== undefined && !externalAudioUrl.trim() && !audioFile);
+    const isRemovingMindmap = removeMindmap || (externalMindmapUrl !== undefined && !externalMindmapUrl.trim() && !mindmapFile);
 
     const updated = await CmsService.updateSubjectQuizFile(
       id,
@@ -368,6 +642,32 @@ export async function PATCH(req: NextRequest) {
               ...(updatedExplanationSize !== undefined ? { explanationFileSize: updatedExplanationSize || undefined } : {}),
               ...(updatedExplanationTitle !== undefined ? { explanationTitle: updatedExplanationTitle || undefined } : {}),
             }),
+        ...(isRemovingPpt
+          ? { removePpt: true, pptUrl: '' }
+          : {
+              ...(updatedPptUrl !== undefined ? { pptUrl: updatedPptUrl || undefined } : {}),
+              ...(updatedPptSize !== undefined ? { pptFileSize: updatedPptSize || undefined } : {}),
+              ...(updatedPptTitle !== undefined ? { pptTitle: updatedPptTitle || undefined } : {}),
+            }),
+        ...(isRemovingAudio
+          ? { removeAudio: true, audioUrl: '' }
+          : {
+              ...(updatedAudioUrl !== undefined ? { audioUrl: updatedAudioUrl || undefined } : {}),
+              ...(updatedAudioSize !== undefined ? { audioFileSize: updatedAudioSize || undefined } : {}),
+              ...(updatedAudioTitle !== undefined ? { audioTitle: updatedAudioTitle || undefined } : {}),
+            }),
+        ...(isRemovingMindmap
+          ? { removeMindmap: true, mindmapUrl: '' }
+          : {
+              ...(updatedMindmapUrl !== undefined ? { mindmapUrl: updatedMindmapUrl || undefined } : {}),
+              ...(updatedMindmapSize !== undefined ? { mindmapFileSize: updatedMindmapSize || undefined } : {}),
+              ...(updatedMindmapTitle !== undefined ? { mindmapTitle: updatedMindmapTitle || undefined } : {}),
+            }),
+        ...(removeFlashcards || updatedFlashcards === null
+          ? { removeFlashcards: true, flashcards: [] }
+          : updatedFlashcards && updatedFlashcards.length > 0
+          ? { flashcards: updatedFlashcards, flashcardsCount: updatedFlashcards.length }
+          : {}),
         updatedAt: `تم التحديث في ${getArabicFormattedDate()}`,
       },
       customToken

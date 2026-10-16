@@ -1,3 +1,5 @@
+import { PurchaseOrder } from './types';
+
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8098726389';
@@ -401,6 +403,48 @@ export async function notifyMaintenanceChanged(
       [
         { text: '⚙️ لوحة التحكم', url: `${SITE_URL}/admin-dashboard` },
         { text: '🌐 معاينة المنصة', url: `${SITE_URL}/` },
+      ],
+    ],
+  };
+
+  return sendTelegramMessage(lines.join('\n'), 'HTML', undefined, inlineKeyboard);
+}
+
+export async function notifyNewPurchaseOrder(order: PurchaseOrder): Promise<boolean> {
+  const time = getArabicFormattedDate();
+  const lines = [
+    `💳 <b>طلب شراء واشتراك في محاضرة جديد!</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `👤 <b>اسم الطالب:</b> ${escapeHtml(order.studentName)}`,
+    `📱 <b>رقم هاتف الحساب:</b> <code>${escapeHtml(order.studentPhone)}</code>`,
+    `🏛️ <b>الجامعة:</b> ${escapeHtml(order.studentUniversity)}`,
+    `📚 <b>المحاضرة المطلوبة:</b> <b>${escapeHtml(order.lectureTitle)}</b>`,
+    `🏷️ <b>المادة:</b> ${escapeHtml(order.subjectTitle)}`,
+    `💰 <b>السعر المطلوب:</b> <b>${order.price} ج.م</b>`,
+    `💸 <b>الرقم المحول منه (المحفظة):</b> <code>${escapeHtml(order.senderPhone)}</code>`,
+    `📞 <b>رقم التواصل عند الحاجة:</b> <code>${escapeHtml(order.contactPhone)}</code>`,
+  ];
+
+  if (order.userMessage) {
+    lines.push(`📝 <b>رسالة الطالب وتفاصيل الطلب:</b>\n<i>${escapeHtml(order.userMessage)}</i>`);
+  }
+
+  if (order.screenshotUrl) {
+    lines.push(`🖼️ <b>إيصال التحويل:</b> <a href="${order.screenshotUrl}">اضغط هنا لعرض سكرين التحويل 📸</a>`);
+  }
+
+  lines.push(`⏰ <b>وقت الطلب:</b> ${time}`);
+  lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`👇 <b>إجراء فوري بضغطة زر:</b>`);
+
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        { text: '✅ موافقة وافتحله المحاضرة', callback_data: `approve_order_${order.id}` },
+        { text: '❌ رفض الدفع', callback_data: `reject_order_${order.id}` },
+      ],
+      [
+        { text: '⚙️ إدارة الطلبات في لوحة التحكم', url: `${SITE_URL}/admin-dashboard` },
       ],
     ],
   };
