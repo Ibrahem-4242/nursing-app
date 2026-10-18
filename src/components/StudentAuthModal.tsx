@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Clock,
   BookOpen,
+  MessageCircle,
 } from 'lucide-react';
 
 export default function StudentAuthModal() {
@@ -33,10 +34,14 @@ export default function StudentAuthModal() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [suspendedMessage, setSuspendedMessage] = useState('');
 
   React.useEffect(() => {
     setMode(authModalMode);
     setFeedback(null);
+    setIsSuspended(false);
+    setSuspendedMessage('');
   }, [authModalMode, isAuthModalOpen]);
 
   React.useEffect(() => {
@@ -73,17 +78,28 @@ export default function StudentAuthModal() {
       if (mode === 'login') {
         const res = await login(phone, password);
         if (res.success) {
+          setIsSuspended(false);
+          setSuspendedMessage('');
           setLockedUntil(null);
           setCountdownSeconds(0);
           setFeedback({ type: 'success', message: res.message });
           setTimeout(() => closeAuthModal(), 1200);
         } else {
+          if (res.isSuspended || res.message?.includes('تم تعليق وتجميد')) {
+            setIsSuspended(true);
+            setSuspendedMessage(res.message);
+          } else {
+            setIsSuspended(false);
+            setSuspendedMessage('');
+          }
           if (res.locked && res.lockedUntil) {
             setLockedUntil(res.lockedUntil);
             const secs = Math.max(0, Math.ceil((res.lockedUntil - Date.now()) / 1000));
             setCountdownSeconds(secs);
           }
-          setFeedback({ type: 'error', message: res.message });
+          if (!res.isSuspended && !res.message?.includes('تم تعليق وتجميد')) {
+            setFeedback({ type: 'error', message: res.message });
+          }
         }
       } else {
         const res = await register(phone, name, university, password, selectedYearId);
@@ -145,6 +161,8 @@ export default function StudentAuthModal() {
             onClick={() => {
               setMode('login');
               setFeedback(null);
+              setIsSuspended(false);
+              setSuspendedMessage('');
             }}
             className={`flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 ${
               mode === 'login'
@@ -160,6 +178,8 @@ export default function StudentAuthModal() {
             onClick={() => {
               setMode('register');
               setFeedback(null);
+              setIsSuspended(false);
+              setSuspendedMessage('');
             }}
             className={`flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 ${
               mode === 'register'
@@ -295,7 +315,28 @@ export default function StudentAuthModal() {
             </div>
           )}
 
-          {feedback && (!lockedUntil || countdownSeconds <= 0) && (
+          {mode === 'login' && isSuspended && (
+            <div className="p-4 rounded-2xl bg-rose-500/15 dark:bg-rose-950/60 border-2 border-rose-500/40 text-rose-900 dark:text-rose-100 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm">
+                <ShieldAlert className="w-5 h-5 flex-shrink-0 animate-bounce text-rose-600" />
+                <span>حساب معلق ومجمد من قبل الإدارة ⛔</span>
+              </div>
+              <div className="text-xs leading-relaxed font-bold whitespace-pre-line text-rose-800 dark:text-rose-200 bg-rose-50 dark:bg-rose-900/40 p-3 rounded-xl border border-rose-200 dark:border-rose-800">
+                {suspendedMessage || `⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443`}
+              </div>
+              <a
+                href="https://wa.me/201148283443?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%AA%D9%85%20%D8%AA%D8%B9%D9%84%D9%8A%D9%82%20%D8%AD%D8%B3%D8%A7%D8%A8%D9%8A%20%D8%B9%D9%84%D9%89%20%D9%85%D9%86%D8%B5%D8%A9%20%D9%85%D9%84%D8%AE%D8%B5%D8%A7%D8%AA%20%D8%AA%D9%85%D8%B1%D9%8A%D8%B6%20%D9%88%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D9%85%D8%B1%D8%A7%D8%AC%D8%B9%D8%AA%D9%87%20%D9%88%D8%A7%D8%B3%D8%AA%D8%B9%D8%A7%D8%AF%D8%AA%D9%87."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 active:scale-98 transition flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>تواصل مع التيم عبر واتساب (01148283443) 💬</span>
+              </a>
+            </div>
+          )}
+
+          {feedback && (!lockedUntil || countdownSeconds <= 0) && !isSuspended && (
             <div
               className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200 ${
                 feedback.type === 'success'

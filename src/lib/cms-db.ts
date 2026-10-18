@@ -1724,18 +1724,72 @@ export const CmsService = {
     deviceId: string,
     sessionId: string,
     customToken?: string
-  ): Promise<{ success: boolean; message?: string; student?: StudentUser; code?: string }> {
+  ): Promise<{ success: boolean; message?: string; student?: StudentUser; code?: string; isSuspended?: boolean }> {
     const store = await getFreshStore();
     if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
     const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
     if (!student) return { success: false, message: 'الطالب غير موجود' };
 
+    // 1. STRICT SUSPENSION CHECK: Block suspended accounts immediately
+    if (student.isSuspended) {
+      return {
+        success: false,
+        code: 'ACCOUNT_SUSPENDED',
+        isSuspended: true,
+        message:
+          '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443',
+      };
+    }
+
     if (!student.knownDevices) {
       student.knownDevices = [];
     }
 
+    if (!student.deviceLogins) {
+      student.deviceLogins = [];
+    }
+
     const cleanDev = (deviceId || '').trim();
+    const now = Date.now();
+
+    // 2. INTELLIGENT ACCOUNT SHARING DETECTION ALGORITHM
     if (cleanDev) {
+      student.deviceLogins.push({
+        deviceId: cleanDev,
+        timestamp: now,
+      });
+
+      // Keep recent 60 login events to maintain clean storage
+      if (student.deviceLogins.length > 60) {
+        student.deviceLogins = student.deviceLogins.filter(
+          (d) => now - d.timestamp <= 72 * 60 * 60 * 1000
+        );
+      }
+
+      // Check distinct devices switched within the last 24 hours
+      const last24hLogins = student.deviceLogins.filter(
+        (d) => now - d.timestamp <= 24 * 60 * 60 * 1000
+      );
+      const distinct24hDevices = Array.from(new Set(last24hLogins.map((d) => d.deviceId).filter(Boolean)));
+
+      if (distinct24hDevices.length >= 3) {
+        student.isSuspicious = true;
+        student.suspiciousAt = now;
+        student.suspiciousReason = `تم التبديل بين ${distinct24hDevices.length} أجهزة مختلفة اليوم (اشتباه مشاركة جماعية)`;
+      } else {
+        // Also check rapid session switching: 5 or more logins across 2 or more devices within 1 hour
+        const last1hLogins = student.deviceLogins.filter(
+          (d) => now - d.timestamp <= 60 * 60 * 1000
+        );
+        const distinct1hDevices = Array.from(new Set(last1hLogins.map((d) => d.deviceId).filter(Boolean)));
+        if (last1hLogins.length >= 5 && distinct1hDevices.length >= 2) {
+          student.isSuspicious = true;
+          student.suspiciousAt = now;
+          student.suspiciousReason = `تسجيل دخول متكرر ومتسارع (${last1hLogins.length} مرات عبر أجهزة مختلفة في ساعة واحدة)`;
+        }
+      }
+
+      // Check lifetime 5 devices limit
       const isKnown = student.knownDevices.includes(cleanDev);
       if (!isKnown) {
         if (student.knownDevices.length >= 5) {
@@ -1768,6 +1822,7 @@ export const CmsService = {
     if (!student) return { success: false, message: 'الطالب غير موجود' };
 
     student.knownDevices = [];
+    student.deviceLogins = [];
     student.currentSessionId = undefined;
 
     memoryStore = store;
@@ -1776,6 +1831,67 @@ export const CmsService = {
     return {
       success: true,
       message: 'تم تصفير جميع الأجهزة والجلسات المسجلة للطالب بنجاح! يمكنه الآن الدخول من أجهزته الجديدة ✅',
+    };
+  },
+
+  async setStudentSuspension(
+    studentId: string,
+    isSuspended: boolean,
+    reason?: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message: string; student?: StudentUser }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    student.isSuspended = isSuspended;
+
+    if (isSuspended) {
+      student.suspendedAt = Date.now();
+      student.suspensionReason = reason || 'تم تعليق وتجميد الحساب من قبل إدارة المنصة بسبب نشاط غير مصرح به';
+      student.currentSessionId = undefined; // Immediately invalidate active session!
+    } else {
+      delete student.suspendedAt;
+      delete student.suspensionReason;
+      student.isSuspicious = false;
+      delete student.suspiciousReason;
+      delete student.suspiciousAt;
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+
+    return {
+      success: true,
+      message: isSuspended
+        ? `تم تعليق وتجميد حساب الطالب (${student.name}) بنجاح ⛔`
+        : `تم فك تجميد حساب الطالب (${student.name}) بنجاح وإعادته للعمل 🟢`,
+      student,
+    };
+  },
+
+  async dismissStudentSuspicion(
+    studentId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    student.isSuspicious = false;
+    delete student.suspiciousReason;
+    delete student.suspiciousAt;
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+
+    return {
+      success: true,
+      message: `تم إلغاء علامة الاشتباه عن الطالب (${student.name}) بنجاح ✅`,
     };
   },
 
@@ -2259,7 +2375,7 @@ export const CmsService = {
     lectureId: string,
     yearId?: string
   ): boolean {
-    if (!student) return false;
+    if (!student || student.isSuspended) return false;
     // Check Shakib Rakib monthly subscription
     if (student.shakibRakibSubscription?.isActive) {
       const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();

@@ -149,6 +149,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Check if student account is suspended
+      if (student.isSuspended) {
+        return NextResponse.json(
+          {
+            success: false,
+            isSuspended: true,
+            contactPhone: '01148283443',
+            message:
+              '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443',
+          },
+          { status: 403 }
+        );
+      }
+
       // 2. Check if student account is currently locked
       const studentCheck = await CmsService.checkFailedLogin(cleanPhone, student.id);
       if (studentCheck.locked) {
@@ -269,6 +283,22 @@ export async function GET() {
     const student = await CmsService.getStudentById(studentId);
     if (!student) {
       const res = NextResponse.json({ success: true, loggedIn: false, student: null });
+      res.cookies.delete(STUDENT_COOKIE_NAME);
+      return res;
+    }
+
+    if (student.isSuspended) {
+      const res = NextResponse.json(
+        {
+          success: false,
+          loggedIn: false,
+          isSuspended: true,
+          contactPhone: '01148283443',
+          message:
+            '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443',
+        },
+        { status: 403 }
+      );
       res.cookies.delete(STUDENT_COOKIE_NAME);
       return res;
     }

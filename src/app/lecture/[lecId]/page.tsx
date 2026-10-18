@@ -57,6 +57,35 @@ export default async function LecturePage({ params }: LecturePageProps) {
     }
   }
 
+  // ⛔ If student account is suspended by admin, block lecture access and direct to WhatsApp support
+  if (student && student.isSuspended) {
+    return (
+      <main className="min-h-[70vh] flex items-center justify-center px-4 py-12" dir="rtl">
+        <div className="max-w-lg w-full bg-white dark:bg-slate-900 border-2 border-rose-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in-95">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <span className="text-3xl">⛔</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-rose-600 dark:text-rose-400">
+              تم تعليق وتجميد الحساب
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-bold whitespace-pre-line bg-rose-50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-200 dark:border-rose-900">
+              {`⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443`}
+            </p>
+          </div>
+          <a
+            href="https://wa.me/201148283443?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%AA%D9%85%20%D8%AA%D8%B9%D9%84%D9%8A%D9%82%20%D8%AD%D8%B3%D8%A7%D8%A8%D9%8A%20%D8%B9%D9%84%D9%89%20%D9%85%D9%86%D8%B5%D8%A9%20%D9%85%D9%84%D8%AE%D8%B5%D8%A7%D8%AA%20%D8%AA%D9%85%D8%B1%D9%8A%D8%B6%20%D9%88%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D9%85%D8%B1%D8%A7%D8%AC%D8%B9%D8%AA%D9%87%20%D9%88%D8%A7%D8%B3%D8%AA%D8%B9%D8%A7%D8%AF%D8%AA%D9%87."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2"
+          >
+            <span>تواصل مع التيم عبر واتساب (01148283443) 💬</span>
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   const hasAccess =
     lecture.isFree ||
     isAdmin ||

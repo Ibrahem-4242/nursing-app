@@ -35,6 +35,18 @@ export async function GET(
       const [studentId] = rawStudentVal.split(':::');
       if (studentId) {
         student = await CmsService.getStudentById(studentId);
+        if (student && student.isSuspended) {
+          return NextResponse.json(
+            {
+              success: false,
+              isSuspended: true,
+              contactPhone: '01148283443',
+              message:
+                '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443',
+            },
+            { status: 403 }
+          );
+        }
       }
     }
 

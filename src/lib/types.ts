@@ -256,6 +256,12 @@ export interface AppNotification {
   type: 'lecture' | 'order' | 'announcement';
 }
 
+export interface DeviceLoginRecord {
+  deviceId: string;
+  timestamp: number;
+  ip?: string;
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -270,6 +276,13 @@ export interface StudentUser {
   notes?: string;
   currentSessionId?: string;
   knownDevices?: string[];
+  deviceLogins?: DeviceLoginRecord[];
+  isSuspicious?: boolean;
+  suspiciousReason?: string;
+  suspiciousAt?: number;
+  isSuspended?: boolean;
+  suspendedAt?: number;
+  suspensionReason?: string;
   failedLoginAttempts?: FailedLoginRecord;
   yearId?: string;
   readNotificationIds?: string[];

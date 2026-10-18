@@ -33,6 +33,7 @@ import {
   BookOpen,
   Lock,
   Unlock,
+  Ban,
   Wrench,
   Gift,
   Headphones,
@@ -310,6 +311,7 @@ export default function AdminDashboardPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
+  const [studentStatusFilter, setStudentStatusFilter] = useState<'all' | 'suspicious' | 'suspended' | 'active'>('all');
   const [selectedStudentForPassword, setSelectedStudentForPassword] = useState<StudentUser | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -1000,6 +1002,58 @@ export default function AdminDashboardPage() {
         loadStudents();
       } else {
         alert(data.message || 'فشل فك قفل الحساب');
+      }
+    } catch (err: any) {
+      alert('حدث خطأ: ' + err?.message);
+    }
+  };
+
+  const handleSuspendStudent = async (studentId: string, studentName: string, suspend: boolean) => {
+    const promptMsg = suspend
+      ? `هل أنت متأكد من تعليق وتجميد حساب الطالب "${studentName}"؟ سيتم إنهاء جلسته الحالية فوراً ورفض دخوله إلى المنصة أو المحاضرات.`
+      : `هل أنت متأكد من فك تجميد حساب الطالب "${studentName}" وإعادة تفعيله بالكامل؟`;
+    if (!confirm(promptMsg)) return;
+
+    let reason: string | undefined = undefined;
+    if (suspend) {
+      const inputReason = prompt('سبب التجميد (اختياري):', 'مشاركة جماعية مشبوهة عبر أجهزة متعددة');
+      if (inputReason !== null && inputReason.trim()) {
+        reason = inputReason.trim();
+      }
+    }
+
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'suspend', studentId, suspend, reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || (suspend ? 'تم تعليق وتجميد الحساب بنجاح! ⛔' : 'تم فك تجميد الحساب بنجاح! 🟢'));
+        loadStudents();
+      } else {
+        alert(data.message || 'فشلت العملية');
+      }
+    } catch (err: any) {
+      alert('حدث خطأ: ' + err?.message);
+    }
+  };
+
+  const handleDismissSuspicion = async (studentId: string, studentName: string) => {
+    if (!confirm(`هل أنت متأكد من تجاهل شبهة المشاركة الجماعية للطالب "${studentName}" وإلغاء وسم الاشتباه؟`)) return;
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'dismiss_suspicion', studentId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تمت إزالة علامة الاشتباه بنجاح! 🛡️');
+        loadStudents();
+      } else {
+        alert(data.message || 'فشلت العملية');
       }
     } catch (err: any) {
       alert('حدث خطأ: ' + err?.message);
@@ -7362,48 +7416,115 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Quick Status Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">تصفية الحسابات:</span>
+              <button
+                type="button"
+                onClick={() => setStudentStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  studentStatusFilter === 'all'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                <span>الكل</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-slate-900/20">{students.length}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudentStatusFilter('suspicious')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  studentStatusFilter === 'suspicious'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 border border-rose-200 dark:border-rose-800/60'
+                }`}
+              >
+                <span>حسابات مشبوهة 🚨</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-700 text-white font-black">
+                  {students.filter((s) => s.isSuspicious).length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudentStatusFilter('suspended')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  studentStatusFilter === 'suspended'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800/60'
+                }`}
+              >
+                <span>حسابات مجمدة ⛔</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-700 text-white font-black">
+                  {students.filter((s) => s.isSuspended).length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudentStatusFilter('active')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  studentStatusFilter === 'active'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800/60'
+                }`}
+              >
+                <span>نشطة فقط ✅</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-700 text-white font-black">
+                  {students.filter((s) => !s.isSuspended && !s.isSuspicious).length}
+                </span>
+              </button>
+            </div>
+
             {/* Students Table */}
             {isLoadingStudents ? (
               <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
                 <span className="text-xs">جاري تحميل بيانات الطلاب...</span>
               </div>
-            ) : students.filter(
-                (s) =>
+            ) : (() => {
+              const filteredStudents = students.filter((s) => {
+                const matchesSearch =
                   !studentSearch.trim() ||
                   s.name.includes(studentSearch.trim()) ||
                   s.phone.includes(studentSearch.trim()) ||
-                  s.university.includes(studentSearch.trim())
-              ).length === 0 ? (
-              <div className="py-12 text-center text-slate-400 space-y-2">
-                <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا يوجد طلاب مسجلين يطابقون البحث</p>
-                <p className="text-xs text-slate-400">عندما يقوم أي طالب بإنشاء حساب لشراء المحاضرات، سيظهر هنا مباشرة.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
-                      <th className="py-3 px-3">الطالب</th>
-                      <th className="py-3 px-3">الجامعة</th>
-                      <th className="py-3 px-3">رقم الهاتف</th>
-                      <th className="py-3 px-3">المحاضرات المفعلة</th>
-                      <th className="py-3 px-3 text-center">الأجهزة والجلسات</th>
-                      <th className="py-3 px-3">تاريخ التسجيل</th>
-                      <th className="py-3 px-3 text-center">التحكم والصلاحيات</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {students
-                      .filter(
-                        (s) =>
-                          !studentSearch.trim() ||
-                          s.name.includes(studentSearch.trim()) ||
-                          s.phone.includes(studentSearch.trim()) ||
-                          s.university.includes(studentSearch.trim())
-                      )
-                      .map((student) => {
+                  s.university.includes(studentSearch.trim());
+                if (!matchesSearch) return false;
+
+                if (studentStatusFilter === 'suspicious') return Boolean(s.isSuspicious);
+                if (studentStatusFilter === 'suspended') return Boolean(s.isSuspended);
+                if (studentStatusFilter === 'active') return !s.isSuspended && !s.isSuspicious;
+                return true;
+              });
+
+              if (filteredStudents.length === 0) {
+                return (
+                  <div className="py-12 text-center text-slate-400 space-y-2">
+                    <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا يوجد طلاب مسجلين يطابقون البحث أو الفلتر المختار</p>
+                    <p className="text-xs text-slate-400">عندما يقوم أي طالب بإنشاء حساب أو تنطبق عليه شروط الفلتر، سيظهر هنا مباشرة.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                        <th className="py-3 px-3">الطالب</th>
+                        <th className="py-3 px-3">الجامعة</th>
+                        <th className="py-3 px-3">رقم الهاتف</th>
+                        <th className="py-3 px-3">المحاضرات المفعلة</th>
+                        <th className="py-3 px-3 text-center">الأجهزة والجلسات</th>
+                        <th className="py-3 px-3">تاريخ التسجيل</th>
+                        <th className="py-3 px-3 text-center">التحكم والصلاحيات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {filteredStudents.map((student) => {
                         const purchasedCount = student.purchasedLectureIds?.length || 0;
                         const isLocked = Boolean(
                           student.failedLoginAttempts?.lockedUntil &&
@@ -7414,15 +7535,36 @@ export default function AdminDashboardPage() {
                             {/* Name & Avatar */}
                             <td className="py-3.5 px-3">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-teal-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                <div
+                                  className={`w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 ${
+                                    student.isSuspended
+                                      ? 'bg-rose-700 shadow-sm shadow-rose-700/40'
+                                      : student.isSuspicious
+                                      ? 'bg-amber-600 shadow-sm shadow-amber-600/40'
+                                      : 'bg-teal-600 shadow-sm shadow-teal-600/30'
+                                  }`}
+                                >
                                   {student.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                  <div className="font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-1.5">
                                     <span>{student.name}</span>
+                                    {student.isSuspended && (
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white shadow-xs">
+                                        ⛔ مجمد وموقوف
+                                      </span>
+                                    )}
+                                    {student.isSuspicious && (
+                                      <span
+                                        className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950 shadow-xs flex items-center gap-1 cursor-help"
+                                        title={`سبب الاشتباه: ${student.suspiciousReason || 'تبديل أجهزة متسارع'}\nتاريخ الرصد: ${student.suspiciousAt || '-'}`}
+                                      >
+                                        <span>🚨 حساب مشبوه (مشاركة جماعية محتملة: {student.suspiciousReason || 'تبديل أجهزة متسارع'})</span>
+                                      </span>
+                                    )}
                                     {isLocked && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-600 text-white">
-                                        معلق 🔒
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-700 text-white">
+                                        معلق تخمين 🔒
                                       </span>
                                     )}
                                   </div>
@@ -7461,6 +7603,19 @@ export default function AdminDashboardPage() {
                             {/* Devices & Sessions */}
                             <td className="py-3.5 px-3 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center gap-1.5">
+                                {student.isSuspended && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                                    <span>⛔ الجلسات مقطوعة ومجمدة</span>
+                                  </span>
+                                )}
+                                {student.isSuspicious && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 cursor-help"
+                                    title={student.suspiciousReason}
+                                  >
+                                    <span>⚠️ اشتباه مشاركة أجهزة</span>
+                                  </span>
+                                )}
                                 {isLocked && (
                                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 animate-pulse">
                                     <span>⚠️ محاولات دخول خاطئة (معلق)</span>
@@ -7468,7 +7623,9 @@ export default function AdminDashboardPage() {
                                 )}
                                 <span
                                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
-                                    (student.knownDevices?.length || 0) >= 5
+                                    student.isSuspended
+                                      ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 border-rose-200'
+                                      : (student.knownDevices?.length || 0) >= 5
                                       ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                                       : (student.knownDevices?.length || 0) > 2
                                       ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
@@ -7509,6 +7666,42 @@ export default function AdminDashboardPage() {
                             {/* Controls */}
                             <td className="py-3.5 px-3 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center gap-2">
+                                {/* Suspend / Unfreeze Action Button */}
+                                {student.isSuspended ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSuspendStudent(student.id, student.name, false)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 transition shadow-xs"
+                                    title="إلغاء التجميد وإعادة تفعيل الحساب فوراً"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>فك التجميد 🟢</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSuspendStudent(student.id, student.name, true)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-300 dark:border-rose-800 flex items-center gap-1 transition shadow-xs"
+                                    title="تعليق وتجميد الحساب فوراً وطرده من جميع الجلسات"
+                                  >
+                                    <Ban className="w-3 h-3 text-rose-600" />
+                                    <span>تعليق وتجميد ⛔</span>
+                                  </button>
+                                )}
+
+                                {/* Dismiss Suspicion Button */}
+                                {student.isSuspicious && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDismissSuspicion(student.id, student.name)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-[11px] border border-slate-300 dark:border-slate-700 flex items-center gap-1 transition"
+                                    title="تجاهل الشبهة وإزالة علامة الاشتباه عن الحساب"
+                                  >
+                                    <ShieldCheck className="w-3 h-3 text-teal-600" />
+                                    <span>تجاهل الشبهة 🛡️</span>
+                                  </button>
+                                )}
+
                                 {isLocked && (
                                   <button
                                     type="button"
@@ -7561,10 +7754,11 @@ export default function AdminDashboardPage() {
                           </tr>
                         );
                       })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
         )}
 

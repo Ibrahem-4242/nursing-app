@@ -10,6 +10,8 @@ interface StudentAuthContextType {
   login: (phone: string, pass: string) => Promise<{
     success: boolean;
     message: string;
+    isSuspended?: boolean;
+    contactPhone?: string;
     locked?: boolean;
     lockedUntil?: number;
     remainingSeconds?: number;
@@ -57,6 +59,11 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         alert(data.message || 'تم إنهاء الجلسة لأن حسابك فُتح من جهاز آخر 🔒');
         return;
       }
+      if (data && data.isSuspended) {
+        setStudent(null);
+        alert(data.message || '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.');
+        return;
+      }
       if (data && data.success && data.loggedIn && data.student) {
         setStudent(data.student);
       } else {
@@ -91,6 +98,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       return {
         success: false,
         message: data?.message || 'فشل تسجيل الدخول',
+        isSuspended: Boolean(data?.isSuspended),
+        contactPhone: data?.contactPhone || '01148283443',
         locked: data?.locked,
         lockedUntil: data?.lockedUntil,
         remainingSeconds: data?.remainingSeconds,

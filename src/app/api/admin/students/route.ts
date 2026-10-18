@@ -109,6 +109,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(res);
     }
 
+    // 5. SUSPEND / UNFREEZE STUDENT ACCOUNT
+    if (action === 'suspend') {
+      const { suspend, reason } = body;
+      const res = await CmsService.setStudentSuspension(studentId, Boolean(suspend), reason);
+      return NextResponse.json(res);
+    }
+
+    // 6. DISMISS SUSPICION FLAG
+    if (action === 'dismiss_suspicion') {
+      const res = await CmsService.dismissStudentSuspicion(studentId);
+      return NextResponse.json(res);
+    }
+
     // 2. TOGGLE LECTURE ACCESS (GRANT OR REVOKE)
     if (action === 'toggle_lecture') {
       if (!lectureId) {
