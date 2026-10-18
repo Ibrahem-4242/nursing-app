@@ -250,24 +250,20 @@ export default async function RootLayout({
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
         <CamouflageWrapper panicMode={panicModeConfig} isAdmin={isAdmin}>
-          {panicModeConfig.isEnabled && !isAdminPath ? (
-            <AlKhairDairyStore isAdmin={isAdmin} />
-          ) : (
-            <StudentAuthProvider>
-              <BookmarksProvider>
-                <StudentAuthModal />
-                <PWAInstallBanner />
-                <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
-                  {platformFeatures.announcementBar && <AnnouncementBar />}
-                  <Navbar activeYears={activeYears} platformFeatures={platformFeatures} />
-                  <main className="flex-1">{children}</main>
-                  <Footer activeYears={activeYears} platformFeatures={platformFeatures} />
-                </MaintenanceWrapper>
-                <VisitorTracker />
-                <Analytics />
-              </BookmarksProvider>
-            </StudentAuthProvider>
-          )}
+          <StudentAuthProvider>
+            <BookmarksProvider>
+              <StudentAuthModal />
+              <PWAInstallBanner />
+              <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
+                {platformFeatures.announcementBar && <AnnouncementBar />}
+                <Navbar activeYears={activeYears} platformFeatures={platformFeatures} />
+                <main className="flex-1">{children}</main>
+                <Footer activeYears={activeYears} platformFeatures={platformFeatures} />
+              </MaintenanceWrapper>
+              <VisitorTracker />
+              <Analytics />
+            </BookmarksProvider>
+          </StudentAuthProvider>
         </CamouflageWrapper>
       </body>
     </html>

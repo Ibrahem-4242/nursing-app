@@ -35,7 +35,7 @@ export default function CamouflageWrapper({
   });
 
   const applyPanicState = useCallback(
-    (isEnabled: boolean, activatedAt?: string, isExplicitAdminAction = false) => {
+    (isEnabled: boolean, activatedAt?: string, isConfirmedAction = false) => {
       const isAdminPath =
         typeof window !== 'undefined' &&
         (window.location.pathname.startsWith('/admin-dashboard') ||
@@ -77,32 +77,24 @@ export default function CamouflageWrapper({
         });
       } else {
         // Deactivation requested:
-        // SAFEGUARD 1: If not an explicit admin toggle, check the propagation grace period
-        if (!isExplicitAdminAction) {
-          try {
-            const lastAct = localStorage.getItem('nursing_panic_mode_activated_at');
-            if (lastAct) {
-              const timeDiff = Date.now() - new Date(lastAct).getTime();
-              // If activated less than 45 seconds ago, ignore any stray negative polls from lagging serverless lambdas
-              if (timeDiff < 45000) {
-                return;
-              }
-            }
-          } catch {}
-        }
-
         try {
           localStorage.removeItem('nursing_panic_mode_active');
           localStorage.removeItem('nursing_panic_mode_activated_at');
           document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
+          document.title = 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية';
+
+          // Smoothly restore URL without page reload if on masked /store route
+          if (typeof window !== 'undefined') {
+            if (window.location.pathname === '/store' || window.location.pathname.startsWith('/product')) {
+              window.history.replaceState(null, '', '/');
+            }
+          }
         } catch {}
+
+        consecutiveFalseCount.current = 0;
 
         setCurrentPanicMode((prev) => {
           if (prev.isEnabled) {
-            // If on a store route, smoothly redirect to home (NEVER redirect if on admin pages)
-            if (typeof window !== 'undefined' && !isAdminPath) {
-              window.location.href = '/';
-            }
             return { isEnabled: false };
           }
           return prev;
@@ -116,6 +108,13 @@ export default function CamouflageWrapper({
   useEffect(() => {
     if (panicMode?.isEnabled) {
       applyPanicState(true, panicMode.activatedAt);
+    } else if (panicMode && !panicMode.isEnabled) {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('nursing_panic_mode_active');
+        if (cached !== 'true') {
+          applyPanicState(false, undefined, true);
+        }
+      }
     }
   }, [panicMode, applyPanicState]);
 
@@ -137,7 +136,6 @@ export default function CamouflageWrapper({
         });
 
         if (!res.ok) {
-          // CRITICAL: NEVER DEACTIVATE ON SERVER OR NETWORK ERROR!
           return;
         }
 
@@ -148,15 +146,25 @@ export default function CamouflageWrapper({
             consecutiveFalseCount.current = 0;
             applyPanicState(true, data.panicMode?.activatedAt);
           } else {
-            // Require 3 consecutive confirmed false polls to prevent any flukes/lag from tearing down camouflage
-            consecutiveFalseCount.current += 1;
-            if (consecutiveFalseCount.current >= 3) {
-              applyPanicState(false, undefined, false);
+            // Check if server has confirmed deactivation
+            const deactivatedAt = data.panicMode?.deactivatedAt;
+            const activatedAt = data.panicMode?.activatedAt;
+            const isConfirmedDeactivation =
+              deactivatedAt &&
+              (!activatedAt || new Date(deactivatedAt).getTime() >= new Date(activatedAt).getTime());
+
+            if (isConfirmedDeactivation) {
+              applyPanicState(false, undefined, true);
+            } else {
+              consecutiveFalseCount.current += 1;
+              if (consecutiveFalseCount.current >= 2) {
+                applyPanicState(false, undefined, false);
+              }
             }
           }
         }
       } catch {
-        // network error / ignore - fail-safe maintains current state
+        // network error / ignore
       } finally {
         isChecking = false;
       }
