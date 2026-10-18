@@ -6,6 +6,7 @@ import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
+import ShakibRakibBanner from '@/components/ShakibRakibBanner';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,7 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
   const liveLectures = await CmsService.getLiveLectures();
   const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();
   const quizzesList = allQuizFiles.filter((q) => q.isLive !== false);
+  const shakibConfig = await CmsService.getShakibRakibConfig();
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
 
@@ -68,6 +70,16 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
 
       {/* Top AdSense Banner */}
       <AdSenseBanner position="header" slotId="8765432109" label={`إعلانات مقررات ${year.title}`} />
+
+      {/* 🚀 Shakib Rakib Golden Banner (باقة شاكب راكب الشهرية الشاملة) */}
+      {shakibConfig.isEnabled !== false && (
+        <ShakibRakibBanner
+          price={shakibConfig.price || 10}
+          yearId={year.id}
+          yearTitle={year.title}
+          monthLabel={shakibConfig.monthLabel}
+        />
+      )}
 
       {/* Subjects Grid by Semester */}
       <div className="my-10">

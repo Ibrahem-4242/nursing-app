@@ -50,7 +50,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
       {/* 🛡️ Dynamic Anti-Leak Watermark (Paid Lectures for Authenticated Students) */}
-      <StudentWatermark isFree={lecture.isFree} lectureId={lecture.id} />
+      <StudentWatermark isFree={lecture.isFree} lectureId={lecture.id} yearId={lecture.yearId} />
 
       {/* 1. Breadcrumb Navigation */}
       <Breadcrumb
@@ -152,6 +152,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           lectureTitle={lecture.title}
           adminNote={lecture.adminNote}
           lectureId={lecture.id}
+          yearId={lecture.yearId}
           isFree={lecture.isFree}
           price={lecture.price || 50}
           isAdmin={false}

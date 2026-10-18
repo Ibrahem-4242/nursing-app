@@ -45,15 +45,17 @@ import {
   UserCheck,
   Presentation,
   Network,
+  Crown,
+  Zap,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
-import { PurchaseOrder, StudentUser } from '@/lib/types';
+import { PurchaseOrder, StudentUser, ShakibRakibConfig } from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
@@ -312,6 +314,15 @@ export default function AdminDashboardPage() {
   const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
   const [lectureGrantSearch, setLectureGrantSearch] = useState('');
 
+  // Shakib Rakib Bundle State
+  const [shakibPrice, setShakibPrice] = useState<number>(10);
+  const [shakibIsEnabled, setShakibIsEnabled] = useState<boolean>(true);
+  const [shakibMonthLabel, setShakibMonthLabel] = useState<string>('اشتراك الشهر الحالي (شامل كل المواد)');
+  const [isSavingShakib, setIsSavingShakib] = useState(false);
+  const [shakibFeedback, setShakibFeedback] = useState<string | null>(null);
+  const [shakibStudentSearch, setShakibStudentSearch] = useState('');
+  const [isGrantingShakib, setIsGrantingShakib] = useState(false);
+
   // Cloud Sync Token state (GitHub Gist synchronization)
   const [syncToken, setSyncToken] = useState<string>('');
   const [isEditingToken, setIsEditingToken] = useState(false);
@@ -451,6 +462,7 @@ export default function AdminDashboardPage() {
     loadReports();
     loadOrders();
     loadStudents();
+    loadShakibConfig();
   };
 
   const loadOrders = async () => {
@@ -486,6 +498,105 @@ export default function AdminDashboardPage() {
       console.warn('Failed to load students:', e);
     } finally {
       setIsLoadingStudents(false);
+    }
+  };
+
+  const loadShakibConfig = async () => {
+    try {
+      const res = await fetch(`/api/shakib-rakib/config?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data?.success && data?.config) {
+        setShakibPrice(data.config.price || 10);
+        setShakibIsEnabled(data.config.isEnabled !== false);
+        setShakibMonthLabel(data.config.monthLabel || 'اشتراك الشهر الحالي (شامل كل المواد)');
+      }
+    } catch (err) {
+      console.warn('Failed to load shakib config:', err);
+    }
+  };
+
+  const handleSaveShakibConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingShakib(true);
+    setShakibFeedback(null);
+    try {
+      const res = await fetch('/api/shakib-rakib/config', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          price: Number(shakibPrice) || 10,
+          isEnabled: shakibIsEnabled,
+          monthLabel: shakibMonthLabel.trim() || 'اشتراك الشهر الحالي (شامل كل المواد)',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShakibFeedback('✅ تم حفظ وتحديث إعدادات باقة شاكب راكب بنجاح!');
+        setTimeout(() => setShakibFeedback(null), 3500);
+      } else {
+        setShakibFeedback('❌ فشل الحفظ: ' + (data.message || 'خطأ غير معروف'));
+      }
+    } catch (err: any) {
+      setShakibFeedback('❌ خطأ في الاتصال: ' + err?.message);
+    } finally {
+      setIsSavingShakib(false);
+    }
+  };
+
+  const handleGrantShakib = async (studentId: string, days = 30) => {
+    setIsGrantingShakib(true);
+    try {
+      const res = await fetch('/api/admin/students/shakib-rakib', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          studentId,
+          action: 'grant',
+          days,
+          yearId: '1',
+          monthLabel: shakibMonthLabel,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم تفعيل باقة شاكب راكب للطالب بنجاح! 🚀');
+        loadStudents();
+      } else {
+        alert(data.message || 'تعذر تفعيل الباقة للطالب');
+      }
+    } catch (err: any) {
+      alert('خطأ في الاتصال: ' + err?.message);
+    } finally {
+      setIsGrantingShakib(false);
+    }
+  };
+
+  const handleRevokeShakib = async (studentId: string) => {
+    if (!confirm('هل أنت متأكد من رغبتك في إلغاء باقة شاكب راكب لهذا الطالب؟')) return;
+    setIsGrantingShakib(true);
+    try {
+      const res = await fetch('/api/admin/students/shakib-rakib', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          studentId,
+          action: 'revoke',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'تم إلغاء الاشتراك بنجاح ✅');
+        loadStudents();
+      } else {
+        alert(data.message || 'تعذر إلغاء الاشتراك');
+      }
+    } catch (err: any) {
+      alert('خطأ في الاتصال: ' + err?.message);
+    } finally {
+      setIsGrantingShakib(false);
     }
   };
 
@@ -2893,6 +3004,27 @@ export default function AdminDashboardPage() {
           >
             <Users className="w-4 h-4" />
             <span>حسابات الطلاب والاشتراكات 👥 ({students.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('shakibRakib');
+              loadShakibConfig();
+              loadStudents();
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'shakibRakib'
+                ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-md'
+                : 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-300/50'
+            }`}
+          >
+            <Crown className="w-4 h-4 text-yellow-400" />
+            <span>باقة شاكب راكب 🚀 ({shakibPrice} ج.م)</span>
+            {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length > 0 && (
+              <span className="bg-amber-900 text-amber-200 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length} مشترك
+              </span>
+            )}
           </button>
 
           <button
@@ -6599,8 +6731,14 @@ export default function AdminDashboardPage() {
                               </div>
                             </td>
 
-                            {/* Lecture */}
+                            {/* Lecture / Bundle */}
                             <td className="py-3.5 px-3 max-w-[200px]">
+                              {order.orderType === 'shakib_rakib' && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-black text-[10px] mb-1 shadow-sm">
+                                  <Crown className="w-3 h-3 text-yellow-200" />
+                                  <span>باقة شاكب راكب 🚀</span>
+                                </span>
+                              )}
                               <div className="font-bold text-slate-800 dark:text-slate-200 truncate">{order.lectureTitle}</div>
                               <div className="text-[11px] text-slate-500 truncate">{order.subjectTitle}</div>
                               <div className="text-[10px] text-slate-400 mt-0.5">{order.createdAt}</div>
@@ -7263,6 +7401,280 @@ export default function AdminDashboardPage() {
                   إغلاق
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: باقة شاكب راكب الشهرية الشاملة */}
+        {activeTab === 'shakibRakib' && (
+          <div className="space-y-8" dir="rtl">
+            {/* Header Card */}
+            <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border-2 border-amber-300/40">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-amber-100 text-xs font-black border border-white/30">
+                  <Crown className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                  <span>نظام الاشتراك الشهري الشامل</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black">
+                  باقة شاكب راكب الشهرية 🚀
+                </h3>
+                <p className="text-xs sm:text-sm text-amber-100 max-w-2xl leading-relaxed">
+                  تتيح للطلاب فتح جميع مواد ومحاضرات السنة الدراسية بالكامل لهذا الشهر دفعة واحدة بسعر شهري موحد، مع ظهور بانر ذهبي مميز في الصفحة الرئيسية وصفحات السنوات.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[11px] font-bold text-amber-100 block mb-0.5">المشتركين النشطين</span>
+                  <span className="text-3xl font-black text-white">
+                    {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length}
+                  </span>
+                </div>
+                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[11px] font-bold text-amber-100 block mb-0.5">السعر الشهري</span>
+                  <span className="text-3xl font-black text-yellow-300">
+                    {shakibPrice} <span className="text-xs font-bold text-white">ج.م</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Settings Form Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Wrench className="w-5 h-5 text-amber-600" />
+                    <span>إعدادات وتسعير باقة شاكب راكب</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    يمكنك تعديل السعر الشهري (الافتراضي 10 ج.م) ونص شهر الاشتراك وتفعيل أو إيقاف ظهور الباقة للطلاب.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">حالة الباقة:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShakibIsEnabled(!shakibIsEnabled)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-black transition ${
+                      shakibIsEnabled
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {shakibIsEnabled ? 'مفعلة وتظهر للطلاب 🌟' : 'معطلة ومخفية 🔒'}
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveShakibConfig} className="space-y-4 max-w-2xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      سعر باقة شاكب راكب الشهرية (جنية مصري) *:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={shakibPrice}
+                        onChange={(e) => setShakibPrice(Number(e.target.value))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-amber-500"
+                        placeholder="10"
+                      />
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">ج.م</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      تسمية الشهر / نطاق الباقة *:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={shakibMonthLabel}
+                      onChange={(e) => setShakibMonthLabel(e.target.value)}
+                      placeholder="اشتراك الشهر الحالي (شامل كل المواد)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {shakibFeedback && (
+                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold">
+                    {shakibFeedback}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSavingShakib}
+                  className="py-3 px-6 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingShakib ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>حفظ إعدادات وسعر شاكب راكب 🚀</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Quick Grant Subscription Box */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-600" />
+                <span>تفعيل باقة شاكب راكب لطالب بالاسم أو رقم الهاتف مباشرة ⚡️</span>
+              </h4>
+              <p className="text-xs text-slate-500">
+                ابحث عن أي طالب مسجل وقم بتفعيل أو تمديد باقة شاكب راكب له لمدة 30 يوماً بضغطة واحدة دون الحاجة لتحويله إيصال.
+              </p>
+
+              <div className="max-w-md">
+                <input
+                  type="text"
+                  value={shakibStudentSearch}
+                  onChange={(e) => setShakibStudentSearch(e.target.value)}
+                  placeholder="ابحث باسم الطالب أو رقم الهاتف..."
+                  className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              {shakibStudentSearch.trim() && (
+                <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                  {students
+                    .filter(
+                      (s) =>
+                        s.name.toLowerCase().includes(shakibStudentSearch.toLowerCase()) ||
+                        s.phone.includes(shakibStudentSearch)
+                    )
+                    .slice(0, 8)
+                    .map((s) => {
+                      const isActive =
+                        s.shakibRakibSubscription?.isActive &&
+                        new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now();
+                      return (
+                        <div key={s.id} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
+                          <div>
+                            <span className="font-bold text-xs text-slate-900 dark:text-white block">{s.name}</span>
+                            <span className="text-[11px] text-slate-500 font-mono" dir="ltr">{s.phone}</span>
+                            <span className="text-[11px] text-slate-400 mx-1">•</span>
+                            <span className="text-[11px] text-slate-500">{s.university}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {isActive ? (
+                              <button
+                                type="button"
+                                disabled={isGrantingShakib}
+                                onClick={() => handleRevokeShakib(s.id)}
+                                className="py-1 px-3 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 text-xs font-bold transition"
+                              >
+                                إلغاء الباقة ❌
+                              </button>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              disabled={isGrantingShakib}
+                              onClick={() => handleGrantShakib(s.id, 30)}
+                              className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition flex items-center gap-1"
+                            >
+                              <Crown className="w-3.5 h-3.5 text-yellow-200" />
+                              <span>{isActive ? 'تمديد 30 يوم 🚀' : 'تفعيل شاكب راكب 30 يوم 🚀'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Active Subscribers List Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-amber-600" />
+                    <span>قائمة المشتركين الحاليين في باقة شاكب راكب 🎓</span>
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    الطلاب الذين لديهم اشتراك سارٍ يتيح لهم الوصول الفوري لجميع مواد ومحاضرات هذا الشهر.
+                  </p>
+                </div>
+
+                <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-300">
+                  {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length} مشترك نشط
+                </span>
+              </div>
+
+              {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length === 0 ? (
+                <div className="p-8 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <Crown className="w-10 h-10 mx-auto text-amber-400/40" />
+                  <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا يوجد طلاب مشتركون حالياً في باقة شاكب راكب</p>
+                  <p className="text-xs text-slate-400">عندما يطلب الطالب الاشتراك وتوافق عليه، أو تقوم بتفعيله يدوياً، سيظهر هنا.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                        <th className="py-3 px-3">الطالب</th>
+                        <th className="py-3 px-3">الجامعة</th>
+                        <th className="py-3 px-3">الهاتف</th>
+                        <th className="py-3 px-3">بداية الاشتراك</th>
+                        <th className="py-3 px-3">تاريخ الانتهاء</th>
+                        <th className="py-3 px-3">المتبقي</th>
+                        <th className="py-3 px-3 text-center">الإجراء</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {students
+                        .filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now())
+                        .map((s) => {
+                          const sub = s.shakibRakibSubscription!;
+                          const daysLeft = Math.max(0, Math.ceil((new Date(sub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                          return (
+                            <tr key={s.id} className="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition">
+                              <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{s.name}</td>
+                              <td className="py-3 px-3 text-slate-600 dark:text-slate-400">{s.university}</td>
+                              <td className="py-3 px-3 font-mono text-teal-600" dir="ltr">{s.phone}</td>
+                              <td className="py-3 px-3 text-slate-500">{new Date(sub.startDate).toLocaleDateString('ar-EG')}</td>
+                              <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-bold">{new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</td>
+                              <td className="py-3 px-3">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[11px]">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{daysLeft} يوم</span>
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={isGrantingShakib}
+                                    onClick={() => handleGrantShakib(s.id, 30)}
+                                    className="py-1 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-sm transition"
+                                  >
+                                    تمديد شهر 🚀
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isGrantingShakib}
+                                    onClick={() => handleRevokeShakib(s.id)}
+                                    className="py-1 px-2.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px] transition"
+                                  >
+                                    إلغاء ❌
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

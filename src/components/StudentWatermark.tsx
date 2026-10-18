@@ -7,6 +7,7 @@ import { AlertTriangle, ShieldAlert } from 'lucide-react';
 interface StudentWatermarkProps {
   isFree?: boolean;
   lectureId?: string;
+  yearId?: string;
   studentName?: string;
   studentPhone?: string;
 }
@@ -14,6 +15,7 @@ interface StudentWatermarkProps {
 export default function StudentWatermark({
   isFree = true,
   lectureId,
+  yearId,
   studentName,
   studentPhone,
 }: StudentWatermarkProps) {
@@ -26,7 +28,7 @@ export default function StudentWatermark({
 
   // Only show watermark on PAID lectures for authenticated students who unlocked it
   const isPaid = !isFree;
-  const hasAccess = Boolean(student && (!lectureId || isLecturePurchased(lectureId)));
+  const hasAccess = Boolean(student && (!lectureId || isLecturePurchased(lectureId, yearId)));
   const shouldRender = isPaid && Boolean(student && activeName && activePhone && hasAccess);
 
   const watermarkText = `${activeName} • ${activePhone} • منصة ملخصات تمريض`;

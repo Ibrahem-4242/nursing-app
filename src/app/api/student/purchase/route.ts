@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
     let lectureId = '';
     let lectureTitle = '';
     let subjectTitle = '';
+    let orderType: 'lecture' | 'shakib_rakib' = 'lecture';
+    let yearId = '1';
+    let monthLabel = '';
     let price = 50;
     let senderPhone = '';
     let contactPhone = '';
@@ -33,7 +36,10 @@ export async function POST(req: NextRequest) {
       lectureId = ((formData.get('lectureId') as string) || '').trim();
       lectureTitle = ((formData.get('lectureTitle') as string) || '').trim();
       subjectTitle = ((formData.get('subjectTitle') as string) || '').trim();
-      price = Number(formData.get('price')) || 50;
+      orderType = (formData.get('orderType') as any) === 'shakib_rakib' ? 'shakib_rakib' : 'lecture';
+      yearId = ((formData.get('yearId') as string) || '1').trim();
+      monthLabel = ((formData.get('monthLabel') as string) || '').trim();
+      price = Number(formData.get('price')) || (orderType === 'shakib_rakib' ? 10 : 50);
       senderPhone = ((formData.get('senderPhone') as string) || '').trim();
       contactPhone = ((formData.get('contactPhone') as string) || '').trim();
       userMessage = ((formData.get('userMessage') as string) || '').trim();
@@ -45,7 +51,10 @@ export async function POST(req: NextRequest) {
       lectureId = String(body.lectureId || '').trim();
       lectureTitle = String(body.lectureTitle || '').trim();
       subjectTitle = String(body.subjectTitle || '').trim();
-      price = Number(body.price) || 50;
+      orderType = body.orderType === 'shakib_rakib' ? 'shakib_rakib' : 'lecture';
+      yearId = String(body.yearId || '1').trim();
+      monthLabel = String(body.monthLabel || '').trim();
+      price = Number(body.price) || (orderType === 'shakib_rakib' ? 10 : 50);
       senderPhone = String(body.senderPhone || '').trim();
       contactPhone = String(body.contactPhone || '').trim();
       userMessage = String(body.userMessage || '').trim();
@@ -75,9 +84,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!lectureId) {
+    const effectiveLectureId = lectureId || (orderType === 'shakib_rakib' ? `shakib-rakib-${yearId}` : '');
+    if (!effectiveLectureId) {
       return NextResponse.json(
-        { success: false, message: 'معرف المحاضرة مطلوب' },
+        { success: false, message: 'معرف المحاضرة أو الباقة مطلوب' },
         { status: 400 }
       );
     }
@@ -100,9 +110,14 @@ export async function POST(req: NextRequest) {
       studentName: student.name,
       studentPhone: student.phone,
       studentUniversity: student.university,
-      lectureId,
-      lectureTitle: lectureTitle || 'محاضرة تمريض',
-      subjectTitle: subjectTitle || 'مقرر تمريض',
+      lectureId: effectiveLectureId,
+      lectureTitle:
+        lectureTitle || (orderType === 'shakib_rakib' ? 'باقة شاكب راكب الشهرية 🚀' : 'محاضرة تمريض'),
+      subjectTitle:
+        subjectTitle || (orderType === 'shakib_rakib' ? 'جميع مواد السنة الدراسية' : 'مقرر تمريض'),
+      orderType,
+      yearId,
+      monthLabel: monthLabel || undefined,
       price,
       senderPhone,
       contactPhone: contactPhone || student.phone,
@@ -115,9 +130,14 @@ export async function POST(req: NextRequest) {
       console.warn('[Telegram] Purchase order alert notice:', telErr)
     );
 
+    const successMessage =
+      orderType === 'shakib_rakib'
+        ? 'تم إرسال طلب اشتراك باقة شاكب راكب الشهرية بنجاح! سيتم مراجعة الطلب وتفعيل جميع مواد ومحاضرات الشهر في حسابك فوراً بإذن الله 🚀'
+        : 'تم إرسال طلب الشراء وتفاصيل التحويل بنجاح! سيتم مراجعة الطلب وفتح المحاضرة في حسابك فوراً بإذن الله 🚀';
+
     return NextResponse.json({
       success: true,
-      message: 'تم إرسال طلب الشراء وتفاصيل التحويل بنجاح! سيتم مراجعة الطلب وفتح المحاضرة في حسابك فوراً بإذن الله 🚀',
+      message: successMessage,
       order,
     });
   } catch (err: any) {

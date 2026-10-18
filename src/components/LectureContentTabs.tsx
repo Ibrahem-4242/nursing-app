@@ -32,6 +32,7 @@ interface LectureContentTabsProps {
   lectureTitle?: string;
   adminNote?: string;
   lectureId?: string;
+  yearId?: string;
   isFree?: boolean;
   price?: number;
   isAdmin?: boolean;
@@ -44,6 +45,7 @@ export default function LectureContentTabs({
   lectureTitle,
   adminNote,
   lectureId,
+  yearId,
   isFree = true,
   price = 50,
   isAdmin = false,
@@ -120,7 +122,7 @@ export default function LectureContentTabs({
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
   const { student, isLecturePurchased, openAuthModal } = useStudentAuth();
-  const isPurchasedByStudent = Boolean(lectureId && isLecturePurchased(lectureId));
+  const isPurchasedByStudent = Boolean(lectureId && isLecturePurchased(lectureId, yearId));
   const isUnlocked = isFree || isPurchasedByStudent || isAdmin;
 
   const getActiveFile = () => {

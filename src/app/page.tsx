@@ -23,6 +23,7 @@ import {
 import { cookies } from 'next/headers';
 import { CmsService } from '@/lib/cms-db';
 import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
+import ShakibRakibBanner from '@/components/ShakibRakibBanner';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -40,6 +41,7 @@ export default async function HomePage({
   const liveLectures = await CmsService.getLiveLectures();
   const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();
   const quizzesList = allQuizFiles.filter((q) => q.isLive !== false);
+  const shakibConfig = await CmsService.getShakibRakibConfig();
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
 
@@ -134,6 +136,16 @@ export default async function HomePage({
       {/* 2. Top AdSense Placement */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdSenseBanner position="header" slotId="9876543210" label="إعلان ممول - منصة ملخصات تمريض" />
+
+        {/* 🚀 Shakib Rakib Golden Banner (باقة شاكب راكب الشهرية الشاملة) */}
+        {shakibConfig.isEnabled !== false && (
+          <ShakibRakibBanner
+            price={shakibConfig.price || 10}
+            yearId="1"
+            yearTitle="السنة الأولى"
+            monthLabel={shakibConfig.monthLabel}
+          />
+        )}
       </div>
 
       {/* 3. Academic Years Sections (Only years with content are displayed) */}

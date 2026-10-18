@@ -65,23 +65,28 @@ export async function POST(req: NextRequest) {
       if (cbData && cbData.startsWith('approve_order_')) {
         const orderId = cbData.replace('approve_order_', '').trim();
         const res = await CmsService.approveOrder(orderId);
+        const isShakib = res.order?.orderType === 'shakib_rakib';
         if (cbId && TELEGRAM_BOT_TOKEN) {
           fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               callback_query_id: cbId,
-              text: res.success ? '✅ تم اعتماد الدفع وفتح المحاضرة للطالب فوراً!' : 'تعذر إتمام العملية',
+              text: res.success
+                ? isShakib
+                  ? '🚀 تم تفعيل باقة شاكب راكب الشهرية للطالب بنجاح!'
+                  : '✅ تم اعتماد الدفع وفتح المحاضرة للطالب فوراً!'
+                : 'تعذر إتمام العملية',
               show_alert: true,
             }),
           }).catch(() => {});
         }
         if (res.success && targetChatId) {
-          await sendTelegramMessage(
-            `✅ <b>تمت الموافقة على الدفع بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>الطالب:</b> ${res.order?.studentName}\n📱 <b>الهاتف:</b> <code>${res.order?.studentPhone}</code>\n🏛️ <b>الجامعة:</b> ${res.order?.studentUniversity}\n📚 <b>المحاضرة:</b> ${res.order?.lectureTitle}\n💰 <b>المبلغ:</b> ${res.order?.price} ج.م\n🔓 <i>المحاضرة مفعلة الآن بحساب الطالب وأصبح بإمكانه فتحها وتحميلها فوراً!</i>`,
-            'HTML',
-            targetChatId
-          );
+          const detailText = isShakib
+            ? `🚀 <b>تم تفعيل باقة شاكب راكب الشهرية بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>الطالب:</b> ${res.order?.studentName}\n📱 <b>الهاتف:</b> <code>${res.order?.studentPhone}</code>\n🏛️ <b>الجامعة:</b> ${res.order?.studentUniversity}\n👑 <b>الباقة:</b> باقة شاكب راكب الشهرية الشاملة 🚀\n💰 <b>المبلغ:</b> ${res.order?.price} ج.م\n🔓 <i>أصبح بإمكان الطالب الآن فتح وتحميل جميع مواد ومحاضرات سنته الدراسية لهذا الشهر بالكامل!</i>`
+            : `✅ <b>تمت الموافقة على الدفع بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>الطالب:</b> ${res.order?.studentName}\n📱 <b>الهاتف:</b> <code>${res.order?.studentPhone}</code>\n🏛️ <b>الجامعة:</b> ${res.order?.studentUniversity}\n📚 <b>المحاضرة:</b> ${res.order?.lectureTitle}\n💰 <b>المبلغ:</b> ${res.order?.price} ج.م\n🔓 <i>المحاضرة مفعلة الآن بحساب الطالب وأصبح بإمكانه فتحها وتحميلها فوراً!</i>`;
+
+          await sendTelegramMessage(detailText, 'HTML', targetChatId);
         }
         return NextResponse.json({ ok: true });
       }

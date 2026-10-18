@@ -12,6 +12,8 @@ import {
   SubjectQuizFile,
   StudentUser,
   PurchaseOrder,
+  ShakibRakibConfig,
+  ShakibRakibSubscription,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -19,6 +21,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 interface CmsStore {
   announcement: AnnouncementConfig;
   maintenance?: MaintenanceConfig;
+  shakibRakibConfig?: ShakibRakibConfig;
   lectures: Lecture[];
   deletedLectureIds?: string[];
   deletedQuizIds?: string[];
@@ -57,6 +60,14 @@ const DEFAULT_MAINTENANCE: MaintenanceConfig = {
   contactWhatsapp: 'https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti',
   updatedAt: new Date().toISOString(),
 };
+
+export const DEFAULT_SHAKIB_RAKIB_CONFIG: ShakibRakibConfig = {
+  price: 10,
+  isEnabled: true,
+  monthLabel: 'اشتراك الشهر الحالي (شامل كل المواد)',
+  updatedAt: new Date().toISOString(),
+};
+
 
 // Global in-memory cache to guarantee instant performance in runtime
 let memoryStore: CmsStore | null = null;
@@ -325,6 +336,12 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         ...(existing.dailyDownloadsMap || {}),
         ...(store.dailyDownloadsMap || {}),
       };
+
+      store.shakibRakibConfig = {
+        ...DEFAULT_SHAKIB_RAKIB_CONFIG,
+        ...(existing.shakibRakibConfig || {}),
+        ...(store.shakibRakibConfig || {}),
+      };
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -553,6 +570,9 @@ function initMemoryStore(): CmsStore {
     if (!loadedStore.maintenance) {
       loadedStore.maintenance = DEFAULT_MAINTENANCE;
     }
+    if (!loadedStore.shakibRakibConfig) {
+      loadedStore.shakibRakibConfig = DEFAULT_SHAKIB_RAKIB_CONFIG;
+    }
     memoryStore = maskRawGithubUrls(loadedStore);
     return memoryStore;
   }
@@ -560,6 +580,7 @@ function initMemoryStore(): CmsStore {
     memoryStore = {
       announcement: DEFAULT_ANNOUNCEMENT,
       maintenance: DEFAULT_MAINTENANCE,
+      shakibRakibConfig: DEFAULT_SHAKIB_RAKIB_CONFIG,
       lectures: [],
       deletedLectureIds: [],
       subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
@@ -726,6 +747,15 @@ async function getFreshStore(): Promise<CmsStore> {
       ...(cloudStore.dailyDownloadsMap || {}),
       ...(store.dailyDownloadsMap || {}),
     };
+
+    if (cloudStore.shakibRakibConfig) {
+      store.shakibRakibConfig = {
+        ...DEFAULT_SHAKIB_RAKIB_CONFIG,
+        ...cloudStore.shakibRakibConfig,
+      };
+    } else if (!store.shakibRakibConfig) {
+      store.shakibRakibConfig = DEFAULT_SHAKIB_RAKIB_CONFIG;
+    }
 
     store = maskRawGithubUrls(store);
     memoryStore = store;
@@ -1861,13 +1891,25 @@ export const CmsService = {
     order.status = 'approved';
     order.reviewedAt = new Date().toISOString();
 
-    // Grant lecture access to student immediately
+    // Grant lecture or shakib-rakib bundle access to student immediately
     if (store.students) {
       const student = store.students.find((s) => s.id === order.studentId || s.phone === order.studentPhone);
       if (student) {
-        if (!Array.isArray(student.purchasedLectureIds)) student.purchasedLectureIds = [];
-        if (!student.purchasedLectureIds.includes(order.lectureId)) {
-          student.purchasedLectureIds.push(order.lectureId);
+        if (order.orderType === 'shakib_rakib') {
+          const now = new Date();
+          const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          student.shakibRakibSubscription = {
+            isActive: true,
+            yearId: order.yearId || '1',
+            startDate: now.toISOString(),
+            expiresAt: expires.toISOString(),
+            monthLabel: order.monthLabel || store.shakibRakibConfig?.monthLabel || 'باقة شاكب راكب الشهرية 🚀',
+          };
+        } else {
+          if (!Array.isArray(student.purchasedLectureIds)) student.purchasedLectureIds = [];
+          if (!student.purchasedLectureIds.includes(order.lectureId)) {
+            student.purchasedLectureIds.push(order.lectureId);
+          }
         }
       }
     }
@@ -1905,6 +1947,70 @@ export const CmsService = {
       store.deletedOrderIds.push(orderId);
     }
     store.orders = (store.orders || []).filter((o) => o.id !== orderId);
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  // --- SHAKIB RAKIB BUNDLE (باقة شاكب راكب الشهرية الشاملة) ---
+  async getShakibRakibConfig(): Promise<ShakibRakibConfig> {
+    const store = await getFreshStore();
+    return store.shakibRakibConfig || DEFAULT_SHAKIB_RAKIB_CONFIG;
+  },
+
+  async updateShakibRakibConfig(
+    updates: Partial<ShakibRakibConfig>,
+    customToken?: string
+  ): Promise<ShakibRakibConfig> {
+    const store = await getFreshStore();
+    store.shakibRakibConfig = {
+      ...(store.shakibRakibConfig || DEFAULT_SHAKIB_RAKIB_CONFIG),
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return store.shakibRakibConfig;
+  },
+
+  hasAccessToLecture(
+    student: StudentUser | null | undefined,
+    lectureId: string,
+    yearId?: string
+  ): boolean {
+    if (!student) return false;
+    // Check Shakib Rakib monthly subscription
+    if (student.shakibRakibSubscription?.isActive) {
+      const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+      if (expires > Date.now()) {
+        const subYear = student.shakibRakibSubscription.yearId;
+        if (!yearId || !subYear || subYear === 'all' || subYear === yearId) {
+          return true;
+        }
+      }
+    }
+    // Check individual purchased lectures
+    return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
+  },
+
+  async updateStudentShakibRakib(
+    studentId: string,
+    subscription: ShakibRakibSubscription | null,
+    customToken?: string
+  ): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    if (subscription) {
+      student.shakibRakibSubscription = subscription;
+    } else {
+      delete student.shakibRakibSubscription;
+    }
+
     memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);

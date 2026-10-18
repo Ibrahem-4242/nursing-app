@@ -217,6 +217,21 @@ export interface DownloadEvent {
   fileName?: string;
 }
 
+export interface ShakibRakibSubscription {
+  isActive: boolean;
+  yearId: string;
+  startDate: string;
+  expiresAt: string;
+  monthLabel: string;
+}
+
+export interface ShakibRakibConfig {
+  price: number;
+  isEnabled: boolean;
+  monthLabel: string;
+  updatedAt?: string;
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -225,6 +240,7 @@ export interface StudentUser {
   password: string;
   createdAt: string;
   purchasedLectureIds: string[];
+  shakibRakibSubscription?: ShakibRakibSubscription;
   isActive?: boolean;
   notes?: string;
   currentSessionId?: string;
@@ -240,6 +256,9 @@ export interface PurchaseOrder {
   lectureId: string;
   lectureTitle: string;
   subjectTitle: string;
+  orderType?: 'lecture' | 'shakib_rakib';
+  yearId?: string;
+  monthLabel?: string;
   price: number;
   senderPhone: string;
   contactPhone: string;
@@ -250,4 +269,5 @@ export interface PurchaseOrder {
   createdAt: string;
   reviewedAt?: string;
 }
+
 

@@ -11,7 +11,9 @@ interface StudentAuthContextType {
   register: (phone: string, name: string, university: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshStudent: () => Promise<void>;
-  isLecturePurchased: (lectureId: string) => boolean;
+  isLecturePurchased: (lectureId: string, yearId?: string) => boolean;
+  hasShakibRakib: boolean;
+  shakibRakibDaysRemaining: number;
   isAuthModalOpen: boolean;
   authModalMode: 'login' | 'register';
   openAuthModal: (mode?: 'login' | 'register') => void;
@@ -117,9 +119,35 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     setStudent(null);
   };
 
+  const hasShakibRakib = Boolean(
+    student?.shakibRakibSubscription?.isActive &&
+      new Date(student.shakibRakibSubscription.expiresAt).getTime() > Date.now()
+  );
+
+  const shakibRakibDaysRemaining = student?.shakibRakibSubscription?.expiresAt
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(student.shakibRakibSubscription.expiresAt).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0;
+
   const isLecturePurchased = useCallback(
-    (lectureId: string) => {
+    (lectureId: string, yearId?: string) => {
       if (!student) return false;
+      // 1. Check Shakib Rakib monthly subscription
+      if (student.shakibRakibSubscription?.isActive) {
+        const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+        if (expires > Date.now()) {
+          const subYear = student.shakibRakibSubscription.yearId;
+          if (!yearId || !subYear || subYear === 'all' || subYear === yearId) {
+            return true;
+          }
+        }
+      }
+      // 2. Check individual lecture purchases
       return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
     },
     [student]
@@ -145,6 +173,8 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         logout,
         refreshStudent,
         isLecturePurchased,
+        hasShakibRakib,
+        shakibRakibDaysRemaining,
         isAuthModalOpen,
         authModalMode,
         openAuthModal,

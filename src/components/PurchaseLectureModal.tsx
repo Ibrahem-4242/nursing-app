@@ -21,9 +21,12 @@ import {
 interface PurchaseLectureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lectureId: string;
-  lectureTitle: string;
-  subjectTitle: string;
+  lectureId?: string;
+  lectureTitle?: string;
+  subjectTitle?: string;
+  orderType?: 'lecture' | 'shakib_rakib';
+  yearId?: string;
+  monthLabel?: string;
   price?: number;
   onOrderSuccess?: () => void;
 }
@@ -31,13 +34,17 @@ interface PurchaseLectureModalProps {
 export default function PurchaseLectureModal({
   isOpen,
   onClose,
-  lectureId,
-  lectureTitle,
-  subjectTitle,
+  lectureId = 'shakib-rakib',
+  lectureTitle = 'باقة شاكب راكب الشهرية 🚀',
+  subjectTitle = 'جميع مواد السنة الدراسية',
+  orderType = 'lecture',
+  yearId = '1',
+  monthLabel = 'اشتراك الشهر الحالي (شامل كل المواد)',
   price = 50,
   onOrderSuccess,
 }: PurchaseLectureModalProps) {
   const { student, openAuthModal } = useStudentAuth();
+  const isShakib = orderType === 'shakib_rakib';
 
   const [senderPhone, setSenderPhone] = useState('');
   const [contactPhone, setContactPhone] = useState(student?.phone || '');
@@ -116,6 +123,9 @@ export default function PurchaseLectureModal({
       formData.append('lectureId', lectureId);
       formData.append('lectureTitle', lectureTitle);
       formData.append('subjectTitle', subjectTitle);
+      formData.append('orderType', orderType);
+      formData.append('yearId', yearId);
+      formData.append('monthLabel', monthLabel);
       formData.append('price', String(price));
       formData.append('senderPhone', senderPhone.trim());
       formData.append('contactPhone', (contactPhone || student.phone).trim());
@@ -134,7 +144,11 @@ export default function PurchaseLectureModal({
       if (data && data.success) {
         setFeedback({
           type: 'success',
-          message: data.message || 'تم إرسال طلب الشراء والتحويل بنجاح! سيتم فتح المحاضرة فوراً.',
+          message:
+            data.message ||
+            (isShakib
+              ? 'تم إرسال طلب اشتراك باقة شاكب راكب الشهرية بنجاح! سيتم تفعيل جميع المواد فوراً 🚀'
+              : 'تم إرسال طلب الشراء والتحويل بنجاح! سيتم فتح المحاضرة فوراً.'),
         });
         if (onOrderSuccess) onOrderSuccess();
         setTimeout(() => {
@@ -159,15 +173,21 @@ export default function PurchaseLectureModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
-              <CreditCard className="w-6 h-6" />
+            <div
+              className={`w-11 h-11 rounded-2xl text-white flex items-center justify-center shadow-md ${
+                isShakib
+                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600 shadow-amber-500/30'
+                  : 'bg-amber-500 shadow-amber-500/25'
+              }`}
+            >
+              {isShakib ? <Sparkles className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                تأكيد شراء واشتراك المحاضرة 💳
+                {isShakib ? 'تأكيد الاشتراك في باقة شاكب راكب الشهرية 🚀' : 'تأكيد شراء واشتراك المحاضرة 💳'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {subjectTitle} • {lectureTitle}
+                {isShakib ? `${monthLabel} • شاملة جميع المواد والمحاضرات دفعة واحدة` : `${subjectTitle} • ${lectureTitle}`}
               </p>
             </div>
           </div>
@@ -182,18 +202,37 @@ export default function PurchaseLectureModal({
         </div>
 
         {/* Pricing Pill */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/40 dark:to-emerald-950/30 border border-teal-200/80 dark:border-teal-800/60 flex items-center justify-between">
+        <div
+          className={`p-4 rounded-2xl border flex items-center justify-between ${
+            isShakib
+              ? 'bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100/60 dark:from-amber-950/40 dark:via-yellow-950/30 dark:to-amber-900/30 border-amber-300/80 dark:border-amber-700/60'
+              : 'bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/40 dark:to-emerald-950/30 border border-teal-200/80 dark:border-teal-800/60'
+          }`}
+        >
           <div>
-            <span className="text-[11px] font-bold text-teal-700 dark:text-teal-300 block mb-0.5">
-              قيمة الاشتراك وتفعيل المحاضرة:
+            <span
+              className={`text-[11px] font-bold block mb-0.5 ${
+                isShakib ? 'text-amber-800 dark:text-amber-300' : 'text-teal-700 dark:text-teal-300'
+              }`}
+            >
+              {isShakib ? 'قيمة الاشتراك الشهري الشامل (شاكب راكب):' : 'قيمة الاشتراك وتفعيل المحاضرة:'}
             </span>
             <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-              {price} <span className="text-sm font-bold text-teal-600">جنية مصري (EGP)</span>
+              {price}{' '}
+              <span className={`text-sm font-bold ${isShakib ? 'text-amber-700 dark:text-amber-400' : 'text-teal-600'}`}>
+                جنية مصري (EGP)
+              </span>
             </span>
           </div>
-          <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 flex items-center gap-1">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${
+              isShakib
+                ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border-amber-400'
+                : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300'
+            }`}
+          >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>تفعيل دائم بحسابك</span>
+            <span>{isShakib ? 'وصول شامل لكل المواد' : 'تفعيل دائم بحسابك'}</span>
           </span>
         </div>
 
@@ -361,17 +400,25 @@ export default function PurchaseLectureModal({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-sm sm:text-base shadow-xl shadow-teal-600/25 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            className={`w-full py-3.5 px-6 rounded-2xl text-white font-black text-sm sm:text-base shadow-xl active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50 ${
+              isShakib
+                ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 shadow-amber-600/25'
+                : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 shadow-teal-600/25'
+            }`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>جارِ إرسال طلب الشراء...</span>
+                <span>{isShakib ? 'جارِ إرسال طلب اشتراك شاكب راكب...' : 'جارِ إرسال طلب الشراء...'}</span>
               </>
             ) : (
               <>
-                <ShieldCheck className="w-5 h-5" />
-                <span>إرسال تفاصيل التحويل وتأكيد الشراء 🚀</span>
+                {isShakib ? <Sparkles className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                <span>
+                  {isShakib
+                    ? 'إرسال تفاصيل التحويل وتفعيل باقة شاكب راكب 🚀'
+                    : 'إرسال تفاصيل التحويل وتأكيد الشراء 🚀'}
+                </span>
               </>
             )}
           </button>

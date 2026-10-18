@@ -375,15 +375,28 @@ export async function notifyMaintenanceChanged(
 
 export async function notifyNewPurchaseOrder(order: PurchaseOrder): Promise<boolean> {
   const time = getArabicFormattedDate();
+  const isShakibRakib = order.orderType === 'shakib_rakib';
+  const header = isShakibRakib
+    ? `🚀 <b>طلب اشتراك في باقة شاكب راكب الشهرية الشاملة!</b> ✨`
+    : `💳 <b>طلب شراء واشتراك في محاضرة جديد!</b>`;
+
+  const itemLine = isShakibRakib
+    ? `👑 <b>نوع الباقة:</b> <b>باقة شاكب راكب الشهرية 🚀 (جميع المواد)</b>`
+    : `📚 <b>المحاضرة المطلوبة:</b> <b>${escapeHtml(order.lectureTitle)}</b>`;
+
+  const subLine = isShakibRakib
+    ? `🏛️ <b>نطاق التغطية:</b> جميع مواد ومحاضرات السنة الدراسية بالكامل (${escapeHtml(order.monthLabel || 'الشهر الحالي')})`
+    : `🏷️ <b>المادة:</b> ${escapeHtml(order.subjectTitle)}`;
+
   const lines = [
-    `💳 <b>طلب شراء واشتراك في محاضرة جديد!</b>`,
+    header,
     `━━━━━━━━━━━━━━━━━━━━`,
     `👤 <b>اسم الطالب:</b> ${escapeHtml(order.studentName)}`,
     `📱 <b>رقم هاتف الحساب:</b> <code>${escapeHtml(order.studentPhone)}</code>`,
     `🏛️ <b>الجامعة:</b> ${escapeHtml(order.studentUniversity)}`,
-    `📚 <b>المحاضرة المطلوبة:</b> <b>${escapeHtml(order.lectureTitle)}</b>`,
-    `🏷️ <b>المادة:</b> ${escapeHtml(order.subjectTitle)}`,
-    `💰 <b>السعر المطلوب:</b> <b>${order.price} ج.م</b>`,
+    itemLine,
+    subLine,
+    `💰 <b>المبلغ المدفوع:</b> <b>${order.price} ج.م</b>`,
     `💸 <b>الرقم المحول منه (المحفظة):</b> <code>${escapeHtml(order.senderPhone)}</code>`,
     `📞 <b>رقم التواصل عند الحاجة:</b> <code>${escapeHtml(order.contactPhone)}</code>`,
   ];
@@ -400,10 +413,14 @@ export async function notifyNewPurchaseOrder(order: PurchaseOrder): Promise<bool
   lines.push(`━━━━━━━━━━━━━━━━━━━━`);
   lines.push(`👇 <b>إجراء فوري بضغطة زر:</b>`);
 
+  const approveButtonText = isShakibRakib
+    ? '✅ موافقة وتفعيل شاكب راكب للشهر كامل 🚀'
+    : '✅ موافقة وافتحله المحاضرة';
+
   const inlineKeyboard = {
     inline_keyboard: [
       [
-        { text: '✅ موافقة وافتحله المحاضرة', callback_data: `approve_order_${order.id}` },
+        { text: approveButtonText, callback_data: `approve_order_${order.id}` },
         { text: '❌ رفض الدفع', callback_data: `reject_order_${order.id}` },
       ],
       [
