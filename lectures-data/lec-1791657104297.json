@@ -51,7 +51,7 @@
       "id": 5,
       "front": "What are the primary etiology categories or Causes of Inflammation (أسباب الالتهاب)?",
       "back": "The primary causes include infectious agents, immunological reactions, tissue necrosis, chemical and physical agents, and nutritional factors.",
-      "category": "كروت استذكار",
+      "category": "كروت استذ��ار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -154,7 +154,7 @@
     },
     {
       "id": 20,
-      "front": "How is a Phagolysosome (الفجوة البلعمية الليز��سومية) formed during phagocytosis?",
+      "front": "How is a Phagolysosome (الفجوة البلعمية الليزوسومية) formed during phagocytosis?",
       "back": "A Phagolysosome is formed by the intracellular fusion of a phagosome with a lysosome.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -175,7 +175,7 @@
     },
     {
       "id": 23,
-      "front": "What is the Complement System (جهاز ا��متممة)?",
+      "front": "What is the Complement System (جهاز المتممة)?",
       "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -360,7 +360,7 @@
       "front": "What is Diapedesis (العبور الخلوي) during leukocyte migration?",
       "back": "Diapedesis is the active passage of leukocytes through uninjured blood vessel walls into extravascular tissues.",
       "category": "كروت استذكار",
-      "clinicalPearl": "التغيرات ال��لوية وزيادة الهجرة (Cellular Events & Extravasation)"
+      "clinicalPearl": "التغيرات الخلوية وزيادة الهجرة (Cellular Events & Extravasation)"
     },
     {
       "id": 50,

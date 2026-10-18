@@ -14,7 +14,7 @@ export default async function StorePage() {
   const hasPanicCookie = cookieStore.get('nursing_panic_mode')?.value === 'true';
 
   const panicMode = await CmsService.getPanicMode();
-  if (!panicMode.isEnabled) {
+  if (!panicMode.isEnabled && !hasPanicCookie) {
     redirect('/');
   }
 

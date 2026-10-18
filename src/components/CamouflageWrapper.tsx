@@ -83,22 +83,23 @@ export default function CamouflageWrapper({
           document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
           document.cookie = 'nursing_panic_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
           document.title = 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية';
+
+          // Silently restore URL to / without ANY page reload or flicker
+          if (typeof window !== 'undefined') {
+            if (window.location.pathname === '/store' || window.location.pathname.startsWith('/product')) {
+              window.history.replaceState(null, '', '/');
+            }
+          }
         } catch {}
 
         consecutiveFalseCount.current = 0;
 
-        setCurrentPanicMode({ isEnabled: false });
-
-        // If on masked /store or /product route, seamlessly navigate back to home /
-        if (typeof window !== 'undefined') {
-          if (
-            window.location.pathname === '/store' ||
-            window.location.pathname.startsWith('/product')
-          ) {
-            window.location.href = '/';
-            return;
+        setCurrentPanicMode((prev) => {
+          if (prev.isEnabled) {
+            return { isEnabled: false };
           }
-        }
+          return prev;
+        });
       }
     },
     []
@@ -147,16 +148,12 @@ export default function CamouflageWrapper({
             consecutiveFalseCount.current = 0;
             applyPanicState(true, data.panicMode?.activatedAt);
           } else {
-            // Server returned isServerEnabled: false.
-            // Check if this client is currently active in panic mode.
-            const isCurrentlyActive =
-              currentPanicMode?.isEnabled ||
-              (typeof window !== 'undefined' &&
-                (localStorage.getItem('nursing_panic_mode_active') === 'true' ||
-                  document.cookie.includes('nursing_panic_mode=true')));
-
-            if (isCurrentlyActive) {
-              applyPanicState(false, undefined, true);
+            // Anti-Flicker Guard:
+            // Require 3 consecutive false checks before turning off panic mode.
+            // This completely stops single-lambda cold starts or network hiccups from flickering!
+            consecutiveFalseCount.current += 1;
+            if (consecutiveFalseCount.current >= 3) {
+              applyPanicState(false);
             }
           }
         }

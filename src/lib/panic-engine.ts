@@ -133,28 +133,30 @@ async function fetchFromCloudFast(): Promise<PanicModeConfig | null> {
   if (!GIST_ID) return null;
 
   // Method 1: Canonical HEAD Raw URL fetch (Fastest, zero truncation, ~200ms)
-  try {
-    const headRawUrl = `https://gist.githubusercontent.com/${GITHUB_OWNER}/${GIST_ID}/raw/panic-state.json?_cb=${Date.now()}`;
-    const rawRes = await fetch(headRawUrl, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
-    });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const headRawUrl = `https://gist.githubusercontent.com/${GITHUB_OWNER}/${GIST_ID}/raw/panic-state.json?_cb=${Date.now()}`;
+      const rawRes = await fetch(headRawUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
 
-    if (rawRes.ok) {
-      const parsed = await rawRes.json();
-      if (typeof parsed?.isEnabled === 'boolean') {
-        return {
-          isEnabled: parsed.isEnabled,
-          activatedAt: parsed.activatedAt,
-          deactivatedAt: parsed.deactivatedAt,
-        };
+      if (rawRes.ok) {
+        const parsed = await rawRes.json();
+        if (typeof parsed?.isEnabled === 'boolean') {
+          return {
+            isEnabled: parsed.isEnabled,
+            activatedAt: parsed.activatedAt,
+            deactivatedAt: parsed.deactivatedAt,
+          };
+        }
       }
+    } catch (rawErr) {
+      // Retry once or continue to REST API fallback
     }
-  } catch (rawErr) {
-    // Continue to REST API fallback
   }
 
   // Method 2: Authenticated GitHub Gist REST API fetch fallback
