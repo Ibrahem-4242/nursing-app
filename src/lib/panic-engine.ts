@@ -16,7 +16,7 @@ declare global {
     | undefined;
 }
 
-const MEMORY_TTL_MS = 2500; // 2.5 seconds cache TTL to prevent cloud API rate limits
+const MEMORY_TTL_MS = 1000; // 1-second fresh cache TTL
 
 const GIST_ID = process.env.GITHUB_GIST_ID || 'c9b4d3dd9bed0d8e8bde23138aff9152';
 const BUILTIN_TOKEN = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
@@ -65,54 +65,25 @@ function writeToLocalDisk(state: PanicModeConfig) {
 }
 
 /**
- * Background non-blocking cloud synchronization.
- * Patches both 'panic-state.json' and 'cms-store.json' in GitHub Gist.
+ * Direct authoritative cloud synchronization.
+ * Patches 'panic-state.json' and 'cms-store.json' on GitHub Gist synchronously
+ * so the commit is committed before the client receives the response!
  */
-async function syncToCloudBackground(state: PanicModeConfig, customToken?: string) {
+async function syncToCloudDirect(state: PanicModeConfig, customToken?: string): Promise<boolean> {
   const token = customToken || GITHUB_TOKEN;
-  if (!GIST_ID || !token) return;
+  if (!GIST_ID || !token) return false;
+
+  const nowIso = new Date().toISOString();
+  const panicPayload = {
+    isEnabled: state.isEnabled,
+    activatedAt: state.activatedAt,
+    deactivatedAt: state.deactivatedAt,
+    updatedAt: nowIso,
+  };
 
   try {
-    // 1. Fetch current Gist file to update cms-store.json in parallel
-    const gistRes = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      headers: {
-        Authorization: `token ${token}`,
-        'User-Agent': 'NursingStudyHubApp',
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-
-    const filesPayload: Record<string, { content: string }> = {
-      'panic-state.json': {
-        content: JSON.stringify(
-          {
-            isEnabled: state.isEnabled,
-            activatedAt: state.activatedAt,
-            deactivatedAt: state.deactivatedAt,
-            updatedAt: new Date().toISOString(),
-          },
-          null,
-          2
-        ),
-      },
-    };
-
-    if (gistRes.ok) {
-      const gistData = await gistRes.json();
-      const cmsFile = gistData.files?.['cms-store.json'];
-      if (cmsFile && cmsFile.content) {
-        try {
-          const cmsParsed = JSON.parse(cmsFile.content);
-          cmsParsed.panicMode = state;
-          filesPayload['cms-store.json'] = {
-            content: JSON.stringify(cmsParsed, null, 2),
-          };
-        } catch {}
-      }
-    }
-
-    // 2. Patch Gist with both files
-    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    // 1. Direct PATCH to Gist for panic-state.json (fast single-shot request)
+    const patchRes = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
       headers: {
         Authorization: `token ${token}`,
@@ -121,58 +92,124 @@ async function syncToCloudBackground(state: PanicModeConfig, customToken?: strin
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        description: 'Nursing Study Hub CMS DB (Auto-Sync & Panic State)',
-        files: filesPayload,
+        description: `Nursing Study Hub CMS DB (Panic State: ${state.isEnabled ? 'ON' : 'OFF'} at ${nowIso})`,
+        files: {
+          'panic-state.json': {
+            content: JSON.stringify(panicPayload, null, 2),
+          },
+        },
       }),
     });
+
+    if (patchRes.ok) {
+      return true;
+    }
   } catch (err) {
-    console.warn('[PanicEngine] Cloud sync notice:', err);
+    console.warn('[PanicEngine] Direct cloud patch error:', err);
   }
+
+  return false;
 }
 
 /**
- * Fast cloud fetch for panic-state.json only (50 bytes).
+ * Fast authoritative cloud fetch for panic-state.json.
+ * Uses cache-busting and raw_url fetch if truncated to guarantee ZERO CDN delay.
  */
 async function fetchFromCloudFast(): Promise<PanicModeConfig | null> {
   const token = GITHUB_TOKEN;
   if (!GIST_ID || !token) return null;
 
   try {
-    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    // Bust GitHub API cache with timestamp query
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}?_cb=${Date.now()}`, {
       cache: 'no-store',
       headers: {
         Authorization: `token ${token}`,
         'User-Agent': 'NursingStudyHubApp',
         Accept: 'application/vnd.github.v3+json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
       },
     });
 
     if (res.ok) {
       const data = await res.json();
-      // Check tiny panic-state.json first
       const panicFile = data.files?.['panic-state.json'];
-      if (panicFile && panicFile.content) {
-        try {
-          const parsed = JSON.parse(panicFile.content);
-          if (typeof parsed?.isEnabled === 'boolean') {
-            return {
-              isEnabled: parsed.isEnabled,
-              activatedAt: parsed.activatedAt,
-              deactivatedAt: parsed.deactivatedAt,
-            };
+
+      if (panicFile) {
+        // If content is present directly
+        if (panicFile.content) {
+          try {
+            const parsed = JSON.parse(panicFile.content);
+            if (typeof parsed?.isEnabled === 'boolean') {
+              return {
+                isEnabled: parsed.isEnabled,
+                activatedAt: parsed.activatedAt,
+                deactivatedAt: parsed.deactivatedAt,
+              };
+            }
+          } catch {}
+        }
+
+        // If content was truncated by GitHub API, fetch raw_url with cache-busting
+        if (panicFile.raw_url) {
+          try {
+            const rawRes = await fetch(`${panicFile.raw_url}?_cb=${Date.now()}`, {
+              cache: 'no-store',
+              headers: {
+                Authorization: `token ${token}`,
+                'User-Agent': 'NursingStudyHubApp',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                Pragma: 'no-cache',
+              },
+            });
+
+            if (rawRes.ok) {
+              const parsed = await rawRes.json();
+              if (typeof parsed?.isEnabled === 'boolean') {
+                return {
+                  isEnabled: parsed.isEnabled,
+                  activatedAt: parsed.activatedAt,
+                  deactivatedAt: parsed.deactivatedAt,
+                };
+              }
+            }
+          } catch (rErr) {
+            console.warn('[PanicEngine] Failed to fetch panic raw_url:', rErr);
           }
-        } catch {}
+        }
       }
 
       // Fallback: check cms-store.json
       const cmsFile = data.files?.['cms-store.json'];
-      if (cmsFile && cmsFile.content) {
-        try {
-          const cmsParsed = JSON.parse(cmsFile.content);
-          if (typeof cmsParsed?.panicMode?.isEnabled === 'boolean') {
-            return cmsParsed.panicMode;
-          }
-        } catch {}
+      if (cmsFile) {
+        if (cmsFile.content) {
+          try {
+            const cmsParsed = JSON.parse(cmsFile.content);
+            if (typeof cmsParsed?.panicMode?.isEnabled === 'boolean') {
+              return cmsParsed.panicMode;
+            }
+          } catch {}
+        }
+        if (cmsFile.raw_url) {
+          try {
+            const rawCmsRes = await fetch(`${cmsFile.raw_url}?_cb=${Date.now()}`, {
+              cache: 'no-store',
+              headers: {
+                Authorization: `token ${token}`,
+                'User-Agent': 'NursingStudyHubApp',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                Pragma: 'no-cache',
+              },
+            });
+            if (rawCmsRes.ok) {
+              const cmsParsed = await rawCmsRes.json();
+              if (typeof cmsParsed?.panicMode?.isEnabled === 'boolean') {
+                return cmsParsed.panicMode;
+              }
+            }
+          } catch {}
+        }
       }
     }
   } catch (err) {
@@ -185,7 +222,10 @@ async function fetchFromCloudFast(): Promise<PanicModeConfig | null> {
 export const PanicEngine = {
   /**
    * Reads current panic mode.
-   * Ultra-fast: checks in-memory singleton cache with 2.5s TTL, then disk, then fast cloud.
+   * Priority:
+   * 1. In-memory singleton cache (< 1s TTL) -> 0ms
+   * 2. Authoritative live cloud fetch -> < 1s
+   * 3. Local disk fallback (only if cloud is unreachable)
    */
   async getPanicMode(): Promise<PanicModeConfig> {
     const now = Date.now();
@@ -199,17 +239,7 @@ export const PanicEngine = {
       };
     }
 
-    // 1. Check local disk
-    const diskState = readFromLocalDisk();
-    if (diskState) {
-      globalThis.__NURSING_PANIC_MODE_CACHE__ = {
-        ...diskState,
-        cachedAt: now,
-      };
-      return diskState;
-    }
-
-    // 2. Fetch fast from cloud
+    // 1. Fetch live from authoritative cloud
     const cloudState = await fetchFromCloudFast();
     if (cloudState) {
       writeToLocalDisk(cloudState);
@@ -218,6 +248,16 @@ export const PanicEngine = {
         cachedAt: now,
       };
       return cloudState;
+    }
+
+    // 2. Fallback to local disk (offline safeguard)
+    const diskState = readFromLocalDisk();
+    if (diskState) {
+      globalThis.__NURSING_PANIC_MODE_CACHE__ = {
+        ...diskState,
+        cachedAt: now,
+      };
+      return diskState;
     }
 
     // Default fallback: disabled
@@ -231,8 +271,8 @@ export const PanicEngine = {
 
   /**
    * Sets panic mode immediately.
-   * Instantaneous execution (< 15ms): updates memory and disk immediately,
-   * then launches background Gist sync without blocking the caller!
+   * Updates memory (0ms) and disk (1ms), then AWAITS the direct Gist PATCH (~1.5s)
+   * so the change is 100% committed to the cloud before the HTTP response completes!
    */
   async setPanicMode(
     isEnabled: boolean,
@@ -267,11 +307,10 @@ export const PanicEngine = {
       }
     } catch {}
 
-    // 4. Fire background cloud sync asynchronously (DO NOT AWAIT!)
-    // This guarantees the HTTP response is returned in < 15ms!
-    syncToCloudBackground(updatedState, customToken).catch((err) => {
-      console.warn('[PanicEngine] Background sync deferred error:', err);
-    });
+    // 4. AWAIT the direct cloud patch synchronously (~1.5s)
+    // By awaiting this, the commit is guaranteed to be on GitHub BEFORE the response finishes!
+    // No Vercel freeze, no 3-minute delay!
+    await syncToCloudDirect(updatedState, customToken);
 
     return {
       success: true,

@@ -145,12 +145,14 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
     const headers: Record<string, string> = {
       'User-Agent': 'NursingStudyHubApp',
       'Accept': 'application/vnd.github.v3+json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
     };
     if (token) {
       headers['Authorization'] = `token ${token}`;
     }
 
-    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    const res = await fetch(`https://api.github.com/gists/${gistId}?_cb=${Date.now()}`, {
       cache: 'no-store',
       headers,
     });
@@ -160,14 +162,20 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
       const file = gist.files?.['cms-store.json'];
       if (file) {
         let content = file.content;
-        // If GitHub API truncated file.content (> ~300KB), fetch full content via file.raw_url
+        // If GitHub API truncated file.content (> ~300KB), fetch full content via file.raw_url with zero CDN lag
         if ((file.truncated || !content) && file.raw_url) {
           try {
-            const rawRes = await fetch(file.raw_url, {
+            const rawUrlWithBust = file.raw_url.includes('?')
+              ? `${file.raw_url}&_cb=${Date.now()}`
+              : `${file.raw_url}?_cb=${Date.now()}`;
+            const rawRes = await fetch(rawUrlWithBust, {
               cache: 'no-store',
-              headers: token
-                ? { 'Authorization': `token ${token}`, 'User-Agent': 'NursingStudyHubApp' }
-                : { 'User-Agent': 'NursingStudyHubApp' },
+              headers: {
+                ...(token ? { 'Authorization': `token ${token}` } : {}),
+                'User-Agent': 'NursingStudyHubApp',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+              },
             });
             if (rawRes.ok) {
               content = await rawRes.text();
@@ -186,11 +194,17 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
               let vaultContent = vaultFile.content;
               if ((vaultFile.truncated || !vaultContent) && vaultFile.raw_url) {
                 try {
-                  const rawVaultRes = await fetch(vaultFile.raw_url, {
+                  const vaultUrlWithBust = vaultFile.raw_url.includes('?')
+                    ? `${vaultFile.raw_url}&_cb=${Date.now()}`
+                    : `${vaultFile.raw_url}?_cb=${Date.now()}`;
+                  const rawVaultRes = await fetch(vaultUrlWithBust, {
                     cache: 'no-store',
-                    headers: token
-                      ? { 'Authorization': `token ${token}`, 'User-Agent': 'NursingStudyHubApp' }
-                      : { 'User-Agent': 'NursingStudyHubApp' },
+                    headers: {
+                      ...(token ? { 'Authorization': `token ${token}` } : {}),
+                      'User-Agent': 'NursingStudyHubApp',
+                      'Cache-Control': 'no-cache, no-store, must-revalidate',
+                      'Pragma': 'no-cache',
+                    },
                   });
                   if (rawVaultRes.ok) {
                     vaultContent = await rawVaultRes.text();
@@ -222,11 +236,11 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
     console.warn('[CMS DB] Cloud sync API fetch notice, trying CDN fallback:', apiErr);
   }
 
-  // 2. Direct Gist Raw CDN fetch fallback
+  // 2. Direct Gist Raw CDN fetch fallback with cache bust
   try {
     const owner = process.env.GITHUB_OWNER || 'Ibrahem-4242';
     const rawRes = await fetch(
-      `https://gist.githubusercontent.com/${owner}/${gistId}/raw/cms-store.json?t=${Date.now()}`,
+      `https://gist.githubusercontent.com/${owner}/${gistId}/raw/cms-store.json?_cb=${Date.now()}`,
       {
         cache: 'no-store',
         headers: {
