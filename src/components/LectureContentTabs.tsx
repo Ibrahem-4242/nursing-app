@@ -512,9 +512,12 @@ export default function LectureContentTabs({
       {/* 3. Interactive Flashcards Section (When Flashcards Tab is selected) */}
       {activeTab === 'flashcards' && (
         isUnlocked ? (
-          <div className="animate-in fade-in duration-300">
-            <Flashcards3D cards={flashcards} subjectTitle={subjectTitle} />
-          </div>
+            <Flashcards3D
+              cards={flashcards}
+              subjectTitle={subjectTitle}
+              lectureTitle={lectureTitle}
+              lectureId={lectureId}
+            />
         ) : (
           <div className="p-8 sm:p-10 rounded-3xl bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300/80 dark:border-amber-700/80 text-center space-y-4 shadow-lg">
             <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
