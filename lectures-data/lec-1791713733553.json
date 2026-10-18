@@ -29,7 +29,7 @@
     {
       "id": 2,
       "front": "ماذا يُقصد بالوضع القائم (Erect Position) للمريض؟",
-      "back": "يكون جسم المريض واقفاُ ومستقيماً إلى الأعلى (Body lying upright).",
+      "back": "يكون جسم المريض واقفاُ ومستقيماً إلى الأعل�� (Body lying upright).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -169,7 +169,7 @@
     {
       "id": 22,
       "front": "حدد المستويات التشريحية الموضحة بالألوان في هذا الرسم التوضيحي للرأس.",
-      "back": "• المستوى الأحمر: المستوى ال��ه��ي المتوسط (Midsagittal / Median plane)\n• المستوى الأصفر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
+      "back": "• المستوى الأحمر: المستوى السه��ي المتوسط (Midsagittal / Median plane)\n• المستوى الأ��فر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -185,7 +185,7 @@
       "front": "ماذا يعني المصطلح التشريحي الوحشي (Lateral / External)؟",
       "back": "يشير إلى التركيب الأبعد عن المستوى المنصف للجسم (Farther from the median plane) أو الاتجاه المتحرك بعيداً عنه نحو الجانب.",
       "category": "كروت استذكار",
-      "clinicalPearl": "التشريح العام (General Anatomy)"
+      "clinicalPearl": "الت��ريح العام (General Anatomy)"
     },
     {
       "id": 25,
@@ -204,7 +204,7 @@
     {
       "id": 27,
       "front": "ما المصطلح المرادف للمصطلح التشريحي سفلي (Inferior)؟",
-      "back": "ذنبي (Caudal)، ويشير للتركيب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
+      "back": "ذنبي (Caudal)، ويشير للتر��يب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -247,7 +247,7 @@
       "id": 33,
       "front": "في الطرف العلوي، ما الموازيان للمصطلحين إنسي (Medial) ووحشي (Lateral)؟",
       "back": "• زندي (Ulnar) = إنسي (Medial)\n• كعبري (Radial) = وحشي (Lateral)",
-      "category": "كروت استذكار",
+      "category": "كرو�� استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
     {
@@ -267,7 +267,7 @@
     {
       "id": 36,
       "front": "ما هما المصطلحان المستخدمان لوصف السطحين السفلي والأعلا للقدم؟",
-      "back": "• أخمصي (Plantar) = السطح السفل�� للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
+      "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -301,7 +301,7 @@
     },
     {
       "id": 41,
-      "front": "أين يقف الجراح الرئيسي (Main Surgeon) ��الممرض الرئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
+      "front": "أين يقف الجراح ا��رئيسي (Main Surgeon) ��الممرض الرئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
       "back": "يقف الجراح الرئيسي والممرض الرئيسي على الجانب الأيمن من طاولة عمليات المريض (Right side of the patient's operative table).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -317,7 +317,7 @@
       "id": 43,
       "front": "إذا تحركت شحنة عصبية أو تدفق دموي باتجاه الرأس (Towards the head)، فما هو الاتجاه التشريحي لهذه الحركة؟",
       "back": "تعتبر حركة علوية / قحفية (Superior / Cranial movement).",
-      "category": "كروت استذكار",
+      "category": "كروت است��كار",
       "clinicalPearl": "الجهاز العصبي (Nervous System)"
     },
     {
@@ -393,7 +393,7 @@
     {
       "id": 54,
       "front": "من خلال المحاور الظاهرة في الشكل، ما هو المحور الممتد بين Cranial و Caudal؟",
-      "back": "هو المحور الرأسي العمودي الذي يربط الاتجاه العلوي والقحفي (Cranial) با��اتج��ه السفلي والذنبي (Caudal).",
+      "back": "هو المحور الرأسي العمودي الذي يربط الاتجاه العلوي والقحفي (Cranial) بالاتج��ه السفلي والذنبي (Caudal).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -476,7 +476,7 @@
     },
     {
       "id": 66,
-      "front": "ما هي وضعية أصابع القدمين (Toes) في الوضع التشريحي القياسي؟",
+      "front": "ما ه�� وضعية أصابع القدمين (Toes) في الوضع التشريحي القياسي؟",
       "back": "تشير أصابع القدمين مباشرة إلى الأمام (Pointing forward).",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -499,7 +499,7 @@
       "id": 69,
       "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
       "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
-      "category": "كرو�� استذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
     },
     {
@@ -533,7 +533,7 @@
     {
       "id": 74,
       "front": "ما المعيار التشريحي للتمييز بين المفاهيم: Anterior و Posterior؟",
-      "back": "المعيار هو القرب من الجانب الأمامي/البطني (Front/Ventral) أو الجانب ال��لفي/الظهري (Back/Dorsal) للجسم.",
+      "back": "المعيار هو القرب من الجانب الأما��ي/البطني (Front/Ventral) أو الجانب ال��لفي/الظهري (Back/Dorsal) للجسم.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -574,7 +574,7 @@
       "fileSize": "رابط سحابي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1ccPYB4vGlvzpq1G8KokJdkJHMG39CsnL/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
-      "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
+      "updatedAt": "١١‏/��٠‏/٢٠٢٦، ١:١٥ م",
       "customNote": "م��ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
     },
     {
@@ -593,7 +593,7 @@
       "downloadUrl": "https://drive.google.com/file/d/15Y3DFsPXl2h9AIybdJn4O--pXvf_lKlv/view?usp=sharing",
       "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
-      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر"
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضر�� عبر رابط مباشر"
     }
   ],
   "adminNote": "بالتوفيق ليكم يا شباااااااااااااااب",

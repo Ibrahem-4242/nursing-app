@@ -6,6 +6,7 @@ import { Stethoscope, Menu, X, MessageCircle, Search, Bookmark } from 'lucide-re
 import { BOT_CONFIG } from '@/lib/mock-data';
 import ThemeToggle from '@/components/ThemeToggle';
 import StudentNavbarPill from '@/components/StudentNavbarPill';
+import NotificationBell from '@/components/NotificationBell';
 import { openGlobalSearch } from '@/components/GlobalSearchModal';
 import { useBookmarks } from '@/context/BookmarksContext';
 
@@ -86,7 +87,7 @@ export default function Navbar({
           </button>
         </div>
 
-        {/* Right Controls: Dark Mode Toggle, Bookmarks, Student Account Pill, & WhatsApp Group */}
+        {/* Right Controls: Dark Mode Toggle, Bookmarks, Notification Bell, Student Account Pill, & WhatsApp Group */}
         <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
           <Link
             href="/bookmarks"
@@ -102,6 +103,7 @@ export default function Navbar({
             )}
           </Link>
 
+          <NotificationBell />
           <ThemeToggle />
           <StudentNavbarPill />
 
@@ -116,7 +118,7 @@ export default function Navbar({
           </a>
         </div>
 
-        {/* Mobile controls: Search button, Bookmarks, Theme toggle and menu */}
+        {/* Mobile controls: Search button, Bookmarks, Notifications, Theme toggle and menu */}
         <div className="flex md:hidden items-center gap-2">
           {/* Mobile Medical Search Button */}
           <button
@@ -143,6 +145,9 @@ export default function Navbar({
               </span>
             )}
           </Link>
+
+          {/* Mobile Notification Bell */}
+          <NotificationBell isMobile />
 
           <ThemeToggle />
           <button

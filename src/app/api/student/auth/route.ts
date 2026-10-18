@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // 1. REGISTER NEW STUDENT
     if (action === 'register') {
-      const { phone, name, university, password, deviceId } = body;
+      const { phone, name, university, password, deviceId, yearId } = body;
 
       if (!phone || !name || !university || !password) {
         return NextResponse.json(
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
         password: String(password).trim(),
         deviceId: cleanDeviceId,
         sessionId,
+        yearId: yearId ? String(yearId).trim() : '1',
       });
 
       if (!result.success || !result.student) {
@@ -89,6 +90,8 @@ export async function POST(req: NextRequest) {
           phone: result.student.phone,
           name: result.student.name,
           university: result.student.university,
+          yearId: result.student.yearId || '1',
+          readNotificationIds: result.student.readNotificationIds || [],
           purchasedLectureIds: result.student.purchasedLectureIds || [],
         },
       });
@@ -216,6 +219,8 @@ export async function POST(req: NextRequest) {
           phone: student.phone,
           name: student.name,
           university: student.university,
+          yearId: student.yearId || '1',
+          readNotificationIds: student.readNotificationIds || [],
           purchasedLectureIds: student.purchasedLectureIds || [],
         },
       });
@@ -290,6 +295,8 @@ export async function GET() {
         phone: student.phone,
         name: student.name,
         university: student.university,
+        yearId: student.yearId || '1',
+        readNotificationIds: student.readNotificationIds || [],
         purchasedLectureIds: student.purchasedLectureIds || [],
         knownDevicesCount: student.knownDevices?.length || 1,
       },

@@ -291,13 +291,25 @@ export async function POST(req: NextRequest) {
     // 6. Save in CMS Database (Instant live updates!)
     await CmsService.addOrUpdateLecture(newLecture, customToken);
 
+    // 7. Auto-Generate In-App Notification targeted strictly to students of this academic year
+    await CmsService.createNotification(
+      {
+        title: 'محاضرة جديدة 📚',
+        message: `تم رفع المحاضرة ${lectureNumber} (${lectureTitle.trim()}) لمادة ${subjectObj.title}`,
+        targetYearId: yearId,
+        linkUrl: `/lecture/${lectureId}`,
+        type: 'lecture',
+      },
+      customToken
+    ).catch((e) => console.warn('[UploadLecture] Notification creation error:', e));
+
     try {
       revalidatePath('/', 'layout');
       revalidatePath('/admin-dashboard', 'page');
       revalidatePath(`/subject/${subjectId}`, 'page');
     } catch {}
 
-    // 7. Send Immediate Telegram Notification to Admin
+    // 8. Send Immediate Telegram Notification to Admin
     const telegramAlert = `🚀 <b>تم رفع ونشر محاضرة جديدة متكاملة في المنصة!</b>
 ━━━━━━━━━━━━━━━━━━━━
 📖 <b>اسم المحاضرة:</b> ${lectureTitle.trim()}

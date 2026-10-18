@@ -17,6 +17,7 @@ import {
   UserPlus,
   ShieldAlert,
   Clock,
+  BookOpen,
 } from 'lucide-react';
 
 export default function StudentAuthModal() {
@@ -27,6 +28,7 @@ export default function StudentAuthModal() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [university, setUniversity] = useState('');
+  const [selectedYearId, setSelectedYearId] = useState<string>('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
@@ -84,7 +86,7 @@ export default function StudentAuthModal() {
           setFeedback({ type: 'error', message: res.message });
         }
       } else {
-        const res = await register(phone, name, university, password);
+        const res = await register(phone, name, university, password, selectedYearId);
         if (res.success) {
           setFeedback({ type: 'success', message: res.message });
           setTimeout(() => closeAuthModal(), 1200);
@@ -208,6 +210,25 @@ export default function StudentAuthModal() {
                     placeholder="مثال: تمريض القاهرة، تمريض عين شمس، معهد فني صحي..."
                     className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  الفرقة الدراسية (لتخصيص الإشعارات والمحاضرات):
+                </label>
+                <div className="relative">
+                  <BookOpen className="absolute right-3.5 top-3 w-4 h-4 text-slate-400" />
+                  <select
+                    value={selectedYearId}
+                    onChange={(e) => setSelectedYearId(e.target.value)}
+                    className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  >
+                    <option value="1">🩺 الفرقة الأولى (السنة الأولى)</option>
+                    <option value="2">🩺 الفرقة الثانية (السنة الثانية)</option>
+                    <option value="3">🩺 الفرقة الثالثة (السنة الثالثة)</option>
+                    <option value="4">🩺 الفرقة الرابعة (السنة الرابعة)</option>
+                  </select>
                 </div>
               </div>
             </>

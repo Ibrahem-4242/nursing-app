@@ -17,6 +17,7 @@ import {
   PromoCoupon,
   StudentBookmarks,
   FailedLoginRecord,
+  AppNotification,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -41,6 +42,8 @@ interface CmsStore {
   coupons?: PromoCoupon[];
   deletedCouponIds?: string[];
   failedLoginAttempts?: Record<string, FailedLoginRecord>;
+  notifications?: AppNotification[];
+  deletedNotificationIds?: string[];
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -1674,7 +1677,7 @@ export const CmsService = {
   },
 
   async registerStudent(
-    data: { phone: string; name: string; university: string; password: string; deviceId?: string; sessionId?: string },
+    data: { phone: string; name: string; university: string; password: string; deviceId?: string; sessionId?: string; yearId?: string },
     customToken?: string
   ): Promise<{ success: boolean; student?: StudentUser; message?: string }> {
     const store = await getFreshStore();
@@ -1698,6 +1701,8 @@ export const CmsService = {
       isActive: true,
       currentSessionId: data.sessionId,
       knownDevices: initialDeviceId,
+      yearId: data.yearId || '1',
+      readNotificationIds: [],
     };
 
     // Ensure cleanPhone and newStudent.id are never tombstoned in deletedStudentIds
@@ -1776,7 +1781,7 @@ export const CmsService = {
 
   async updateStudentData(
     studentId: string,
-    updates: { name?: string; phone?: string; university?: string; password?: string },
+    updates: { name?: string; phone?: string; university?: string; password?: string; yearId?: string },
     customToken?: string
   ): Promise<{ success: boolean; message?: string; student?: StudentUser }> {
     const store = await getFreshStore();
@@ -1799,6 +1804,9 @@ export const CmsService = {
     }
     if (updates.university && updates.university.trim()) {
       student.university = updates.university.trim();
+    }
+    if (updates.yearId && updates.yearId.trim()) {
+      student.yearId = updates.yearId.trim();
     }
     if (updates.password && updates.password.trim()) {
       student.password = updates.password.trim();
@@ -2110,24 +2118,22 @@ export const CmsService = {
     order.reviewedAt = new Date().toISOString();
 
     // Grant lecture or shakib-rakib bundle access to student immediately
-    if (store.students) {
-      const student = store.students.find((s) => s.id === order.studentId || s.phone === order.studentPhone);
-      if (student) {
-        if (order.orderType === 'shakib_rakib') {
-          const now = new Date();
-          const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-          student.shakibRakibSubscription = {
-            isActive: true,
-            yearId: order.yearId || '1',
-            startDate: now.toISOString(),
-            expiresAt: expires.toISOString(),
-            monthLabel: order.monthLabel || store.shakibRakibConfig?.monthLabel || 'باقة شاكب راكب الشهرية 🚀',
-          };
-        } else {
-          if (!Array.isArray(student.purchasedLectureIds)) student.purchasedLectureIds = [];
-          if (!student.purchasedLectureIds.includes(order.lectureId)) {
-            student.purchasedLectureIds.push(order.lectureId);
-          }
+    const student = store.students?.find((s) => s.id === order.studentId || s.phone === order.studentPhone) || null;
+    if (student) {
+      if (order.orderType === 'shakib_rakib') {
+        const now = new Date();
+        const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        student.shakibRakibSubscription = {
+          isActive: true,
+          yearId: order.yearId || '1',
+          startDate: now.toISOString(),
+          expiresAt: expires.toISOString(),
+          monthLabel: order.monthLabel || store.shakibRakibConfig?.monthLabel || 'باقة شاكب راكب الشهرية 🚀',
+        };
+      } else {
+        if (!Array.isArray(student.purchasedLectureIds)) student.purchasedLectureIds = [];
+        if (!student.purchasedLectureIds.includes(order.lectureId)) {
+          student.purchasedLectureIds.push(order.lectureId);
         }
       }
     }
@@ -2145,6 +2151,33 @@ export const CmsService = {
           coupon.usedByStudents.push(studentPhone);
         }
       }
+    }
+
+    // Generate In-App Notification for student
+    const notifTitle = 'مبروك! تم اعتماد طلبك بنجاح 🎉';
+    const notifMessage =
+      order.orderType === 'shakib_rakib'
+        ? `مبروك! تم تفعيل اشتراك باقة شاكب راكب (${order.monthLabel || 'الشهرية'}) في حسابك بنجاح 🚀`
+        : `مبروك! تم تفعيل ${order.lectureTitle} في حسابك بنجاح ✅`;
+    const notifLink =
+      order.orderType === 'shakib_rakib'
+        ? `/year/${order.yearId || '1'}`
+        : `/lecture/${order.lectureId}`;
+
+    if (!store.notifications) store.notifications = [];
+    const notifId = `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    store.notifications.unshift({
+      id: notifId,
+      title: notifTitle,
+      message: notifMessage,
+      targetStudentId: order.studentId || (student ? student.id : undefined),
+      targetYearId: order.yearId || 'all',
+      linkUrl: notifLink,
+      createdAt: new Date().toISOString(),
+      type: 'order',
+    });
+    if (store.notifications.length > 100) {
+      store.notifications = store.notifications.slice(0, 100);
     }
 
     memoryStore = store;
@@ -2511,6 +2544,101 @@ export const CmsService = {
       finalPrice,
       coupon,
     };
+  },
+
+  // --- IN-APP NOTIFICATIONS HUB (نظام الإشعارات والتنبيهات الموجهة) ---
+  async getNotifications(yearId?: string, studentId?: string): Promise<AppNotification[]> {
+    const store = await getFreshStore();
+    const all = store.notifications || [];
+
+    // Filter strictly according to academic year and student targeting
+    const filtered = all.filter((n) => {
+      // 1. If notification is targeted to a specific student (e.g. order approval)
+      if (n.targetStudentId) {
+        return studentId && n.targetStudentId === studentId;
+      }
+
+      // 2. If notification is general (targetYearId === 'all' or empty)
+      if (!n.targetYearId || n.targetYearId === 'all') {
+        return true;
+      }
+
+      // 3. Strict Year-Targeting:
+      // When a notification is for year '1', only show to year '1' students.
+      // If student has a yearId, it must match.
+      if (yearId) {
+        return n.targetYearId === yearId;
+      }
+
+      return false;
+    });
+
+    // Sort by createdAt descending (newest first)
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  async createNotification(
+    notificationData: Omit<AppNotification, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+    customToken?: string
+  ): Promise<AppNotification> {
+    const store = await getFreshStore();
+    if (!store.notifications) store.notifications = [];
+
+    const newNotification: AppNotification = {
+      id: notificationData.id || `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      title: notificationData.title,
+      message: notificationData.message,
+      targetYearId: notificationData.targetYearId || 'all',
+      targetStudentId: notificationData.targetStudentId,
+      linkUrl: notificationData.linkUrl,
+      createdAt: notificationData.createdAt || new Date().toISOString(),
+      type: notificationData.type || 'announcement',
+    };
+
+    store.notifications.unshift(newNotification);
+
+    if (store.notifications.length > 100) {
+      store.notifications = store.notifications.slice(0, 100);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return newNotification;
+  },
+
+  async markNotificationRead(notificationId: string, studentId?: string, customToken?: string): Promise<boolean> {
+    if (!studentId) return true;
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    if (!student.readNotificationIds) student.readNotificationIds = [];
+    if (!student.readNotificationIds.includes(notificationId)) {
+      student.readNotificationIds.push(notificationId);
+      memoryStore = store;
+      persistStore(store, customToken);
+      await syncToCloud(store, customToken);
+    }
+    return true;
+  },
+
+  async markAllNotificationsRead(studentId?: string, notificationIds?: string[], customToken?: string): Promise<boolean> {
+    if (!studentId) return true;
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    if (!student.readNotificationIds) student.readNotificationIds = [];
+    const idsToAdd = notificationIds || (store.notifications || []).map((n) => n.id);
+    student.readNotificationIds = Array.from(new Set([...student.readNotificationIds, ...idsToAdd]));
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
   },
 };
 

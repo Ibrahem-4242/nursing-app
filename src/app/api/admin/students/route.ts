@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     // 2. UPDATE FULL STUDENT DATA (NAME, PHONE, UNIVERSITY, PASSWORD)
     if (action === 'update_student') {
-      const { name, phone, university, password } = body;
+      const { name, phone, university, password, yearId } = body;
 
       if (name && /[0-9\u0660-\u0669\u06F0-\u06F9]/.test(String(name))) {
         return NextResponse.json(
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
         phone: cleanPhone,
         university: university ? String(university).trim() : undefined,
         password: password ? String(password).trim() : undefined,
+        yearId: yearId ? String(yearId).trim() : undefined,
       });
 
       return NextResponse.json({

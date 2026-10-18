@@ -14,7 +14,7 @@ interface StudentAuthContextType {
     lockedUntil?: number;
     remainingSeconds?: number;
   }>;
-  register: (phone: string, name: string, university: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  register: (phone: string, name: string, university: string, pass: string, yearId?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshStudent: () => Promise<void>;
   isLecturePurchased: (lectureId: string, yearId?: string) => boolean;
@@ -100,13 +100,13 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const register = async (phone: string, name: string, university: string, pass: string) => {
+  const register = async (phone: string, name: string, university: string, pass: string, yearId?: string) => {
     try {
       const deviceId = getOrCreateDeviceId();
       const res = await fetch('/api/student/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', phone, name, university, password: pass, deviceId }),
+        body: JSON.stringify({ action: 'register', phone, name, university, password: pass, deviceId, yearId }),
       });
       const data = await res.json();
       if (data && data.success && data.student) {

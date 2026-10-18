@@ -313,6 +313,7 @@ export default function AdminDashboardPage() {
   const [editStudentPhone, setEditStudentPhone] = useState('');
   const [editStudentUniversity, setEditStudentUniversity] = useState('');
   const [editStudentPassword, setEditStudentPassword] = useState('');
+  const [editStudentYearId, setEditStudentYearId] = useState('1');
   const [isUpdatingStudent, setIsUpdatingStudent] = useState(false);
   const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
   const [lectureGrantSearch, setLectureGrantSearch] = useState('');
@@ -870,6 +871,7 @@ export default function AdminDashboardPage() {
           phone: cleanPhone,
           university: editStudentUniversity.trim(),
           password: editStudentPassword.trim() || undefined,
+          yearId: editStudentYearId || '1',
         }),
       });
       const data = await res.json();
@@ -7154,9 +7156,12 @@ export default function AdminDashboardPage() {
                               </div>
                             </td>
 
-                            {/* University */}
+                            {/* University & Year */}
                             <td className="py-3.5 px-3">
-                              <span className="font-semibold text-slate-700 dark:text-slate-300">{student.university}</span>
+                              <div className="font-semibold text-slate-700 dark:text-slate-300">{student.university}</div>
+                              <div className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+                                الفرقة {student.yearId === '2' ? 'الثانية' : student.yearId === '3' ? 'الثالثة' : student.yearId === '4' ? 'الرابعة' : 'الأولى'}
+                              </div>
                             </td>
 
                             {/* Phone */}
@@ -7259,6 +7264,7 @@ export default function AdminDashboardPage() {
                                     setEditStudentPhone(student.phone || '');
                                     setEditStudentUniversity(student.university || '');
                                     setEditStudentPassword(student.password || '');
+                                    setEditStudentYearId(student.yearId || '1');
                                   }}
                                   className="px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-bold text-[11px] border border-amber-200 dark:border-amber-800 flex items-center gap-1 transition"
                                   title="تعديل جميع بيانات الطالب أو تغيير الباسورد"
@@ -7466,6 +7472,22 @@ export default function AdminDashboardPage() {
                     placeholder="مثال: جامعة القاهرة، تمريض المنصورة..."
                     className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    الفرقة الدراسية (السنة الدراسية):
+                  </label>
+                  <select
+                    value={editStudentYearId}
+                    onChange={(e) => setEditStudentYearId(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="1">الفرقة الأولى (السنة الأولى)</option>
+                    <option value="2">الفرقة الثانية (السنة الثانية)</option>
+                    <option value="3">الفرقة الثالثة (السنة الثالثة)</option>
+                    <option value="4">الفرقة الرابعة (السنة الرابعة)</option>
+                  </select>
                 </div>
 
                 <div>

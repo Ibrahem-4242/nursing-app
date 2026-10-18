@@ -245,6 +245,17 @@ export interface FailedLoginRecord {
   lastFailedAt: number;
 }
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetYearId?: string; // '1' | '2' | 'all'
+  targetStudentId?: string;
+  linkUrl?: string;
+  createdAt: string;
+  type: 'lecture' | 'order' | 'announcement';
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -260,6 +271,8 @@ export interface StudentUser {
   currentSessionId?: string;
   knownDevices?: string[];
   failedLoginAttempts?: FailedLoginRecord;
+  yearId?: string;
+  readNotificationIds?: string[];
 }
 
 export interface PromoCoupon {
