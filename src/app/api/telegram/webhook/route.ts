@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
+const ADMIN_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '8098726389');
 
 function normalizeArabicText(text: string): string {
   if (!text) return '';
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 1. Handle Callback Query (e.g., clicking "تحديث الإحصائيات" button)
+    // 1. Handle Callback Query (e.g., clicking interactive buttons)
     if (body.callback_query) {
       const cb = body.callback_query;
       const cbId = cb.id;
@@ -37,10 +38,60 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             callback_query_id: cbId,
-            text: '🔄 جاري تحديث الإحصائيات بأحدث الأرقام...',
+            text: '🔄 جاري التنفيذ فوراً...',
             show_alert: false,
           }),
         }).catch((e) => console.warn('[Telegram Webhook] answerCallbackQuery notice:', e));
+      }
+
+      // A. Emergency Camouflage: Switch to Dairy Store (كبسة / ألبان)
+      if (cbData === 'toggle_panic_on') {
+        await CmsService.setPanicMode(true);
+        if (targetChatId) {
+          const msg = `🚨 <b>تم تفعيل وضع التمويه فوراً بنجاح! 🥛🇸🇦</b>
+━━━━━━━━━━━━━━━━━━━━
+🏪 <b>الموقع الآن:</b> متجر حليب الخير للألبان الطازجة
+🌐 <b>الرابط:</b> https://www.nursingsum.live/
+🔒 <b>الحالة:</b> تم إخفاء منصة التمريض بنجاح وتحويل الموقع لمتجر ألبان سعودي طبيعي 100%.
+
+<i>للرجوع لمنصة التمريض في أي وقت، أرسل كلمة: <b>تمريض</b> 🩺</i>`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [
+                { text: '🟢 العودة لمنصة التمريض', callback_data: 'toggle_panic_off' },
+                { text: '🌐 فتح الموقع الآن', url: 'https://www.nursingsum.live/' },
+              ],
+            ],
+          };
+          await sendTelegramMessage(msg, 'HTML', targetChatId, keyboard);
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // B. Emergency Camouflage: Switch to Nursing Platform (تمريض / ملخصات)
+      if (cbData === 'toggle_panic_off') {
+        await CmsService.setPanicMode(false);
+        if (targetChatId) {
+          const msg = `🟢 <b>تم إيقاف وضع التمويه والعودة لمنصة تمريض! 🩺</b>
+━━━━━━━━━━━━━━━━━━━━
+🎓 <b>الموقع الآن:</b> منصة ملخصات تمريض الشاملة
+🌐 <b>الرابط:</b> https://www.nursingsum.live/
+✅ <b>الحالة:</b> عادت جميع المحاضرات والمواد والكويزات للعمل بشكل طبيعي.
+
+<i>للتحويل لمتجر الألبان مجدداً، أرسل كلمة: <b>البان</b> 🥛</i>`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [
+                { text: '🚨 كبسة ألبان الخير 🥛', callback_data: 'toggle_panic_on' },
+                { text: '🌐 فتح المنصة الآن', url: 'https://www.nursingsum.live/' },
+              ],
+            ],
+          };
+          await sendTelegramMessage(msg, 'HTML', targetChatId, keyboard);
+        }
+        return NextResponse.json({ ok: true });
       }
 
       if (cbData === 'refresh_stats' && targetChatId) {
@@ -130,7 +181,97 @@ export async function POST(req: NextRequest) {
     const normalized = normalizeArabicText(rawText);
     const lowerRaw = rawText.toLowerCase();
 
-    // Check if the user is asking for statistics with any variation
+    // Security check: only allow admin to toggle panic mode
+    const isAuthorized = String(chatId) === ADMIN_CHAT_ID || rawText.includes('5143545638');
+
+    // ─── COMMAND 1: SWITCH TO DAIRY STORE (ألبان / حليب / كبسة) ───
+    const isPanicOnRequest =
+      normalized === 'البان' ||
+      normalized === 'الالبان' ||
+      normalized.includes('البان') ||
+      normalized === 'حليب' ||
+      normalized.includes('حليب الخير') ||
+      normalized === 'كبسه' ||
+      normalized.includes('كبسه') ||
+      normalized.includes('تمويه') ||
+      lowerRaw === '/panic' ||
+      lowerRaw === '/panic_on' ||
+      lowerRaw === '/panic on' ||
+      lowerRaw === '/store' ||
+      lowerRaw === 'dairy' ||
+      lowerRaw === 'panic';
+
+    if (isPanicOnRequest) {
+      if (!isAuthorized) {
+        await sendTelegramMessage('⚠️ هذا الأمر مخصص فقط لمدير المنصة.', 'HTML', chatId);
+        return NextResponse.json({ ok: true });
+      }
+
+      await CmsService.setPanicMode(true);
+      const msg = `🚨 <b>تم تفعيل وضع التمويه فوراً بنجاح! 🥛🇸🇦</b>
+━━━━━━━━━━━━━━━━━━━━
+🏪 <b>الموقع الآن:</b> متجر حليب الخير للألبان الطازجة
+🌐 <b>الرابط:</b> https://www.nursingsum.live/
+🔒 <b>الحالة:</b> تم إخفاء منصة التمريض بالكامل وتحويل الموقع لمتجر ألبان سعودي طبيعي 100%.
+
+<i>للرجوع لمنصة التمريض في أي وقت، أرسل كلمة: <b>تمريض</b> 🩺</i>`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '🟢 العودة لمنصة التمريض', callback_data: 'toggle_panic_off' },
+            { text: '🌐 فتح الموقع المباشر', url: 'https://www.nursingsum.live/' },
+          ],
+        ],
+      };
+      await sendTelegramMessage(msg, 'HTML', chatId, keyboard);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ─── COMMAND 2: SWITCH TO NURSING PLATFORM (تمريض / ملخصات) ───
+    const isPanicOffRequest =
+      normalized === 'تمريض' ||
+      normalized === 'التمريض' ||
+      normalized.includes('تمريض') ||
+      normalized === 'ملخصات' ||
+      normalized === 'الملخصات' ||
+      normalized.includes('ملخصات') ||
+      normalized === 'طبيعي' ||
+      normalized === 'عادي' ||
+      lowerRaw === '/panic_off' ||
+      lowerRaw === '/panic off' ||
+      lowerRaw === '/nursing' ||
+      lowerRaw === 'nursing' ||
+      lowerRaw === 'normal';
+
+    if (isPanicOffRequest) {
+      if (!isAuthorized) {
+        await sendTelegramMessage('⚠️ هذا الأمر مخصص فقط لمدير المنصة.', 'HTML', chatId);
+        return NextResponse.json({ ok: true });
+      }
+
+      await CmsService.setPanicMode(false);
+      const msg = `🟢 <b>تم إيقاف وضع التمويه والعودة لمنصة تمريض! 🩺</b>
+━━━━━━━━━━━━━━━━━━━━
+🎓 <b>الموقع الآن:</b> منصة ملخصات تمريض الشاملة
+🌐 <b>الرابط:</b> https://www.nursingsum.live/
+✅ <b>الحالة:</b> عادت جميع المحاضرات والمواد والكويزات للعمل بشكل طبيعي.
+
+<i>للتحويل لمتجر الألبان مجدداً، أرسل كلمة: <b>البان</b> 🥛</i>`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '🚨 كبسة ألبان الخير 🥛', callback_data: 'toggle_panic_on' },
+            { text: '🌐 فتح المنصة الآن', url: 'https://www.nursingsum.live/' },
+          ],
+        ],
+      };
+      await sendTelegramMessage(msg, 'HTML', chatId, keyboard);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ─── COMMAND 3: STATISTICS REPORT ───
     const isStatsRequest =
       normalized.includes('احصائ') || // Matches: احصائيات, الاحصائيات, إحصائيات, الإحصائيات, احصائية, احصاء
       normalized.includes('تقرير') || // Matches: تقرير, التقرير, التقارير
@@ -163,7 +304,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Check if the user sent /start or greeting
+    // ─── COMMAND 4: START OR HELP GREETING ───
     const isStart =
       normalized === 'ابدأ' ||
       normalized === 'مرحبا' ||
@@ -177,15 +318,22 @@ export async function POST(req: NextRequest) {
     if (isStart) {
       const welcome = `👋 <b>أهلاً بك في بوت منصة ملخصات تمريض الرسمي!</b> 🩺
 ━━━━━━━━━━━━━━━━━━━━
-📊 لمعرفة إحصائيات المنصة المحدثة واللحظية في أي وقت:
-👉 أرسل كلمة: <b>احصائيات</b>
-أو اضغط مباشرة على الزر أدناه:`;
+⚡ <b>التحكم الفوري في وضع المنصة والتمويه:</b>
+👉 أرسل كلمة: <b>البان</b> ⬅️ للتحويل الفوري لمتجر حليب الخير 🥛🇸🇦
+👉 أرسل كلمة: <b>تمريض</b> ⬅️ للعودة الفورية لمنصة التمريض الطبيعية 🩺
+
+📊 <b>الإحصائيات والتقارير:</b>
+👉 أرسل كلمة: <b>احصائيات</b> لمعرفة عدد الزوار والتحميلات لحظياً 📈`;
 
       const inlineKeyboard = {
         inline_keyboard: [
           [
-            { text: '📊 عرض الإحصائيات الآن', callback_data: 'refresh_stats' },
-            { text: '🌐 زيارة المنصة المعتمدة', url: 'https://www.nursingsum.live/' },
+            { text: '🚨 تحويل لألبان الخير 🥛', callback_data: 'toggle_panic_on' },
+            { text: '🩺 عودة لملخصات تمريض 🟢', callback_data: 'toggle_panic_off' },
+          ],
+          [
+            { text: '📊 عرض الإحصائيات الفورية', callback_data: 'refresh_stats' },
+            { text: '🌐 زيارة المنصة الآن', url: 'https://www.nursingsum.live/' },
           ],
         ],
       };
@@ -194,12 +342,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Default polite response for any other incoming message
-    const defaultResponse = `👋 <b>مرحباً بك!</b>
-أرسل كلمة <b>احصائيات</b> في أي لحظة لمعرفة عدد الزوار والتحميلات ونشاط المنصة المباشر 📊✨`;
+    // Default polite response with quick action buttons
+    const defaultResponse = `👋 <b>مرحباً بك يا غالي!</b>
+━━━━━━━━━━━━━━━━━━━━
+أرسل أي من الكلمات التالية للتحكم السريع:
+🥛 <b>البان</b> ⬅️ للتحويل لمتجر حليب الخير
+🩺 <b>تمريض</b> ⬅️ للعودة لمنصة التمريض
+📊 <b>احصائيات</b> ⬅️ لمعرفة نشاط المنصة المباشر`;
 
     const inlineKeyboard = {
       inline_keyboard: [
+        [
+          { text: '🚨 تحويل لألبان الخير 🥛', callback_data: 'toggle_panic_on' },
+          { text: '🩺 عودة لملخصات تمريض 🟢', callback_data: 'toggle_panic_off' },
+        ],
         [
           { text: '📊 طلب الإحصائيات الفورية', callback_data: 'refresh_stats' },
           { text: '🌐 فتح المنصة', url: 'https://www.nursingsum.live/' },
