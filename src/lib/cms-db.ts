@@ -18,6 +18,7 @@ import {
   StudentBookmarks,
   FailedLoginRecord,
   AppNotification,
+  PanicModeConfig,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -25,6 +26,7 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 interface CmsStore {
   announcement: AnnouncementConfig;
   maintenance?: MaintenanceConfig;
+  panicMode?: PanicModeConfig;
   shakibRakibConfig?: ShakibRakibConfig;
   lectures: Lecture[];
   deletedLectureIds?: string[];
@@ -915,6 +917,34 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return updated;
+  },
+
+  // --- EMERGENCY DECOY / CAMOUFLAGE MODE (كبسة يمعلم مشمش 🥛) ---
+  async getPanicMode(): Promise<PanicModeConfig> {
+    const store = await getFreshStore();
+    return store.panicMode || { isEnabled: false };
+  },
+
+  async setPanicMode(
+    isEnabled: boolean,
+    customToken?: string
+  ): Promise<{ success: boolean; isEnabled: boolean; activatedAt?: string }> {
+    const store = await getFreshStore();
+    const now = new Date().toISOString();
+    const updated: PanicModeConfig = {
+      isEnabled,
+      activatedAt: isEnabled ? now : (store.panicMode?.activatedAt || now),
+      deactivatedAt: isEnabled ? undefined : now,
+    };
+    store.panicMode = updated;
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return {
+      success: true,
+      isEnabled,
+      activatedAt: updated.activatedAt,
+    };
   },
 
   // --- LECTURES & CONTENT ---

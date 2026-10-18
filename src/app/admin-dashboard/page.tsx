@@ -288,6 +288,10 @@ export default function AdminDashboardPage() {
   const [maintenanceFeedback, setMaintenanceFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showMaintenancePreviewModal, setShowMaintenancePreviewModal] = useState(false);
 
+  // Emergency Camouflage Mode State (كبسة يمعلم مشمش 🥛)
+  const [panicIsEnabled, setPanicIsEnabled] = useState<boolean>(false);
+  const [isTogglingPanic, setIsTogglingPanic] = useState<boolean>(false);
+
   // Reports state
   const [reports, setReports] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -487,6 +491,7 @@ export default function AdminDashboardPage() {
     loadSubjectQuizzes();
     loadAnnouncement();
     loadMaintenance();
+    loadPanicMode();
     loadReports();
     loadOrders();
     loadStudents();
@@ -1443,6 +1448,47 @@ export default function AdminDashboardPage() {
       }
     } catch (e) {
       console.warn('Failed to load maintenance config:', e);
+    }
+  };
+
+  const loadPanicMode = async () => {
+    try {
+      const res = await fetch(`/api/admin/panic-toggle?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.panicMode) {
+        setPanicIsEnabled(Boolean(data.panicMode.isEnabled));
+      }
+    } catch (e) {
+      console.warn('Failed to load panic mode config:', e);
+    }
+  };
+
+  const handleTogglePanicMode = async () => {
+    const nextState = !panicIsEnabled;
+    const confirmMsg = nextState
+      ? '🚨 كبسة يمعلم مشمش:\n\nهل تريد تفعيل وضع التمويه وتحويل المنصة بالكامل لـ "متجر ألبان الخير الطازجة 🥛🇸🇦" فوراً وبدون أي توقف؟\n\nسيختفي أي أثر للتمريض والمحاضرات والكويزات عن جميع الزوار والصفحات!'
+      : '🟢 هل أنت متأكد من إيقاف وضع التمويه والعودة لمنصة ملخصات تمريض الطبيعية؟';
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsTogglingPanic(true);
+    try {
+      const res = await fetch('/api/admin/panic-toggle', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ isEnabled: nextState }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPanicIsEnabled(data.isEnabled);
+        alert(data.message || (data.isEnabled ? '🚨 تم تفعيل وضع التمويه بنجاح!' : '🟢 تم إيقاف وضع التمويه بنجاح!'));
+      } else {
+        alert(data.message || 'فشل في تغيير وضع التمويه');
+      }
+    } catch (err: any) {
+      alert('خطأ أثناء التبديل: ' + err?.message);
+    } finally {
+      setIsTogglingPanic(false);
     }
   };
 
@@ -3135,7 +3181,35 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* 🚨 Emergency Camouflage Mode (كبسة يمعلم مشمش 🥛) */}
+            <button
+              onClick={handleTogglePanicMode}
+              disabled={isTogglingPanic}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 border shadow-md active:scale-95 ${
+                panicIsEnabled
+                  ? 'bg-gradient-to-r from-emerald-600 via-green-600 to-rose-600 text-white border-emerald-400 animate-pulse ring-2 ring-emerald-400/50'
+                  : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-900/30'
+              }`}
+              title="كبسة يمعلم مشمش: تحويل المنصة فوراً لمتجر ألبان الخير السعودي"
+            >
+              {isTogglingPanic ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>جارِ التبديل...</span>
+                </>
+              ) : panicIsEnabled ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                  <span>🟢 وضع التمويه شغال الآن (متجر الألبان) - اضغط للإلغاء والعودة لمنصة التمريض 🥛</span>
+                </>
+              ) : (
+                <>
+                  <span>🚨 كبسة يمعلم مشمش (وضع التمويه) 🥛</span>
+                </>
+              )}
+            </button>
+
             {/* Quick Maintenance Status & Toggle Button */}
             <button
               onClick={() => setActiveTab('maintenance')}
@@ -3181,6 +3255,39 @@ export default function AdminDashboardPage() {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Panic Mode Active Alert Banner */}
+        {panicIsEnabled && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-green-950 border-2 border-emerald-500 text-white shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-2xl flex-shrink-0 animate-bounce">
+                🥛
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-emerald-300">
+                    وضع التمويه والطوارئ مفعّل حالياً (متجر ألبان الخير 🇸🇦)
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black animate-pulse">
+                    مباشر للزوار الآن
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  جميع الزوار والصفحات العامة تشاهد الآن متجر ألبان سعودي طبيعي 100% بكافة منتجاته وسلته بدون أي أثر لمحتوى التمريض. لوحة التحكم هذه متاحة لك فقط.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTogglePanicMode}
+              disabled={isTogglingPanic}
+              className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-lg active:scale-95 transition flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>إيقاف التمويه والعودة للتمريض 🩺</span>
+            </button>
+          </div>
+        )}
+
         {/* Cloud Sync Status & Configuration Banner */}
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-teal-900 via-slate-900 to-emerald-950 border border-teal-500/30 text-white shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-4">

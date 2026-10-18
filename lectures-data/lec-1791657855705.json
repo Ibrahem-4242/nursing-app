@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب الم��من تغيير نمط الحياة والتغ��ية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -170,7 +170,7 @@
       "id": 22,
       "front": "What is a sinus (جيب صديدي)?",
       "back": "A sinus is a blind track lined by infected granulation tissue that connects an internal abscess cavity to an outer surface.",
-      "category": "كروت استذك��ر",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالته��ب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
@@ -192,7 +192,7 @@
       "front": "How do a sinus (جيب صديدي) and a fistula (ناصور) structurally differ?",
       "back": "A sinus has one open end with a blind tract, whereas a fistula has two open ends connecting two surfaces or cavities.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب ال��ديدي والقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 26,
@@ -280,7 +280,7 @@
     },
     {
       "id": 38,
-      "front": "What characterizes fibrinous inflammation (التهاب ليفينى)?",
+      "front": "What characterizes fibrinous inflammation (التهاب ليفين��)?",
       "back": "It is an acute non-suppurative inflammation where large vascular leaks allow fibrinogen to enter tissue and precipitate as dense fibrin threads.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
@@ -379,7 +379,7 @@
       "downloadUrl": "https://drive.google.com/file/d/1o3PxtHmLeqyov4DHFTRZCVQAi163Buqy/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
-      "customNote": "م��ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+      "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
     },
     {
       "type": "ppt",
@@ -400,5 +400,5 @@
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
-  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت الم��لومة."
+  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
 }

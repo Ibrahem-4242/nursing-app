@@ -328,5 +328,11 @@ export interface PurchaseOrder {
   reviewedAt?: string;
 }
 
+export interface PanicModeConfig {
+  isEnabled: boolean;
+  activatedAt?: string;
+  deactivatedAt?: string;
+}
+
 
 

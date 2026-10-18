@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العملي��ت الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية ب��ن الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -113,7 +113,7 @@
     {
       "id": 14,
       "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا البالعة الرئيسية) during inflammation?",
-      "back": "Neutrophils (العدلات) and Macrophages (الخلايا البلعمية الكبيرة) serve as the principal phagocytic cells.",
+      "back": "Neutrophils (العدلات) and Macrophages (الخلايا البلعمية الك��يرة) serve as the principal phagocytic cells.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -301,7 +301,7 @@
     },
     {
       "id": 41,
-      "front": "What are the four primary Beneficial Effects of Inflammation (الآثار النافعة للالتهاب)?",
+      "front": "What are the four primary Beneficial Effects of Inflammation (الآثا�� النافعة للالتهاب)?",
       "back": "The beneficial effects are toxin dilution, phagocytosis of pathogens, injury localization by fibrin, and stimulation of immunity.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -336,7 +336,7 @@
     },
     {
       "id": 46,
-      "front": "What triggers the synthesis and release of inflammatory Chemical Mediators (الوس��ئط الكيميائية)?",
+      "front": "What triggers the synthesis and release of inflammatory Chemical Mediators (الوسائط الكيميائية)?",
       "back": "Mediators are released in response to microbial products or factors released by necrotic tissues.",
       "category": "كروت استذكار",
       "clinicalPearl": "الوسائط الكيميائية (Chemical Mediators)"

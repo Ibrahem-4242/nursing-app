@@ -80,7 +80,8 @@ import { ACADEMIC_YEARS } from '@/lib/mock-data';
 import { CmsService } from '@/lib/cms-db';
 import { cookies } from 'next/headers';
 import MaintenanceWrapper from '@/components/MaintenanceWrapper';
-import { MaintenanceConfig } from '@/lib/types';
+import CamouflageWrapper from '@/components/CamouflageWrapper';
+import { MaintenanceConfig, PanicModeConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
 import { BookmarksProvider } from '@/context/BookmarksContext';
 import StudentAuthModal from '@/components/StudentAuthModal';
@@ -95,6 +96,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   let activeYears = [{ id: '1', title: 'السنة الأولى' }];
+  let panicModeConfig: PanicModeConfig = { isEnabled: false };
   let maintenanceConfig: MaintenanceConfig = {
     isEnabled: false,
     title: 'المنصة في وضع الصيانة والتحديث المؤقت 🛠️',
@@ -111,15 +113,19 @@ export default async function RootLayout({
     'secret_session_5143545638_verified';
 
   try {
-    const [liveLectures, quizzesList, allSubjects, fetchedMaintenance] = await Promise.all([
+    const [liveLectures, quizzesList, allSubjects, fetchedMaintenance, fetchedPanicMode] = await Promise.all([
       CmsService.getLiveLectures(),
       CmsService.getAllSubjectQuizFilesList(),
       CmsService.getAllSubjects(),
       CmsService.getMaintenanceConfig(),
+      CmsService.getPanicMode(),
     ]);
 
     if (fetchedMaintenance) {
       maintenanceConfig = fetchedMaintenance;
+    }
+    if (fetchedPanicMode) {
+      panicModeConfig = fetchedPanicMode;
     }
 
     const subjectYearMap = new Map<string, string>();
@@ -177,21 +183,23 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
-        <StudentAuthProvider>
-          <BookmarksProvider>
-            <StudentAuthModal />
-            <GlobalSearchModal />
-            <PWAInstallBanner />
-            <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
-              <AnnouncementBar />
-              <Navbar activeYears={activeYears} />
-              <main className="flex-1">{children}</main>
-              <Footer activeYears={activeYears} />
-            </MaintenanceWrapper>
-            <VisitorTracker />
-            <Analytics />
-          </BookmarksProvider>
-        </StudentAuthProvider>
+        <CamouflageWrapper panicMode={panicModeConfig} isAdmin={isAdmin}>
+          <StudentAuthProvider>
+            <BookmarksProvider>
+              <StudentAuthModal />
+              <GlobalSearchModal />
+              <PWAInstallBanner />
+              <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
+                <AnnouncementBar />
+                <Navbar activeYears={activeYears} />
+                <main className="flex-1">{children}</main>
+                <Footer activeYears={activeYears} />
+              </MaintenanceWrapper>
+              <VisitorTracker />
+              <Analytics />
+            </BookmarksProvider>
+          </StudentAuthProvider>
+        </CamouflageWrapper>
       </body>
     </html>
   );
