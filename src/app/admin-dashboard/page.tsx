@@ -907,6 +907,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleUnlockStudent = async (studentId: string, studentName: string) => {
+    if (!confirm(`هل أنت متأكد من فك تعليق وقفل حساب الطالب "${studentName}" وتصفير عداد المحاولات الخاطئة؟`)) return;
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ action: 'unlock', studentId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `تم إلغاء قفل حساب الطالب "${studentName}" بنجاح! 🔓`);
+        loadStudents();
+      } else {
+        alert(data.message || 'فشل فك قفل الحساب');
+      }
+    } catch (err: any) {
+      alert('حدث خطأ: ' + err?.message);
+    }
+  };
+
   const handleToggleStudentLecture = async (studentId: string, lectureId: string, grant: boolean) => {
     try {
       const res = await fetch('/api/admin/students', {
@@ -7108,6 +7128,10 @@ export default function AdminDashboardPage() {
                       )
                       .map((student) => {
                         const purchasedCount = student.purchasedLectureIds?.length || 0;
+                        const isLocked = Boolean(
+                          student.failedLoginAttempts?.lockedUntil &&
+                            Date.now() < student.failedLoginAttempts.lockedUntil
+                        );
                         return (
                           <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
                             {/* Name & Avatar */}
@@ -7117,7 +7141,14 @@ export default function AdminDashboardPage() {
                                   {student.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-900 dark:text-white">{student.name}</div>
+                                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span>{student.name}</span>
+                                    {isLocked && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-600 text-white">
+                                        معلق 🔒
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-[10px] text-slate-400 font-mono">ID: {student.id.slice(0, 10)}...</div>
                                 </div>
                               </div>
@@ -7149,7 +7180,12 @@ export default function AdminDashboardPage() {
 
                             {/* Devices & Sessions */}
                             <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                              <div className="flex flex-col items-center gap-1">
+                              <div className="flex flex-col items-center gap-1.5">
+                                {isLocked && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 animate-pulse">
+                                    <span>⚠️ محاولات دخول خاطئة (معلق)</span>
+                                  </span>
+                                )}
                                 <span
                                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
                                     (student.knownDevices?.length || 0) >= 5
@@ -7162,14 +7198,26 @@ export default function AdminDashboardPage() {
                                   <span>📱 {student.knownDevices?.length || 0} / 5 أجهزة</span>
                                   {(student.knownDevices?.length || 0) >= 5 && <span className="text-rose-600 font-bold">(محظور)</span>}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleResetStudentDevices(student.id, student.name)}
-                                  className="text-[10px] text-teal-600 hover:text-teal-500 font-bold underline hover:no-underline transition"
-                                  title="تصفير أجهزة الطالب المسجلة"
-                                >
-                                  🔄 تصفير الأجهزة
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnlockStudent(student.id, student.name)}
+                                      className="text-[10px] text-rose-600 dark:text-rose-400 hover:text-rose-700 font-black underline hover:no-underline transition flex items-center gap-0.5"
+                                      title="فك قفل الحساب فوراً وتصفير المحاولات الخاطئة"
+                                    >
+                                      🔓 فك القفل فوراً (Unlock)
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetStudentDevices(student.id, student.name)}
+                                    className="text-[10px] text-teal-600 hover:text-teal-500 font-bold underline hover:no-underline transition"
+                                    title="تصفير أجهزة الطالب المسجلة"
+                                  >
+                                    🔄 تصفير الأجهزة
+                                  </button>
+                                </div>
                               </div>
                             </td>
 
@@ -7181,6 +7229,18 @@ export default function AdminDashboardPage() {
                             {/* Controls */}
                             <td className="py-3.5 px-3 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center gap-2">
+                                {isLocked && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnlockStudent(student.id, student.name)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition animate-pulse"
+                                    title="فك قفل الحساب فوراً وتصفير محاولات الدخول الخاطئة"
+                                  >
+                                    <Unlock className="w-3 h-3" />
+                                    <span>فك القفل فوراً</span>
+                                  </button>
+                                )}
+
                                 <button
                                   type="button"
                                   onClick={() => setSelectedStudentForLectures(student)}

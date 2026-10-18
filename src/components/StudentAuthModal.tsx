@@ -15,6 +15,8 @@ import {
   Loader2,
   LogIn,
   UserPlus,
+  ShieldAlert,
+  Clock,
 } from 'lucide-react';
 
 export default function StudentAuthModal() {
@@ -27,11 +29,36 @@ export default function StudentAuthModal() {
   const [university, setUniversity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
 
   React.useEffect(() => {
     setMode(authModalMode);
     setFeedback(null);
   }, [authModalMode, isAuthModalOpen]);
+
+  React.useEffect(() => {
+    if (!lockedUntil) return;
+
+    const tick = () => {
+      const now = Date.now();
+      const diff = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
+      setCountdownSeconds(diff);
+      if (diff <= 0) {
+        setLockedUntil(null);
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
+
+  const formatCountdown = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   if (!isAuthModalOpen) return null;
 
@@ -44,9 +71,16 @@ export default function StudentAuthModal() {
       if (mode === 'login') {
         const res = await login(phone, password);
         if (res.success) {
+          setLockedUntil(null);
+          setCountdownSeconds(0);
           setFeedback({ type: 'success', message: res.message });
           setTimeout(() => closeAuthModal(), 1200);
         } else {
+          if (res.locked && res.lockedUntil) {
+            setLockedUntil(res.lockedUntil);
+            const secs = Math.max(0, Math.ceil((res.lockedUntil - Date.now()) / 1000));
+            setCountdownSeconds(secs);
+          }
           setFeedback({ type: 'error', message: res.message });
         }
       } else {
@@ -219,7 +253,28 @@ export default function StudentAuthModal() {
             </div>
           </div>
 
-          {feedback && (
+          {mode === 'login' && lockedUntil && countdownSeconds > 0 && (
+            <div className="p-4 rounded-2xl bg-rose-500/10 dark:bg-rose-950/50 border border-rose-500/30 text-rose-800 dark:text-rose-200 text-xs font-bold space-y-2 animate-in fade-in">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm">
+                <ShieldAlert className="w-5 h-5 flex-shrink-0 animate-pulse text-rose-600" />
+                <span>حساب معلق مؤقتاً لدواعي الأمان 🔒</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300 font-medium">
+                تم تعليق محاولات تسجيل الدخول مؤقتاً لحماية حسابك من محاولات التخمين والاختراق العشوائي بعد إدخال كلمة مرور خاطئة 5 مرات متتالية.
+              </p>
+              <div className="flex items-center justify-between pt-2 border-t border-rose-500/20 text-xs font-mono font-black">
+                <span className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300">
+                  <Clock className="w-4 h-4 text-rose-500" />
+                  <span>الوقت المتبقي لفك القفل:</span>
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-rose-600 text-white shadow-sm text-sm">
+                  ⏳ {formatCountdown(countdownSeconds)} متبقية
+                </span>
+              </div>
+            </div>
+          )}
+
+          {feedback && (!lockedUntil || countdownSeconds <= 0) && (
             <div
               className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200 ${
                 feedback.type === 'success'
@@ -238,13 +293,18 @@ export default function StudentAuthModal() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-sm shadow-lg shadow-teal-600/20 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={isSubmitting || Boolean(mode === 'login' && lockedUntil && countdownSeconds > 0)}
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-sm shadow-lg shadow-teal-600/20 active:scale-98 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>جارِ التحقق والمتابعة...</span>
+              </>
+            ) : mode === 'login' && lockedUntil && countdownSeconds > 0 ? (
+              <>
+                <Lock className="w-4 h-4 text-rose-200" />
+                <span>الحساب معلق مؤقتاً ({formatCountdown(countdownSeconds)} متبقية)</span>
               </>
             ) : mode === 'login' ? (
               <>

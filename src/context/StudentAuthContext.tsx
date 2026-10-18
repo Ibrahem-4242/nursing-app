@@ -7,7 +7,13 @@ interface StudentAuthContextType {
   student: StudentUser | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  login: (phone: string, pass: string) => Promise<{
+    success: boolean;
+    message: string;
+    locked?: boolean;
+    lockedUntil?: number;
+    remainingSeconds?: number;
+  }>;
   register: (phone: string, name: string, university: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshStudent: () => Promise<void>;
@@ -82,7 +88,13 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         setIsAuthModalOpen(false);
         return { success: true, message: data.message };
       }
-      return { success: false, message: data?.message || 'فشل تسجيل الدخول' };
+      return {
+        success: false,
+        message: data?.message || 'فشل تسجيل الدخول',
+        locked: data?.locked,
+        lockedUntil: data?.lockedUntil,
+        remainingSeconds: data?.remainingSeconds,
+      };
     } catch (err: any) {
       return { success: false, message: err?.message || 'خطأ في الاتصال' };
     }

@@ -7,6 +7,16 @@ export const revalidate = 0;
 
 const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
+function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  return '127.0.0.1';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -108,21 +118,79 @@ export async function POST(req: NextRequest) {
       cleanPhone = cleanPhone.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
       cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
 
+      const clientIp = getClientIp(req);
+
+      // 1. Check if client IP is currently locked
+      const ipCheck = await CmsService.checkFailedLogin(clientIp);
+      if (ipCheck.locked) {
+        return NextResponse.json(
+          {
+            success: false,
+            locked: true,
+            lockedUntil: ipCheck.lockedUntil,
+            remainingSeconds: ipCheck.remainingSeconds,
+            remainingMinutes: ipCheck.remainingMinutes,
+            message: `تم تعليق محاولات الدخول لهذا الجهاز مؤقتاً لحمايته من التخمين. يرجى المحاولة بعد ${ipCheck.remainingMinutes} دقيقة.`,
+          },
+          { status: 429 }
+        );
+      }
+
       const student = await CmsService.getStudentByPhone(cleanPhone);
 
       if (!student) {
+        await CmsService.recordFailedLogin(clientIp);
         return NextResponse.json(
           { success: false, message: 'رقم الهاتف غير مسجل! اضغط على "إنشاء حساب جديد" للتسجيل.' },
           { status: 404 }
         );
       }
 
-      if (student.password.trim() !== String(password).trim()) {
+      // 2. Check if student account is currently locked
+      const studentCheck = await CmsService.checkFailedLogin(cleanPhone, student.id);
+      if (studentCheck.locked) {
         return NextResponse.json(
-          { success: false, message: 'الباسورد غير صحيح! يرجى التأكد من كتابة كلمة المرور بدقة.' },
+          {
+            success: false,
+            locked: true,
+            lockedUntil: studentCheck.lockedUntil,
+            remainingSeconds: studentCheck.remainingSeconds,
+            remainingMinutes: studentCheck.remainingMinutes,
+            message: `تم تعليق محاولات الدخول لهذا الحساب مؤقتاً لحمايته من التخمين. يرجى المحاولة بعد ${studentCheck.remainingMinutes} دقيقة.`,
+          },
+          { status: 429 }
+        );
+      }
+
+      // 3. Verify Password
+      if (student.password.trim() !== String(password).trim()) {
+        const failRecord = await CmsService.recordFailedLogin(cleanPhone, student.id, clientIp);
+        if (failRecord.locked) {
+          return NextResponse.json(
+            {
+              success: false,
+              locked: true,
+              lockedUntil: failRecord.lockedUntil,
+              remainingSeconds: 15 * 60,
+              remainingMinutes: 15,
+              message: 'تم تعليق محاولات الدخول لهذا الحساب مؤقتاً لحمايته من التخمين. يرجى المحاولة بعد 15 دقيقة.',
+            },
+            { status: 429 }
+          );
+        }
+
+        return NextResponse.json(
+          {
+            success: false,
+            attemptsLeft: failRecord.attemptsLeft,
+            message: `الباسورد غير صحيح! تبقى لديك ${failRecord.attemptsLeft} محاولات قبل تعليق الحساب مؤقتاً.`,
+          },
           { status: 401 }
         );
       }
+
+      // 4. Password is valid: Reset failed attempts for phone, student, and IP
+      await CmsService.resetFailedLogin(cleanPhone, student.id, clientIp);
 
       const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
       const cleanDeviceId = (deviceId || '').trim();

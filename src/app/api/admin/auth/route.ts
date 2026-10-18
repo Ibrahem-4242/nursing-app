@@ -1,21 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { CmsService } from '@/lib/cms-db';
 
 const VALID_PIN = process.env.ADMIN_PIN || '5143545638';
 const AUTH_COOKIE_NAME = 'nursing_admin_token';
 const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
+
+function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  return '127.0.0.1';
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { pin } = body;
 
-    if (!pin || String(pin).trim() !== VALID_PIN) {
+    const clientIp = getClientIp(req);
+    const lockKey = `admin_pin_${clientIp}`;
+
+    const lockCheck = await CmsService.checkFailedLogin(lockKey);
+    if (lockCheck.locked) {
       return NextResponse.json(
-        { success: false, message: 'كلمة السر غير صحيحة، يرجى المحاولة مرة أخرى.' },
+        {
+          success: false,
+          locked: true,
+          message: `تم تعليق محاولات الدخول للوحة التحكم مؤقتاً لحمايتها من التخمين. يرجى المحاولة بعد ${lockCheck.remainingMinutes} دقيقة.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    if (!pin || String(pin).trim() !== VALID_PIN) {
+      const fail = await CmsService.recordFailedLogin(lockKey);
+      if (fail.locked) {
+        return NextResponse.json(
+          {
+            success: false,
+            locked: true,
+            message: 'تم تعليق محاولات الدخول للوحة التحكم مؤقتاً لحمايتها من التخمين بعد 5 محاولات خاطئة. يرجى الانتظار 15 دقيقة.',
+          },
+          { status: 429 }
+        );
+      }
+      return NextResponse.json(
+        { success: false, message: `كلمة السر غير صحيحة! تبقى لديك ${fail.attemptsLeft} محاولات.` },
         { status: 401 }
       );
     }
+
+    // Reset failed attempts on success
+    await CmsService.resetFailedLogin(lockKey);
 
     // Set secure HTTP-only cookie
     const cookieStore = cookies();

@@ -239,6 +239,12 @@ export interface StudentBookmarks {
   conceptIds: string[];
 }
 
+export interface FailedLoginRecord {
+  count: number;
+  lockedUntil?: number;
+  lastFailedAt: number;
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -253,6 +259,7 @@ export interface StudentUser {
   notes?: string;
   currentSessionId?: string;
   knownDevices?: string[];
+  failedLoginAttempts?: FailedLoginRecord;
 }
 
 export interface PromoCoupon {

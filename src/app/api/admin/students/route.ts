@@ -102,6 +102,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(res);
     }
 
+    // 4. UNLOCK STUDENT ACCOUNT (BRUTE-FORCE RESET)
+    if (action === 'unlock') {
+      const res = await CmsService.unlockStudent(studentId);
+      return NextResponse.json(res);
+    }
+
     // 2. TOGGLE LECTURE ACCESS (GRANT OR REVOKE)
     if (action === 'toggle_lecture') {
       if (!lectureId) {

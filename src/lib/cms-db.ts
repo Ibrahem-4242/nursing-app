@@ -16,6 +16,7 @@ import {
   ShakibRakibSubscription,
   PromoCoupon,
   StudentBookmarks,
+  FailedLoginRecord,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -39,6 +40,7 @@ interface CmsStore {
   deletedOrderIds?: string[];
   coupons?: PromoCoupon[];
   deletedCouponIds?: string[];
+  failedLoginAttempts?: Record<string, FailedLoginRecord>;
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -1866,6 +1868,196 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return true;
+  },
+
+  // --- BRUTE-FORCE & RATE-LIMITING PROTECTION (حماية تخمين كلمات المرور) ---
+  async checkFailedLogin(
+    identifier: string,
+    studentId?: string
+  ): Promise<{
+    locked: boolean;
+    count: number;
+    lockedUntil?: number;
+    remainingSeconds?: number;
+    remainingMinutes?: number;
+  }> {
+    const store = await getFreshStore();
+    const cleanKey = identifier.trim();
+
+    let record: FailedLoginRecord | undefined;
+    if (studentId && store.students) {
+      const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+      if (student?.failedLoginAttempts) {
+        record = student.failedLoginAttempts;
+      }
+    }
+
+    if (!record && store.failedLoginAttempts) {
+      record = store.failedLoginAttempts[cleanKey];
+    }
+
+    if (!record) {
+      return { locked: false, count: 0 };
+    }
+
+    const now = Date.now();
+
+    // Check if locked
+    if (record.lockedUntil && now < record.lockedUntil) {
+      const diffMs = record.lockedUntil - now;
+      const remainingSeconds = Math.ceil(diffMs / 1000);
+      const remainingMinutes = Math.ceil(diffMs / 60000);
+      return {
+        locked: true,
+        count: record.count,
+        lockedUntil: record.lockedUntil,
+        remainingSeconds,
+        remainingMinutes,
+      };
+    }
+
+    // If lock expired, auto-unlock
+    if (record.lockedUntil && now >= record.lockedUntil) {
+      await this.resetFailedLogin(cleanKey, studentId);
+      return { locked: false, count: 0 };
+    }
+
+    if (record.lastFailedAt && now - record.lastFailedAt > 15 * 60 * 1000) {
+      await this.resetFailedLogin(cleanKey, studentId);
+      return { locked: false, count: 0 };
+    }
+
+    return {
+      locked: false,
+      count: record.count,
+      lockedUntil: record.lockedUntil,
+    };
+  },
+
+  async recordFailedLogin(
+    identifier: string,
+    studentId?: string,
+    secondaryIp?: string,
+    customToken?: string
+  ): Promise<{
+    locked: boolean;
+    count: number;
+    lockedUntil?: number;
+    attemptsLeft: number;
+  }> {
+    const store = await getFreshStore();
+    if (!store.failedLoginAttempts) store.failedLoginAttempts = {};
+
+    const cleanKey = identifier.trim();
+    const now = Date.now();
+
+    const student = studentId && store.students
+      ? store.students.find((s) => s.id === studentId || s.phone === studentId)
+      : undefined;
+
+    const prev = student?.failedLoginAttempts || store.failedLoginAttempts[cleanKey];
+
+    let count = 1;
+    if (prev && prev.lastFailedAt && now - prev.lastFailedAt <= 15 * 60 * 1000) {
+      count = (prev.count || 0) + 1;
+    }
+
+    const isLocked = count >= 5;
+    const lockedUntil = isLocked ? now + 15 * 60 * 1000 : undefined;
+
+    const record: FailedLoginRecord = {
+      count,
+      lockedUntil,
+      lastFailedAt: now,
+    };
+
+    store.failedLoginAttempts[cleanKey] = record;
+    if (secondaryIp && secondaryIp.trim()) {
+      store.failedLoginAttempts[secondaryIp.trim()] = record;
+    }
+
+    if (student) {
+      student.failedLoginAttempts = record;
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+
+    return {
+      locked: isLocked,
+      count,
+      lockedUntil,
+      attemptsLeft: Math.max(0, 5 - count),
+    };
+  },
+
+  async resetFailedLogin(
+    identifier: string,
+    studentId?: string,
+    secondaryIp?: string,
+    customToken?: string
+  ): Promise<boolean> {
+    const store = await getFreshStore();
+    const cleanKey = identifier.trim();
+
+    let modified = false;
+
+    if (store.failedLoginAttempts && store.failedLoginAttempts[cleanKey]) {
+      delete store.failedLoginAttempts[cleanKey];
+      modified = true;
+    }
+
+    if (secondaryIp && store.failedLoginAttempts && store.failedLoginAttempts[secondaryIp.trim()]) {
+      delete store.failedLoginAttempts[secondaryIp.trim()];
+      modified = true;
+    }
+
+    if (studentId && store.students) {
+      const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+      if (student && student.failedLoginAttempts) {
+        student.failedLoginAttempts = undefined;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      memoryStore = store;
+      persistStore(store, customToken);
+      await syncToCloud(store, customToken);
+    }
+
+    return true;
+  },
+
+  async unlockStudent(
+    studentId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    student.failedLoginAttempts = undefined;
+
+    if (store.failedLoginAttempts) {
+      if (student.phone) {
+        delete store.failedLoginAttempts[student.phone];
+        delete store.failedLoginAttempts[student.phone.trim().replace(/\s+/g, '')];
+      }
+      delete store.failedLoginAttempts[student.id];
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+
+    return {
+      success: true,
+      message: `تم فك قفل الحساب بنجاح وتصفير محاولات الدخول للطالب (${student.name})! 🔓`,
+    };
   },
 
   // --- PURCHASE ORDERS (طلبات الشراء والمدفوعات) ---
