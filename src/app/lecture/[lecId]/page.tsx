@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { DataService } from '@/lib/data-service';
 import { CmsService } from '@/lib/cms-db';
+import { StudentUser } from '@/lib/types';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import LectureContentTabs from '@/components/LectureContentTabs';
 import StudentWatermark from '@/components/StudentWatermark';
+import LockedLectureView from '@/components/LockedLectureView';
 import {
   Clock,
   Eye,
@@ -30,8 +32,9 @@ interface LecturePageProps {
 }
 
 export default async function LecturePage({ params }: LecturePageProps) {
+  const cookieStore = cookies();
   const isAdmin =
-    cookies().get('nursing_admin_token')?.value ===
+    cookieStore.get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
 
   const lecture = await CmsService.getLectureById(params.lecId);
@@ -40,12 +43,136 @@ export default async function LecturePage({ params }: LecturePageProps) {
     notFound();
   }
 
+  // 🛡️ Check student session & access permission
+  let student: StudentUser | null = null;
+  const rawStudentVal = cookieStore.get('nursing_student_session')?.value;
+  if (rawStudentVal) {
+    const [studentId] = rawStudentVal.split(':::');
+    if (studentId) {
+      student = await CmsService.getStudentById(studentId);
+    }
+  }
+
+  const hasAccess =
+    lecture.isFree ||
+    isAdmin ||
+    CmsService.hasAccessToLecture(student, lecture.id, lecture.yearId);
+
   const liveSubjects = await CmsService.getLiveSubjects();
   const subject =
     liveSubjects.find((s) => s.id === lecture.subjectId || s.slug === lecture.subjectId) ||
     DataService.getSubjectById(lecture.subjectId);
   const year = DataService.getAcademicYearById(lecture.yearId);
   const lecSemester = lecture.semester || (subject?.semester === '2' ? '2' : '1');
+
+  // 🔒 If student does NOT have access to this paid lecture:
+  // Render Free Mindmap Preview + Locked Content Shield without exposing sensitive files in HTML
+  if (!hasAccess) {
+    const mindmapFile =
+      lecture.files?.find(
+        (f: any) =>
+          (f.type === 'mindmap' || f.fileType === 'mindmap') &&
+          Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#')
+      ) || null;
+
+    const previewConcepts = (lecture.concepts || []).map((c) => ({
+      heading: c.heading,
+      summary: c.summary,
+      points: c.points?.slice(0, 3) || [],
+      clinicalWarning: c.clinicalWarning,
+    }));
+
+    return (
+      <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
+        {/* 1. Breadcrumb Navigation */}
+        <Breadcrumb
+          items={[
+            { label: year?.title || 'السنة الدراسية', href: `/year/${lecture.yearId}?semester=${lecSemester}` },
+            { label: `${subject?.title || 'المادة'} (سمستر ${lecSemester})`, href: `/subject/${lecture.subjectId}?semester=${lecSemester}` },
+            { label: `المحاضرة ${lecture.lectureNumber}` },
+          ]}
+        />
+
+        {/* 2. Lecture Header Section */}
+        <header className="space-y-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-xs font-bold border border-teal-200 dark:border-teal-800">
+                {lecture.subjectTitle}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700">
+                {lecture.yearTitle}
+              </span>
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+              <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>محتوى مقفول ({lecture.price || 50} ج.م) 🔒</span>
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight">
+            {lecture.title}
+          </h1>
+
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+            {lecture.subtitle}
+          </p>
+
+          {/* Metadata info */}
+          <div className="pt-2 flex flex-wrap items-center gap-5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>وقت القراءة المقدر: {lecture.readingMinutes} دقيقة</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Eye className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>شاهد هذه المحاضرة {lecture.viewCount} طالب</span>
+            </span>
+          </div>
+
+          {lecture.overview && (
+            <div className="p-5 sm:p-6 rounded-2xl bg-teal-50/80 dark:bg-slate-900 border border-teal-200/70 dark:border-teal-800 text-slate-800 dark:text-slate-200 leading-relaxed shadow-sm mt-3">
+              <h2 className="text-sm sm:text-base font-bold text-teal-900 dark:text-teal-300 mb-2 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+                <span>وصف وملخص المحاضرة</span>
+              </h2>
+              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                {lecture.overview}
+              </div>
+            </div>
+          )}
+        </header>
+
+        {/* 3. Top Google AdSense Placement */}
+        <AdSenseBanner
+          position="header"
+          slotId="1122334455"
+          label="إعلان ممول - منصة ملخصات التمريض"
+        />
+
+        {/* 4. LOCKED LECTURE VIEW (FREE MINDMAP PREVIEW + LOCKED CONTENT SHIELD) */}
+        <LockedLectureView
+          lectureId={lecture.id}
+          lectureTitle={lecture.title}
+          subtitle={lecture.subtitle}
+          subjectTitle={lecture.subjectTitle}
+          yearTitle={lecture.yearTitle}
+          yearId={lecture.yearId}
+          price={lecture.price || 50}
+          mindmapFile={mindmapFile}
+          concepts={previewConcepts}
+        />
+
+        {/* 5. Bottom AdSense Banner */}
+        <AdSenseBanner
+          position="footer"
+          slotId="4455667788"
+          label="إعلان ممول - نهاية المحاضرة"
+        />
+      </article>
+    );
+  }
 
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
