@@ -439,58 +439,58 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
       </header>
 
       {/* 3. HERO BANNER */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-green-950 text-white py-12 sm:py-16 px-4 sm:px-6 lg:px-8 border-b-4 border-emerald-500/40">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl space-y-4 text-center md:text-right">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-700/60 border border-emerald-500/40 text-emerald-200 text-xs font-bold">
+      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-green-950 text-white py-6 sm:py-14 px-3.5 sm:px-6 lg:px-8 border-b-4 border-emerald-500/40">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
+          <div className="max-w-2xl space-y-3 sm:space-y-4 text-center md:text-right">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-700/60 border border-emerald-500/40 text-emerald-200 text-[10px] sm:text-xs font-bold">
               <span>🇸🇦 مزارع الخرج والقصيم الوطنية</span>
               <span>•</span>
               <span>حلبة الصباح الباكر</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-black leading-tight tracking-tight text-white">
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black leading-snug sm:leading-tight tracking-tight text-white">
               طبيعية 100% من مزارعنا <br />
               <span className="text-emerald-300">مباشرة إلى باب بيتك 🥛</span>
             </h2>
-            <p className="text-sm sm:text-base text-emerald-100 leading-relaxed max-w-xl">
+            <p className="text-xs sm:text-base text-emerald-100 leading-relaxed max-w-xl">
               نقدم لكم أطايب المزارع السعودية من الحليب البقري والنياق الصافي، والأجبان والزبدة والسمن البري الخالص. تُنتج يومياً بدون أي بودرة مسترجعة أو مواد حافظة لضمان صحة عائلتك.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 pt-1 sm:pt-2">
               <a
                 href="#products-section"
-                className="px-6 py-3 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 font-black text-xs sm:text-sm shadow-xl active:scale-95 transition flex items-center gap-2"
+                className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 font-black text-xs sm:text-sm shadow-xl active:scale-95 transition flex items-center gap-2"
               >
                 <span>تسوق المنتجات الطازجة الآن</span>
-                <ArrowRight className="w-4 h-4 rotate-180" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-180" />
               </a>
-              <div className="flex items-center gap-2 text-xs text-emerald-200 font-bold px-3 py-2 bg-emerald-800/40 rounded-xl border border-emerald-700/50">
-                <Truck className="w-4 h-4 text-emerald-300" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-emerald-200 font-bold px-2.5 py-2 sm:px-3 sm:py-2 bg-emerald-800/40 rounded-xl border border-emerald-700/50">
+                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
                 <span>توصيل مبرد 3 ساعات</span>
               </div>
             </div>
           </div>
 
           {/* Hero Feature Badges */}
-          <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-1">
-              <span className="text-2xl">🌿</span>
-              <h4 className="text-xs font-black text-white">بدون إضافات</h4>
-              <p className="text-[10px] text-emerald-200">حليب نقي وطبيعي 100%</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-md">
+            <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-0.5 sm:space-y-1">
+              <span className="text-xl sm:text-2xl">🌿</span>
+              <h4 className="text-[11px] sm:text-xs font-black text-white">بدون إضافات</h4>
+              <p className="text-[9px] sm:text-[10px] text-emerald-200">حليب نقي وطبيعي 100%</p>
             </div>
-            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-1">
-              <span className="text-2xl">🔬</span>
-              <h4 className="text-xs font-black text-white">مفحوص مخبرياً</h4>
-              <p className="text-[10px] text-emerald-200">مطابق لمواصفات الغذاء والدواء</p>
+            <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-0.5 sm:space-y-1">
+              <span className="text-xl sm:text-2xl">🔬</span>
+              <h4 className="text-[11px] sm:text-xs font-black text-white">مفحوص مخبرياً</h4>
+              <p className="text-[9px] sm:text-[10px] text-emerald-200">مطابق لمواصفات الغذاء والدواء</p>
             </div>
-            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-1">
-              <span className="text-2xl">🐪</span>
-              <h4 className="text-xs font-black text-white">ألبان إبل ونياق</h4>
-              <p className="text-[10px] text-emerald-200">مبسترة ونقية بأعلى معايير</p>
+            <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-0.5 sm:space-y-1">
+              <span className="text-xl sm:text-2xl">🐪</span>
+              <h4 className="text-[11px] sm:text-xs font-black text-white">ألبان إبل ونياق</h4>
+              <p className="text-[9px] sm:text-[10px] text-emerald-200">مبسترة ونقية بأعلى معايير</p>
             </div>
-            <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-1">
-              <span className="text-2xl">💵</span>
-              <h4 className="text-xs font-black text-white">دفع عند الاستلام</h4>
-              <p className="text-[10px] text-emerald-200">كاش أو مدى عند وصول المندوب</p>
+            <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center space-y-0.5 sm:space-y-1">
+              <span className="text-xl sm:text-2xl">💵</span>
+              <h4 className="text-[11px] sm:text-xs font-black text-white">دفع عند الاستلام</h4>
+              <p className="text-[9px] sm:text-[10px] text-emerald-200">كاش أو مدى عند وصول المندوب</p>
             </div>
           </div>
         </div>
@@ -552,13 +552,13 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {filteredProducts.map((prod) => {
               const qtyInCart = getItemQuantity(prod.id);
               return (
                 <div
                   key={prod.id}
-                  className="bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-500/50 shadow-xs hover:shadow-xl hover:shadow-emerald-900/5 transition duration-300 flex flex-col overflow-hidden group"
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 hover:border-emerald-500/50 shadow-xs hover:shadow-xl hover:shadow-emerald-900/5 transition duration-300 flex flex-col overflow-hidden group"
                 >
                   {/* Clickable Image container */}
                   <div
@@ -577,16 +577,16 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
                     {prod.badge && (
-                      <span className="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-emerald-700/95 text-white text-[10px] font-black shadow-md backdrop-blur-xs">
+                      <span className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-emerald-700/95 text-white text-[9px] sm:text-[10px] font-black shadow-md backdrop-blur-xs">
                         {prod.badge}
                       </span>
                     )}
-                    <span className="absolute bottom-3 left-3 px-2 py-0.5 rounded-lg bg-black/60 text-white text-[10px] font-bold backdrop-blur-xs">
+                    <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-black/60 text-white text-[9px] sm:text-[10px] font-bold backdrop-blur-xs">
                       {prod.unit}
                     </span>
 
                     {/* Hover Hint */}
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center">
                       <span className="px-3 py-1.5 rounded-xl bg-white/95 text-emerald-900 text-xs font-black shadow-lg flex items-center gap-1.5">
                         <Info className="w-3.5 h-3.5 text-emerald-600" />
                         <span>عرض المكونات والتفاصيل</span>
@@ -595,82 +595,81 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
                   </div>
 
                   {/* Body Content */}
-                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                  <div className="p-2.5 sm:p-5 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3">
                     <div
                       onClick={() => openProductDetail(prod)}
-                      className="space-y-1.5 cursor-pointer"
+                      className="space-y-1 sm:space-y-1.5 cursor-pointer"
                     >
-                      <div className="flex items-center justify-between text-[11px] text-slate-500">
-                        <span className="text-emerald-700 font-bold">{prod.categoryLabel}</span>
-                        <div className="flex items-center gap-1 text-amber-500 font-bold">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500">
+                        <span className="text-emerald-700 font-bold truncate max-w-[90px] sm:max-w-none">{prod.categoryLabel}</span>
+                        <div className="flex items-center gap-0.5 text-amber-500 font-bold">
+                          <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
                           <span>{prod.rating}</span>
-                          <span className="text-slate-400 text-[10px]">({prod.reviewsCount})</span>
                         </div>
                       </div>
 
-                      <h4 className="text-sm font-black text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 line-clamp-2 leading-tight sm:leading-snug group-hover:text-emerald-700 transition">
                         {prod.name}
                       </h4>
 
-                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                      <p className="hidden sm:block text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
                         {prod.description}
                       </p>
                     </div>
 
                     {/* Price and Add button */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-1.5 sm:pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5 sm:gap-2">
                       <div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-lg font-black text-emerald-800 font-mono">
+                        <div className="flex items-baseline gap-0.5 sm:gap-1">
+                          <span className="text-sm sm:text-lg font-black text-emerald-800 font-mono">
                             {prod.price.toFixed(2)}
                           </span>
-                          <span className="text-xs font-bold text-slate-600">ر.س</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-slate-600">ر.س</span>
                         </div>
                         {prod.originalPrice && (
-                          <span className="text-[11px] text-slate-400 line-through font-mono">
+                          <span className="hidden sm:inline text-[11px] text-slate-400 line-through font-mono">
                             {prod.originalPrice.toFixed(2)} ر.س
                           </span>
                         )}
                       </div>
 
                       {qtyInCart > 0 ? (
-                        <div className="flex items-center gap-2 bg-emerald-50 rounded-xl p-1 border border-emerald-200">
+                        <div className="flex items-center gap-1 sm:gap-2 bg-emerald-50 rounded-lg sm:rounded-xl p-0.5 sm:p-1 border border-emerald-200">
                           <button
                             type="button"
                             onClick={() => updateQuantity(prod.id, -1)}
-                            className="w-7 h-7 rounded-lg bg-white text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-sm shadow-xs transition"
+                            className="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-white text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-xs sm:text-sm shadow-xs transition"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           </button>
-                          <span className="text-xs font-black text-emerald-900 min-w-[16px] text-center font-mono">
+                          <span className="text-[11px] sm:text-xs font-black text-emerald-900 min-w-[12px] sm:min-w-[16px] text-center font-mono">
                             {qtyInCart}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateQuantity(prod.id, 1)}
-                            className="w-7 h-7 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 flex items-center justify-center font-bold text-sm shadow-xs transition"
+                            className="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 flex items-center justify-center font-bold text-xs sm:text-sm shadow-xs transition"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => openProductDetail(prod)}
-                            className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1"
+                            className="p-1.5 sm:px-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] sm:text-[11px] font-bold transition flex items-center gap-1"
                             title="عرض مكونات وحقائق المنتج"
                           >
-                            <Info className="w-3.5 h-3.5 text-slate-500" />
+                            <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500" />
                             <span className="hidden sm:inline">تفاصيل</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => addToCart(prod)}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black shadow-md shadow-emerald-700/15 active:scale-95 transition flex items-center gap-1.5"
+                            className="px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] sm:text-xs font-black shadow-md shadow-emerald-700/15 active:scale-95 transition flex items-center gap-1"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             <span>أضف</span>
                           </button>
                         </div>

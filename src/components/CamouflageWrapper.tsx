@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { PanicModeConfig } from '@/lib/types';
 import AlKhairDairyStore from './AlKhairDairyStore';
@@ -23,7 +23,8 @@ export default function CamouflageWrapper({
     if (typeof window !== 'undefined') {
       try {
         const cached = localStorage.getItem('nursing_panic_mode_active');
-        if (cached === 'true') {
+        const hasCookie = document.cookie.includes('nursing_panic_mode=true');
+        if (cached === 'true' || hasCookie) {
           return { isEnabled: true };
         }
       } catch {}
@@ -31,11 +32,62 @@ export default function CamouflageWrapper({
     return panicMode;
   });
 
-  useEffect(() => {
-    setCurrentPanicMode(panicMode);
-  }, [panicMode]);
+  const applyPanicState = useCallback((isEnabled: boolean, activatedAt?: string) => {
+    setCurrentPanicMode((prev) => {
+      if (prev.isEnabled !== isEnabled) {
+        if (!isEnabled && prev.isEnabled) {
+          // Mode was just deactivated by admin! Reload to restore fresh nursing platform
+          try {
+            localStorage.removeItem('nursing_panic_mode_active');
+            document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
+          } catch {}
+          window.location.href = '/';
+          return { isEnabled: false };
+        }
+        return { isEnabled, activatedAt };
+      }
+      return prev;
+    });
 
-  // Live real-time instant switch: 1-second pulse interval + BroadcastChannel for 0ms same-browser sync
+    if (isEnabled) {
+      try {
+        localStorage.setItem('nursing_panic_mode_active', 'true');
+        document.cookie = 'nursing_panic_mode=true; path=/; max-age=31536000; SameSite=Lax';
+        document.title = 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
+        // Stop any audio/video playback immediately
+        document.querySelectorAll('audio, video').forEach((el) => {
+          try {
+            (el as HTMLMediaElement).pause();
+            (el as HTMLMediaElement).currentTime = 0;
+          } catch {}
+        });
+        // Seamlessly mask URL to /store if on any nursing route
+        if (
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/admin-dashboard') &&
+          !window.location.pathname.startsWith('/admin-login') &&
+          !window.location.pathname.startsWith('/store') &&
+          !window.location.pathname.startsWith('/product')
+        ) {
+          window.history.replaceState({ page: 'store' }, '', '/store');
+        }
+      } catch {}
+    } else {
+      try {
+        localStorage.removeItem('nursing_panic_mode_active');
+        document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
+      } catch {}
+    }
+  }, []);
+
+  // Sync prop changes safely
+  useEffect(() => {
+    if (panicMode?.isEnabled) {
+      applyPanicState(true, panicMode.activatedAt);
+    }
+  }, [panicMode, applyPanicState]);
+
+  // Live real-time instant switch: 1-second pulse interval + BroadcastChannel + storage event
   useEffect(() => {
     let isMounted = true;
     let isChecking = false;
@@ -56,44 +108,7 @@ export default function CamouflageWrapper({
           const data = await res.json();
           if (isMounted && data) {
             const isEnabled = Boolean(data.isEnabled);
-            setCurrentPanicMode((prev) => {
-              if (prev.isEnabled !== isEnabled) {
-                if (!isEnabled && prev.isEnabled) {
-                  // Mode was just deactivated by admin! Reload to restore fresh nursing platform
-                  try {
-                    localStorage.removeItem('nursing_panic_mode_active');
-                  } catch {}
-                  window.location.reload();
-                }
-                return { isEnabled, activatedAt: data.panicMode?.activatedAt };
-              }
-              return prev;
-            });
-
-            if (isEnabled) {
-              try {
-                localStorage.setItem('nursing_panic_mode_active', 'true');
-                document.title = 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
-                // Stop any audio playback immediately
-                document.querySelectorAll('audio').forEach((el) => {
-                  try {
-                    el.pause();
-                    el.currentTime = 0;
-                  } catch {}
-                });
-                // Seamlessly clean address bar if on any nursing route to /store
-                if (
-                  typeof window !== 'undefined' &&
-                  !window.location.pathname.startsWith('/admin-dashboard')
-                ) {
-                  window.history.replaceState({ page: 'store' }, '', '/store');
-                }
-              } catch {}
-            } else {
-              try {
-                localStorage.removeItem('nursing_panic_mode_active');
-              } catch {}
-            }
+            applyPanicState(isEnabled, data.panicMode?.activatedAt);
           }
         }
       } catch {
@@ -114,25 +129,34 @@ export default function CamouflageWrapper({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 3. Ultra-fast BroadcastChannel for 0ms instant trigger across tabs on the same device
+    // 3. Storage event for 0ms cross-tab synchronization on the same browser
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'nursing_panic_mode_active') {
+        applyPanicState(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // 4. Ultra-fast BroadcastChannel for 0ms instant trigger across tabs
     let channel: BroadcastChannel | null = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         channel = new BroadcastChannel('nursing_panic_channel');
         channel.onmessage = (event) => {
           if (event.data?.type === 'PANIC_TOGGLED') {
-            checkPanicStatus();
+            applyPanicState(Boolean(event.data.isEnabled));
           }
         };
       } catch {}
     }
 
-    // 4. Fast 1-second pulse interval for all devices and external users
+    // 5. Fast 1-second pulse interval for all devices and external users
     const interval = setInterval(checkPanicStatus, 1000);
 
     return () => {
       isMounted = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
       if (channel) {
         try {
           channel.close();
@@ -140,11 +164,12 @@ export default function CamouflageWrapper({
       }
       clearInterval(interval);
     };
-  }, []);
+  }, [applyPanicState]);
 
   // NEVER block admin-dashboard or admin APIs so the admin can always turn it off
   const isAdminPath =
     pathname?.startsWith('/admin-dashboard') ||
+    pathname?.startsWith('/admin-login') ||
     pathname?.startsWith('/api/admin');
 
   if (isAdminPath) {

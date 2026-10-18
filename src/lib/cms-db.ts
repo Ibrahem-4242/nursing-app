@@ -23,6 +23,7 @@ import {
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
+import { PanicEngine } from './panic-engine';
 
 interface CmsStore {
   announcement: AnnouncementConfig;
@@ -977,42 +978,14 @@ export const CmsService = {
 
   // --- EMERGENCY DECOY / CAMOUFLAGE MODE (كبسة يمعلم مشمش 🥛) ---
   async getPanicMode(): Promise<PanicModeConfig> {
-    const store = await getFreshStore();
-    return store.panicMode || { isEnabled: false };
+    return PanicEngine.getPanicMode();
   },
 
   async setPanicMode(
     isEnabled: boolean,
     customToken?: string
   ): Promise<{ success: boolean; isEnabled: boolean; activatedAt?: string }> {
-    const store = await getFreshStore();
-    const now = new Date().toISOString();
-    const updated: PanicModeConfig = {
-      isEnabled,
-      activatedAt: isEnabled ? now : (store.panicMode?.activatedAt || now),
-      deactivatedAt: isEnabled ? undefined : now,
-    };
-    store.panicMode = updated;
-    memoryStore = store;
-
-    try {
-      const candidates = [
-        path.join(process.cwd(), 'data', 'cms-store.json'),
-        getStoreFilePath(),
-      ];
-      for (const p of candidates) {
-        const d = path.dirname(p);
-        if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
-      }
-    } catch {}
-
-    await syncToCloud(store, customToken);
-    return {
-      success: true,
-      isEnabled,
-      activatedAt: updated.activatedAt,
-    };
+    return PanicEngine.setPanicMode(isEnabled, customToken);
   },
 
   // --- PLATFORM FEATURES & VISIBILITY CONTROLS (التحكم في الميزات والظهور) ---
