@@ -4,13 +4,15 @@ import React, { useState } from 'react';
 import { QuizQuestion } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
 import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb } from 'lucide-react';
+import QuestionBookmarkButton from '@/components/QuestionBookmarkButton';
 
 interface InteractiveQuizProps {
   questions: QuizQuestion[];
   lectureTitle?: string;
+  lectureId?: string;
 }
 
-export default function InteractiveQuiz({ questions, lectureTitle = 'المحاضرة' }: InteractiveQuizProps) {
+export default function InteractiveQuiz({ questions, lectureTitle = 'المحاضرة', lectureId = 'general' }: InteractiveQuizProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<{ [questionId: number]: number }>({});
   const [showResults, setShowResults] = useState(false);
 
@@ -127,11 +129,16 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
               key={q.id}
               className="p-5 sm:p-6 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 transition-all hover:border-slate-300 dark:hover:border-slate-700"
             >
-              <div className="flex items-start gap-3 mb-4">
-                <span className="flex-shrink-0 w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                  {qIndex + 1}
-                </span>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white leading-relaxed pt-0.5 whitespace-pre-line">{cleanLatexMath(q.question)}</h4>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                    {qIndex + 1}
+                  </span>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white leading-relaxed pt-0.5 whitespace-pre-line">{cleanLatexMath(q.question)}</h4>
+                </div>
+                <div className="self-end sm:self-start flex-shrink-0">
+                  <QuestionBookmarkButton questionId={q.id} questionText={q.question} lectureId={lectureId} />
+                </div>
               </div>
 
               {/* Options */}

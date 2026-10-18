@@ -15,6 +15,7 @@ import {
   ShakibRakibConfig,
   ShakibRakibSubscription,
   PromoCoupon,
+  StudentBookmarks,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -2055,6 +2056,68 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return true;
+  },
+
+  // --- SMART BOOKMARKS SYSTEM (نظام الإشارات المرجعية وحفظ ليلة الامتحان) ---
+  async getStudentBookmarks(studentId: string): Promise<StudentBookmarks> {
+    const store = await getFreshStore();
+    if (!store.students) return { lectureIds: [], questionIds: [], conceptIds: [] };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    return student?.bookmarks || { lectureIds: [], questionIds: [], conceptIds: [] };
+  },
+
+  async toggleStudentBookmark(
+    studentId: string,
+    type: 'lecture' | 'question' | 'concept',
+    targetId: string,
+    customToken?: string
+  ): Promise<{ success: boolean; bookmarks: StudentBookmarks; isBookmarked: boolean }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, bookmarks: { lectureIds: [], questionIds: [], conceptIds: [] }, isBookmarked: false };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, bookmarks: { lectureIds: [], questionIds: [], conceptIds: [] }, isBookmarked: false };
+
+    if (!student.bookmarks) {
+      student.bookmarks = { lectureIds: [], questionIds: [], conceptIds: [] };
+    }
+    if (!Array.isArray(student.bookmarks.lectureIds)) student.bookmarks.lectureIds = [];
+    if (!Array.isArray(student.bookmarks.questionIds)) student.bookmarks.questionIds = [];
+    if (!Array.isArray(student.bookmarks.conceptIds)) student.bookmarks.conceptIds = [];
+
+    let isBookmarked = false;
+    const cleanTarget = targetId.trim();
+
+    if (type === 'lecture') {
+      if (student.bookmarks.lectureIds.includes(cleanTarget)) {
+        student.bookmarks.lectureIds = student.bookmarks.lectureIds.filter((id) => id !== cleanTarget);
+        isBookmarked = false;
+      } else {
+        student.bookmarks.lectureIds.push(cleanTarget);
+        isBookmarked = true;
+      }
+    } else if (type === 'question') {
+      if (student.bookmarks.questionIds.includes(cleanTarget)) {
+        student.bookmarks.questionIds = student.bookmarks.questionIds.filter((id) => id !== cleanTarget);
+        isBookmarked = false;
+      } else {
+        student.bookmarks.questionIds.push(cleanTarget);
+        isBookmarked = true;
+      }
+    } else if (type === 'concept') {
+      if (student.bookmarks.conceptIds.includes(cleanTarget)) {
+        student.bookmarks.conceptIds = student.bookmarks.conceptIds.filter((id) => id !== cleanTarget);
+        isBookmarked = false;
+      } else {
+        student.bookmarks.conceptIds.push(cleanTarget);
+        isBookmarked = true;
+      }
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    syncToCloud(store, customToken).catch(() => {});
+
+    return { success: true, bookmarks: student.bookmarks, isBookmarked };
   },
 
   // --- PROMO COUPONS SYSTEM (كوبونات وأكواد الخصم) ---

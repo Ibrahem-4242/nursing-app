@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Stethoscope, Menu, X, MessageCircle, Search } from 'lucide-react';
+import { Stethoscope, Menu, X, MessageCircle, Search, Bookmark } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import ThemeToggle from '@/components/ThemeToggle';
 import StudentNavbarPill from '@/components/StudentNavbarPill';
 import { openGlobalSearch } from '@/components/GlobalSearchModal';
+import { useBookmarks } from '@/context/BookmarksContext';
 
 interface NavbarProps {
   activeYears?: { id: string; title: string }[];
@@ -17,6 +18,7 @@ export default function Navbar({
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const { totalCount: bookmarksCount } = useBookmarks();
 
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
@@ -84,8 +86,22 @@ export default function Navbar({
           </button>
         </div>
 
-        {/* Right Controls: Dark Mode Toggle, Student Account Pill, & WhatsApp Group */}
+        {/* Right Controls: Dark Mode Toggle, Bookmarks, Student Account Pill, & WhatsApp Group */}
         <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+          <Link
+            href="/bookmarks"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-black transition relative shadow-xs"
+            title="محفوظاتي ليلة الامتحان"
+          >
+            <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+            <span>محفوظاتي</span>
+            {bookmarksCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-black min-w-[18px] text-center">
+                {bookmarksCount}
+              </span>
+            )}
+          </Link>
+
           <ThemeToggle />
           <StudentNavbarPill />
 
@@ -100,7 +116,7 @@ export default function Navbar({
           </a>
         </div>
 
-        {/* Mobile controls: Search button, Theme toggle and menu */}
+        {/* Mobile controls: Search button, Bookmarks, Theme toggle and menu */}
         <div className="flex md:hidden items-center gap-2">
           {/* Mobile Medical Search Button */}
           <button
@@ -112,6 +128,21 @@ export default function Navbar({
           >
             <Search className="w-5 h-5 stroke-[2.3]" />
           </button>
+
+          {/* Mobile Bookmarks Quick Button */}
+          <Link
+            href="/bookmarks"
+            className="p-2 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition relative"
+            aria-label="محفوظاتي ليلة الامتحان"
+            title="محفوظاتي ليلة الامتحان"
+          >
+            <Bookmark className="w-5 h-5 fill-amber-500 text-amber-600" />
+            {bookmarksCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {bookmarksCount > 9 ? '9+' : bookmarksCount}
+              </span>
+            )}
+          </Link>
 
           <ThemeToggle />
           <button
@@ -144,6 +175,23 @@ export default function Navbar({
               Ctrl K
             </kbd>
           </button>
+
+          {/* Mobile Bookmarks Button inside Drawer */}
+          <Link
+            href="/bookmarks"
+            onClick={() => setMobileMenuOpen(false)}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs font-black shadow-xs active:scale-98 transition"
+          >
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4 fill-amber-500 text-amber-600" />
+              <span>محفوظاتي ليلة الامتحان 🔖</span>
+            </div>
+            {bookmarksCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                {bookmarksCount}
+              </span>
+            )}
+          </Link>
 
           {/* Mobile Student Account Pill */}
           <div className="pb-1">

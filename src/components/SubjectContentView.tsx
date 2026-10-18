@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Subject, Lecture, SubjectQuizFile } from '@/lib/types';
 import SubjectQuizFileBox from '@/components/SubjectQuizFileBox';
+import LectureBookmarkButton from '@/components/LectureBookmarkButton';
 import {
   FileText,
   Clock,
@@ -401,18 +402,25 @@ export default function SubjectContentView({
                         </span>
                       </div>
 
-                      {/* Free vs Paid Badge */}
-                      {lec.isFree ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-                          <Gift className="w-3.5 h-3.5" />
-                          <span>مجانية للجميع 🎁</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>محتوى مدفوع (10 ج)</span>
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <LectureBookmarkButton
+                          lectureId={lec.id}
+                          lectureTitle={lec.title}
+                          variant="icon"
+                        />
+                        {/* Free vs Paid Badge */}
+                        {lec.isFree ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                            <Gift className="w-3.5 h-3.5" />
+                            <span>مجانية للجميع 🎁</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>محتوى مدفوع (10 ج)</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <Link href={`/lecture/${lec.id}`}>

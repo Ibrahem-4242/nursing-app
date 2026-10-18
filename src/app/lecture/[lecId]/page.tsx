@@ -10,6 +10,9 @@ import LectureContentTabs from '@/components/LectureContentTabs';
 import StudentWatermark from '@/components/StudentWatermark';
 import LockedLectureView from '@/components/LockedLectureView';
 import LectureAutoScroll from '@/components/LectureAutoScroll';
+import LectureBookmarkButton from '@/components/LectureBookmarkButton';
+import ConceptBookmarkButton from '@/components/ConceptBookmarkButton';
+import InteractiveQuiz from '@/components/InteractiveQuiz';
 import {
   Clock,
   Eye,
@@ -107,10 +110,13 @@ export default async function LecturePage({ params }: LecturePageProps) {
               </span>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
-              <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>محتوى مقفول ({lecture.price || 50} ج.م) 🔒</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>محتوى مقفول ({lecture.price || 50} ج.م) 🔒</span>
+              </span>
+            </div>
           </div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight">
@@ -203,17 +209,20 @@ export default async function LecturePage({ params }: LecturePageProps) {
             </span>
           </div>
 
-          {lecture.isFree ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
-              <Gift className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>محتوى مجاني متاح للجميع 🎁</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
-              <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>محتوى مقفول 🔒</span>
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+            {lecture.isFree ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                <Gift className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>محتوى مجاني متاح للجميع 🎁</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>محتوى مقفول 🔒</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight">
@@ -304,9 +313,18 @@ export default async function LecturePage({ params }: LecturePageProps) {
                 id={`concept-${index}`}
                 className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
               >
-                <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
-                  {concept.heading}
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
+                    {concept.heading}
+                  </h3>
+                  <div className="self-end sm:self-center">
+                    <ConceptBookmarkButton
+                      lectureId={lecture.id}
+                      conceptIndex={index}
+                      conceptHeading={concept.heading}
+                    />
+                  </div>
+                </div>
 
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   {concept.summary}
@@ -435,6 +453,15 @@ export default async function LecturePage({ params }: LecturePageProps) {
               ))}
             </ul>
           </div>
+        )}
+
+        {/* Interactive Quiz with Question Bookmarks */}
+        {lecture.quiz && lecture.quiz.length > 0 && (
+          <InteractiveQuiz
+            questions={lecture.quiz}
+            lectureTitle={lecture.title}
+            lectureId={lecture.id}
+          />
         )}
       </section>
 

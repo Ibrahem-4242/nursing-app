@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
   User,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   Phone,
   ShieldCheck,
+  Bookmark,
 } from 'lucide-react';
 
 interface StudentNavbarPillProps {
@@ -91,6 +93,22 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
           </span>
         </div>
 
+        <Link
+          href="/bookmarks"
+          onClick={() => {
+            if (onNavigate) onNavigate();
+          }}
+          className="w-full py-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center justify-between transition border border-amber-200 dark:border-amber-800/60"
+        >
+          <span className="flex items-center gap-1.5">
+            <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+            <span>محفوظاتي ليلة الامتحان</span>
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-black">
+            🔖
+          </span>
+        </Link>
+
         <button
           type="button"
           onClick={() => {
@@ -149,6 +167,20 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
               {purchasedCount}
             </span>
           </div>
+
+          <Link
+            href="/bookmarks"
+            onClick={() => setDropdownOpen(false)}
+            className="w-full py-2 px-3 rounded-xl bg-amber-50/80 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center justify-between transition border border-amber-200/70 dark:border-amber-800/60"
+          >
+            <span className="flex items-center gap-1.5">
+              <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+              <span>محفوظاتي ليلة الامتحان</span>
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-bold">
+              مراجعة 🔖
+            </span>
+          </Link>
 
           <button
             type="button"

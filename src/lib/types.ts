@@ -100,6 +100,7 @@ export interface QuizQuestion {
   correctIndex: number;
   explanation: string;
   pearl?: string;
+  clinicalPearl?: string;
 }
 
 export interface LectureFile {
@@ -232,6 +233,12 @@ export interface ShakibRakibConfig {
   updatedAt?: string;
 }
 
+export interface StudentBookmarks {
+  lectureIds: string[];
+  questionIds: string[];
+  conceptIds: string[];
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -241,6 +248,7 @@ export interface StudentUser {
   createdAt: string;
   purchasedLectureIds: string[];
   shakibRakibSubscription?: ShakibRakibSubscription;
+  bookmarks?: StudentBookmarks;
   isActive?: boolean;
   notes?: string;
   currentSessionId?: string;
