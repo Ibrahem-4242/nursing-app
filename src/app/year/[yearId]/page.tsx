@@ -36,7 +36,8 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
   const subjects = allSubjects.filter((s) => s.yearId === year.id);
   const liveLectures = await CmsService.getLiveLectures();
   const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();
-  const quizzesList = allQuizFiles.filter((q) => q.isLive !== false);
+  const platformFeatures = await CmsService.getPlatformFeatures();
+  const quizzesList = platformFeatures.subjectQuizzes !== false ? allQuizFiles.filter((q) => q.isLive !== false) : [];
   const shakibConfig = await CmsService.getShakibRakibConfig();
   const initialSemester =
     searchParams?.semester === '2' ? '2' : searchParams?.semester === '1' ? '1' : undefined;
@@ -72,7 +73,7 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
       <AdSenseBanner position="header" slotId="8765432109" label={`إعلانات مقررات ${year.title}`} />
 
       {/* 🚀 Shakib Rakib Golden Banner (باقة شاكب راكب الشهرية الشاملة) */}
-      {shakibConfig.isEnabled !== false && (
+      {platformFeatures.shakibRakib !== false && shakibConfig.isEnabled !== false && (
         <ShakibRakibBanner
           price={shakibConfig.price || 10}
           yearId={year.id}

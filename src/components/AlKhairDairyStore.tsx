@@ -27,6 +27,7 @@ import {
   ChevronDown,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { DAIRY_PRODUCTS, DAIRY_CATEGORIES, DairyProduct } from '@/data/dairy-products';
 
@@ -51,6 +52,36 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Secret admin backdoor from "كاش عند الاستلام" button
+  const [isAdminBackdoorOpen, setIsAdminBackdoorOpen] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState('');
+  const [adminPinError, setAdminPinError] = useState('');
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+
+  const handleAdminBackdoorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPinInput.trim()) return;
+    setIsVerifyingPin(true);
+    setAdminPinError('');
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: adminPinInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = '/admin-dashboard';
+      } else {
+        setAdminPinError(data.message || 'كلمة السر غير صحيحة ❌');
+      }
+    } catch {
+      setAdminPinError('فشل الاتصال بالخادم، يرجى إعادة المحاولة');
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
 
   // Hydration-safe localStorage cart persistence
   useEffect(() => {
@@ -991,7 +1022,18 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-800 text-white">مدى mada</span>
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-800 text-white">Apple Pay</span>
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-800 text-white">Visa</span>
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-800 text-white">كاش عند الاستلام</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminBackdoorOpen(true);
+                    setAdminPinInput('');
+                    setAdminPinError('');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-900/80 border border-emerald-800 text-white hover:bg-emerald-800 hover:border-emerald-700 active:scale-95 transition cursor-pointer text-xs font-bold"
+                  title="الدفع كاش عند الاستلام"
+                >
+                  كاش عند الاستلام
+                </button>
               </div>
             </div>
           </div>
@@ -1002,6 +1044,89 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
           </div>
         </div>
       </footer>
+
+      {/* Secret Admin Backdoor Modal from "كاش عند الاستلام" */}
+      {isAdminBackdoorOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          dir="rtl"
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-800 p-6 text-white shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-600/20 text-teal-400 border border-teal-500/30 flex items-center justify-center">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white">التحقق الإداري 🔐</h4>
+                  <p className="text-[10px] text-slate-400">لوحة تحكم منصة ملخصات تمريض</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAdminBackdoorOpen(false);
+                  setAdminPinInput('');
+                  setAdminPinError('');
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminBackdoorSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  رمز المرور الإداري (PIN):
+                </label>
+                <input
+                  type="password"
+                  autoFocus
+                  required
+                  value={adminPinInput}
+                  onChange={(e) => {
+                    setAdminPinInput(e.target.value);
+                    setAdminPinError('');
+                  }}
+                  placeholder="••••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-center font-mono tracking-widest text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                {adminPinError && (
+                  <p className="text-xs text-rose-400 font-bold mt-1.5 text-center">
+                    {adminPinError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={isVerifyingPin}
+                  className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isVerifyingPin ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <span>دخول لوحة التحكم 🚀</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminBackdoorOpen(false);
+                    setAdminPinInput('');
+                    setAdminPinError('');
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

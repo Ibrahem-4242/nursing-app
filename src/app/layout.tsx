@@ -27,7 +27,7 @@ import { cookies, headers } from 'next/headers';
 import MaintenanceWrapper from '@/components/MaintenanceWrapper';
 import CamouflageWrapper from '@/components/CamouflageWrapper';
 import AlKhairDairyStore from '@/components/AlKhairDairyStore';
-import { MaintenanceConfig, PanicModeConfig } from '@/lib/types';
+import { MaintenanceConfig, PanicModeConfig, PlatformFeaturesConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -146,13 +146,29 @@ export default async function RootLayout({
   const pathname = headersList.get('x-pathname') || '';
   const isAdminPath = pathname.startsWith('/admin-dashboard') || pathname.startsWith('/api/admin');
 
+  let platformFeatures: PlatformFeaturesConfig = {
+    shakibRakib: true,
+    announcementBar: true,
+    whatsappButton: true,
+    bookmarks: true,
+    notifications: true,
+    subjectQuizzes: true,
+    coupons: true,
+    audioSummaries: true,
+    mindmaps: true,
+    powerpointPpt: true,
+    flashcards: true,
+    statsBar: true,
+  };
+
   try {
-    const [liveLectures, quizzesList, allSubjects, fetchedMaintenance, fetchedPanicMode] = await Promise.all([
+    const [liveLectures, quizzesList, allSubjects, fetchedMaintenance, fetchedPanicMode, fetchedFeatures] = await Promise.all([
       CmsService.getLiveLectures(),
       CmsService.getAllSubjectQuizFilesList(),
       CmsService.getAllSubjects(),
       CmsService.getMaintenanceConfig(),
       CmsService.getPanicMode(),
+      CmsService.getPlatformFeatures(),
     ]);
 
     if (fetchedMaintenance) {
@@ -160,6 +176,9 @@ export default async function RootLayout({
     }
     if (fetchedPanicMode) {
       panicModeConfig = fetchedPanicMode;
+    }
+    if (fetchedFeatures) {
+      platformFeatures = fetchedFeatures;
     }
     if (panicCookie === 'true') {
       panicModeConfig = { ...panicModeConfig, isEnabled: true };
@@ -239,10 +258,10 @@ export default async function RootLayout({
                 <StudentAuthModal />
                 <PWAInstallBanner />
                 <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
-                  <AnnouncementBar />
-                  <Navbar activeYears={activeYears} />
+                  {platformFeatures.announcementBar && <AnnouncementBar />}
+                  <Navbar activeYears={activeYears} platformFeatures={platformFeatures} />
                   <main className="flex-1">{children}</main>
-                  <Footer activeYears={activeYears} />
+                  <Footer activeYears={activeYears} platformFeatures={platformFeatures} />
                 </MaintenanceWrapper>
                 <VisitorTracker />
                 <Analytics />

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LectureFile, Flashcard } from '@/lib/types';
+import { LectureFile, Flashcard, PlatformFeaturesConfig } from '@/lib/types';
 import Flashcards3D from '@/components/Flashcards3D';
 import AudioWavePlayer from '@/components/AudioWavePlayer';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
@@ -37,6 +37,7 @@ interface LectureContentTabsProps {
   isFree?: boolean;
   price?: number;
   isAdmin?: boolean;
+  platformFeatures?: PlatformFeaturesConfig;
 }
 
 export default function LectureContentTabs({
@@ -50,9 +51,15 @@ export default function LectureContentTabs({
   isFree = true,
   price = 50,
   isAdmin = false,
+  platformFeatures,
 }: LectureContentTabsProps) {
   const getFileUrl = (f: any) => (f?.downloadUrl || f?.fileUrl || '').trim();
   const isValidUrl = (u: string) => Boolean(u && u !== '#');
+
+  const allowPpt = platformFeatures?.powerpointPpt !== false;
+  const allowMindmap = platformFeatures?.mindmaps !== false;
+  const allowAudio = platformFeatures?.audioSummaries !== false;
+  const allowFlashcards = platformFeatures?.flashcards !== false;
 
   const rawPdf = files.find(
     (f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValidUrl(getFileUrl(f))
@@ -73,19 +80,19 @@ export default function LectureContentTabs({
   const pdfFile: LectureFile | null = rawPdf
     ? { ...rawPdf, type: 'pdf', downloadUrl: getFileUrl(rawPdf) }
     : null;
-  const pptFile: LectureFile | null = rawPpt
+  const pptFile: LectureFile | null = (allowPpt && rawPpt)
     ? { ...rawPpt, type: 'ppt', downloadUrl: getFileUrl(rawPpt) }
     : null;
-  const mindmapFile: LectureFile | null = rawMindmap
+  const mindmapFile: LectureFile | null = (allowMindmap && rawMindmap)
     ? { ...rawMindmap, type: 'mindmap', downloadUrl: getFileUrl(rawMindmap) }
     : null;
-  const audioFile: LectureFile | null = rawAudio
+  const audioFile: LectureFile | null = (allowAudio && rawAudio)
     ? { ...rawAudio, type: 'audio', downloadUrl: getFileUrl(rawAudio) }
     : null;
   const questionsFile: LectureFile | null = rawQuestions
     ? { ...rawQuestions, type: 'questions', downloadUrl: getFileUrl(rawQuestions) }
     : null;
-  const hasFlashcards = Array.isArray(flashcards) && flashcards.length > 0;
+  const hasFlashcards = allowFlashcards && Array.isArray(flashcards) && flashcards.length > 0;
 
   const defaultTab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards' = pdfFile
     ? 'pdf'
@@ -263,10 +270,12 @@ export default function LectureContentTabs({
       setDownloadSuccess(file.type);
       setTimeout(() => setDownloadSuccess(null), 4000);
 
-      // 3. Trigger WhatsApp Join Modal after 1.2s to encourage community join
-      setTimeout(() => {
-        setIsWhatsAppModalOpen(true);
-      }, 1200);
+      // 3. Trigger WhatsApp Join Modal after 1.2s to encourage community join (if enabled)
+      if (platformFeatures?.whatsappButton !== false) {
+        setTimeout(() => {
+          setIsWhatsAppModalOpen(true);
+        }, 1200);
+      }
     } catch (e) {
       console.error('Download error:', e);
     }

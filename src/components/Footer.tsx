@@ -5,13 +5,16 @@ import { BOT_CONFIG } from '@/lib/mock-data';
 import SecretAdminTrigger from './SecretAdminTrigger';
 
 import PWAInstallButton from './PWAInstallButton';
+import { PlatformFeaturesConfig } from '@/lib/types';
 
 interface FooterProps {
   activeYears?: { id: string; title: string }[];
+  platformFeatures?: PlatformFeaturesConfig;
 }
 
 export default function Footer({
   activeYears = [{ id: '1', title: 'السنة الأولى' }],
+  platformFeatures,
 }: FooterProps) {
   return (
     <footer className="w-full bg-slate-900 dark:bg-slate-950 text-slate-300 dark:text-slate-400 pt-16 pb-12 border-t border-slate-800 dark:border-slate-900" dir="rtl">
@@ -32,15 +35,17 @@ export default function Footer({
               المنصة الأكاديمية الأولى المتخصصة في دعم طلاب كليات ومعاهد التمريض بأحدث الملخصات، الخرائط الذهنية، الكويزات التفاعلية وبطاقات الاستذكار التفاعلية.
             </p>
             <div className="pt-2 flex flex-col gap-2">
-              <a
-                href={BOT_CONFIG.whatsappGroupLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition"
-              >
-                <MessageCircle className="w-4 h-4 fill-emerald-500/20" />
-                <span>انضم لجروب الواتساب الرسمي</span>
-              </a>
+              {platformFeatures?.whatsappButton !== false && (
+                <a
+                  href={BOT_CONFIG.whatsappGroupLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition"
+                >
+                  <MessageCircle className="w-4 h-4 fill-emerald-500/20" />
+                  <span>انضم لجروب الواتساب الرسمي</span>
+                </a>
+              )}
 
               <PWAInstallButton variant="footer" className="mt-1" />
             </div>

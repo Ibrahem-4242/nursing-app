@@ -19,6 +19,7 @@ import {
   FailedLoginRecord,
   AppNotification,
   PanicModeConfig,
+  PlatformFeaturesConfig,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -27,6 +28,7 @@ interface CmsStore {
   announcement: AnnouncementConfig;
   maintenance?: MaintenanceConfig;
   panicMode?: PanicModeConfig;
+  platformFeatures?: PlatformFeaturesConfig;
   shakibRakibConfig?: ShakibRakibConfig;
   lectures: Lecture[];
   deletedLectureIds?: string[];
@@ -77,6 +79,21 @@ export const DEFAULT_SHAKIB_RAKIB_CONFIG: ShakibRakibConfig = {
   isEnabled: true,
   monthLabel: 'اشتراك الشهر الحالي (شامل كل المواد)',
   updatedAt: new Date().toISOString(),
+};
+
+export const DEFAULT_PLATFORM_FEATURES: PlatformFeaturesConfig = {
+  shakibRakib: true,
+  announcementBar: true,
+  whatsappButton: true,
+  bookmarks: true,
+  notifications: true,
+  subjectQuizzes: true,
+  coupons: true,
+  audioSummaries: true,
+  mindmaps: true,
+  powerpointPpt: true,
+  flashcards: true,
+  statsBar: true,
 };
 
 
@@ -376,6 +393,12 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         ...(store.shakibRakibConfig || {}),
       };
 
+      store.platformFeatures = {
+        ...DEFAULT_PLATFORM_FEATURES,
+        ...(existing.platformFeatures || {}),
+        ...(store.platformFeatures || {}),
+      };
+
       if (store.panicMode !== undefined) {
         // preserve incoming panicMode setting
       } else if (existing.panicMode) {
@@ -615,6 +638,9 @@ function initMemoryStore(): CmsStore {
     if (!loadedStore.panicMode) {
       loadedStore.panicMode = { isEnabled: false };
     }
+    if (!loadedStore.platformFeatures) {
+      loadedStore.platformFeatures = DEFAULT_PLATFORM_FEATURES;
+    }
     memoryStore = maskRawGithubUrls(loadedStore);
     return memoryStore;
   }
@@ -624,6 +650,7 @@ function initMemoryStore(): CmsStore {
       maintenance: DEFAULT_MAINTENANCE,
       shakibRakibConfig: DEFAULT_SHAKIB_RAKIB_CONFIG,
       panicMode: { isEnabled: false },
+      platformFeatures: DEFAULT_PLATFORM_FEATURES,
       lectures: [],
       deletedLectureIds: [],
       subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
@@ -810,6 +837,15 @@ async function getFreshStore(): Promise<CmsStore> {
       store.panicMode = { isEnabled: false };
     }
 
+    if (cloudStore.platformFeatures) {
+      store.platformFeatures = {
+        ...DEFAULT_PLATFORM_FEATURES,
+        ...cloudStore.platformFeatures,
+      };
+    } else if (!store.platformFeatures) {
+      store.platformFeatures = DEFAULT_PLATFORM_FEATURES;
+    }
+
     store = maskRawGithubUrls(store);
     memoryStore = store;
 
@@ -977,6 +1013,52 @@ export const CmsService = {
       isEnabled,
       activatedAt: updated.activatedAt,
     };
+  },
+
+  // --- PLATFORM FEATURES & VISIBILITY CONTROLS (التحكم في الميزات والظهور) ---
+  async getPlatformFeatures(): Promise<PlatformFeaturesConfig> {
+    const store = await getFreshStore();
+    return { ...DEFAULT_PLATFORM_FEATURES, ...(store.platformFeatures || {}) };
+  },
+
+  async updatePlatformFeatures(
+    features: Partial<PlatformFeaturesConfig>,
+    customToken?: string
+  ): Promise<PlatformFeaturesConfig> {
+    const store = await getFreshStore();
+    const current = store.platformFeatures || DEFAULT_PLATFORM_FEATURES;
+    const updated: PlatformFeaturesConfig = {
+      ...DEFAULT_PLATFORM_FEATURES,
+      ...current,
+      ...features,
+      updatedAt: new Date().toISOString(),
+    };
+    store.platformFeatures = updated;
+
+    // Sync with shakibRakibConfig if shakibRakib feature is toggled
+    if (features.shakibRakib !== undefined) {
+      if (!store.shakibRakibConfig) {
+        store.shakibRakibConfig = { ...DEFAULT_SHAKIB_RAKIB_CONFIG };
+      }
+      store.shakibRakibConfig.isEnabled = features.shakibRakib;
+    }
+
+    memoryStore = store;
+
+    try {
+      const candidates = [
+        path.join(process.cwd(), 'data', 'cms-store.json'),
+        getStoreFilePath(),
+      ];
+      for (const p of candidates) {
+        const d = path.dirname(p);
+        if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+      }
+    } catch {}
+
+    await syncToCloud(store, customToken);
+    return updated;
   },
 
   // --- LECTURES & CONTENT ---

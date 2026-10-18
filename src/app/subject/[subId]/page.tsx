@@ -63,8 +63,9 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
   }
 
   const year = DataService.getAcademicYearById(subject.yearId);
+  const platformFeatures = await CmsService.getPlatformFeatures();
   const allQuizzesFiles = await CmsService.getSubjectQuizFiles(subject.id);
-  const quizzesFiles = allQuizzesFiles.filter((q) => q.isLive !== false);
+  const quizzesFiles = platformFeatures.subjectQuizzes !== false ? allQuizzesFiles.filter((q) => q.isLive !== false) : [];
 
   // Strict rule: if a subject has 0 live lectures and 0 live quizzes, hide it from everyone
   if (lectures.length === 0 && quizzesFiles.length === 0) {

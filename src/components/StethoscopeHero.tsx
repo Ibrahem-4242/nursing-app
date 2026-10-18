@@ -325,7 +325,7 @@ export default function StethoscopeHero() {
   }, []);
 
   return (
-    <div className="relative w-full h-[380px] sm:h-[440px] md:h-[470px] rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-850 to-teal-950/70 shadow-2xl border border-teal-500/25 flex items-center justify-center select-none">
+    <div className="relative w-full h-[250px] sm:h-[380px] md:h-[470px] rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-850 to-teal-950/70 shadow-2xl border border-teal-500/25 flex items-center justify-center select-none">
       {/* 3D Canvas Container - Pure 3D, zero text badges */}
       <div
         ref={containerRef}

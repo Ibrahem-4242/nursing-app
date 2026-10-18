@@ -56,15 +56,19 @@ import {
   Download,
   Filter,
   Calendar,
+  Sliders,
+  ToggleLeft,
+  ToggleRight,
+  Radio,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
-import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon } from '@/lib/types';
+import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon, PlatformFeaturesConfig } from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'coupons' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'features' | 'coupons' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
@@ -355,6 +359,25 @@ export default function AdminDashboardPage() {
   const [couponActionFeedback, setCouponActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [couponSearch, setCouponSearch] = useState('');
 
+  // Platform Features & Visibility State
+  const [platformFeatures, setPlatformFeatures] = useState<PlatformFeaturesConfig>({
+    shakibRakib: true,
+    announcementBar: true,
+    whatsappButton: true,
+    bookmarks: true,
+    notifications: true,
+    subjectQuizzes: true,
+    coupons: true,
+    audioSummaries: true,
+    mindmaps: true,
+    powerpointPpt: true,
+    flashcards: true,
+    statsBar: true,
+  });
+  const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
+  const [isSavingFeatures, setIsSavingFeatures] = useState(false);
+  const [featuresFeedback, setFeaturesFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   // Cloud Sync Token state (GitHub Gist synchronization)
   const [syncToken, setSyncToken] = useState<string>('');
   const [isEditingToken, setIsEditingToken] = useState(false);
@@ -497,6 +520,7 @@ export default function AdminDashboardPage() {
     loadStudents();
     loadShakibConfig();
     loadCoupons();
+    loadPlatformFeatures();
   };
 
   const loadOrders = async () => {
@@ -578,6 +602,78 @@ export default function AdminDashboardPage() {
     } finally {
       setIsSavingShakib(false);
     }
+  };
+
+  const loadPlatformFeatures = async () => {
+    setIsLoadingFeatures(true);
+    try {
+      const res = await fetch(`/api/features?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data?.success && data?.features) {
+        setPlatformFeatures(data.features);
+      }
+    } catch (err) {
+      console.warn('Failed to load platform features:', err);
+    } finally {
+      setIsLoadingFeatures(false);
+    }
+  };
+
+  const handleSavePlatformFeatures = async (customFeatures?: PlatformFeaturesConfig) => {
+    setIsSavingFeatures(true);
+    setFeaturesFeedback(null);
+    const toSave = customFeatures || platformFeatures;
+    try {
+      const res = await fetch('/api/features', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ features: toSave }),
+      });
+      const data = await res.json();
+      if (data.success && data.features) {
+        setPlatformFeatures(data.features);
+        if (data.features.shakibRakib !== undefined) {
+          setShakibIsEnabled(data.features.shakibRakib);
+        }
+        setFeaturesFeedback({ type: 'success', message: '✅ تم حفظ وتطبيق إعدادات الظهور على المنصة بنجاح!' });
+        setTimeout(() => setFeaturesFeedback(null), 4000);
+      } else {
+        setFeaturesFeedback({ type: 'error', message: '❌ فشل الحفظ: ' + (data.message || 'خطأ غير معروف') });
+      }
+    } catch (err: any) {
+      setFeaturesFeedback({ type: 'error', message: '❌ خطأ في الاتصال: ' + err?.message });
+    } finally {
+      setIsSavingFeatures(false);
+    }
+  };
+
+  const handleToggleFeature = (key: keyof PlatformFeaturesConfig) => {
+    setPlatformFeatures((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      return updated;
+    });
+  };
+
+  const handleSetAllFeatures = (enabled: boolean) => {
+    const updated: PlatformFeaturesConfig = {
+      shakibRakib: enabled,
+      announcementBar: enabled,
+      whatsappButton: enabled,
+      bookmarks: enabled,
+      notifications: enabled,
+      subjectQuizzes: enabled,
+      coupons: enabled,
+      audioSummaries: enabled,
+      mindmaps: enabled,
+      powerpointPpt: enabled,
+      flashcards: enabled,
+      statsBar: enabled,
+    };
+    setPlatformFeatures(updated);
+    handleSavePlatformFeatures(updated);
   };
 
   const handleGrantShakib = async (studentId: string, days = 30) => {
@@ -3605,6 +3701,21 @@ export default function AdminDashboardPage() {
                 {expiringSoonCount} ينتهي قريباً
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('features');
+              loadPlatformFeatures();
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'features'
+                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                : 'text-indigo-800 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-300/50'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-indigo-500" />
+            <span>التحكم في الميزات والظهور 🎛️</span>
           </button>
 
           <button
@@ -8672,6 +8783,361 @@ export default function AdminDashboardPage() {
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: التحكم في الميزات والظهور (Universal Feature Visibility Manager) */}
+        {activeTab === 'features' && (
+          <div className="space-y-8" dir="rtl">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border-2 border-indigo-400/40">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-indigo-100 text-xs font-black border border-white/30">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-200" />
+                  <span>لوحة التحكم الشاملة في عناصر وواجهات المنصة</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black">
+                  التحكم في ظهور الميزات والأقسام 🎛️
+                </h3>
+                <p className="text-xs sm:text-sm text-indigo-100 max-w-2xl leading-relaxed">
+                  تحكم فوري ودقيق في إظهار أو إخفاء أي ميزة، قسم، أو زر داخل المنصة لجميع الطلاب والزوار بدون أي إعادة بناء أو توقف.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSetAllFeatures(true)}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>تفعيل الكل 🟢</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAllFeatures(false)}
+                  className="px-3.5 py-2 rounded-xl bg-rose-500/90 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>تعطيل الكل 🔴</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingFeatures}
+                  onClick={() => handleSavePlatformFeatures()}
+                  className="px-4 py-2.5 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-black text-xs sm:text-sm shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingFeatures ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  )}
+                  <span>حفظ وتطبيق فوراً 💾</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Feedback Message Banner */}
+            {featuresFeedback && (
+              <div
+                className={`p-4 rounded-2xl border text-sm font-bold flex items-center justify-between animate-fade-in ${
+                  featuresFeedback.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {featuresFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  )}
+                  <span>{featuresFeedback.message}</span>
+                </div>
+                <button
+                  onClick={() => setFeaturesFeedback(null)}
+                  className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Quick Stats overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 font-bold block mb-1">إجمالي الميزات</span>
+                  <span className="text-2xl font-black text-slate-800 dark:text-slate-100">12</span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600">
+                  <Sliders className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 font-bold block mb-1">الميزات المفعلة</span>
+                  <span className="text-2xl font-black text-emerald-600">
+                    {Object.values(platformFeatures).filter(Boolean).length}
+                  </span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 font-bold block mb-1">الميزات المعطلة</span>
+                  <span className="text-2xl font-black text-rose-500">
+                    {Object.values(platformFeatures).filter((v) => !v).length}
+                  </span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-500">
+                  <EyeOff className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 font-bold block mb-1">حالة الحفظ</span>
+                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                    {isSavingFeatures ? 'جاري الحفظ...' : 'جاهز للمزامنة'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadPlatformFeatures}
+                  title="تحديث البيانات"
+                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 hover:text-indigo-600 transition"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingFeatures ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Features Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                {
+                  key: 'shakibRakib' as const,
+                  title: 'باقة شاكب راكب والاشتراكات VIP 👑',
+                  desc: 'إظهار أو إخفاء قسم الاشتراك الشامل، أسعار الباقة، ومميزاتها في الصفحة الرئيسية وصفحات المحاضرات.',
+                  category: 'الاشتراكات والمدفوعات',
+                  icon: Crown,
+                  color: 'amber',
+                },
+                {
+                  key: 'announcementBar' as const,
+                  title: 'شريط الإعلانات والتنبيهات العلوي 📢',
+                  desc: 'إظهار الشريط الإعلاني أعلى الموقع لكافة الطلاب والزوار.',
+                  category: 'التواصل والتنبيهات',
+                  icon: Megaphone,
+                  color: 'blue',
+                },
+                {
+                  key: 'whatsappButton' as const,
+                  title: 'أزرار الدعم والتواصل عبر واتساب 💬',
+                  desc: 'إظهار زر الواتساب العائم وأزرار التواصل السريع في الهيدر والفوتر والصفحات.',
+                  category: 'التواصل والتنبيهات',
+                  icon: MessageCircle,
+                  color: 'emerald',
+                },
+                {
+                  key: 'subjectQuizzes' as const,
+                  title: 'كويزات واختبارات المواد والسنوات 📝',
+                  desc: 'إتاحة أقسام الكويزات التفاعلية للطلاب داخل صفحات المواد والسنوات الدراسية.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: HelpCircle,
+                  color: 'teal',
+                },
+                {
+                  key: 'coupons' as const,
+                  title: 'نظام كوبونات وأكواد الخصم 🎟️',
+                  desc: 'تفعيل إمكانية استخدام وتطبيق كوبونات الخصم عند الدفع والاشتراك في المنصة.',
+                  category: 'الاشتراكات والمدفوعات',
+                  icon: Gift,
+                  color: 'pink',
+                },
+                {
+                  key: 'audioSummaries' as const,
+                  title: 'الموجز الصوتي الذكي للمحاضرات 🎧',
+                  desc: 'إظهار مشغل الصوت والموجز الصوتي السريع في صفحات تفاصيل المحاضرات.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: Headphones,
+                  color: 'purple',
+                },
+                {
+                  key: 'mindmaps' as const,
+                  title: 'الخرائط الذهنية وتلخيص المفاهيم 🧠',
+                  desc: 'إتاحة الخرائط الذهنية التفاعلية وروابط تحميلها داخل المحاضرات.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: Network,
+                  color: 'indigo',
+                },
+                {
+                  key: 'powerpointPpt' as const,
+                  title: 'عروض البوربوينت وملفات PPT 📊',
+                  desc: 'إظهار ملفات عروض الشرائح والتحميل التفاعلي للبوربوينت في كل محاضرة.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: Presentation,
+                  color: 'orange',
+                },
+                {
+                  key: 'flashcards' as const,
+                  title: 'الفلاش كاردز وبطاقات المذاكرة 🗂️',
+                  desc: 'إظهار حزم أنكي والبطاقات التعليمية التفاعلية للطلاب.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: Layers,
+                  color: 'sky',
+                },
+                {
+                  key: 'bookmarks' as const,
+                  title: 'المحاضرات المحفوظة والمفضلة 📑',
+                  desc: 'إظهار زر حفظ المحاضرات وقائمة المفضلة في النافبار للوصول السريع.',
+                  category: 'تجربة المستخدم',
+                  icon: Sparkles,
+                  color: 'cyan',
+                },
+                {
+                  key: 'notifications' as const,
+                  title: 'قائمة الإشعارات والتحديثات 🔔',
+                  desc: 'إظهار أيقونة وقائمة الإشعارات الجديدة في الهيدر للطلاب.',
+                  category: 'تجربة المستخدم',
+                  icon: Zap,
+                  color: 'violet',
+                },
+                {
+                  key: 'statsBar' as const,
+                  title: 'شريط الإحصائيات والأرقام الرئيسية 📈',
+                  desc: 'إظهار شريط إحصائيات المنصة (عدد المحاضرات، الطلاب، الكويزات، الساعات) في الصفحة الرئيسية.',
+                  category: 'الواجهة الرئيسية',
+                  icon: BarChart3,
+                  color: 'rose',
+                },
+              ].map((feat) => {
+                const isEnabled = platformFeatures[feat.key];
+                const IconComp = feat.icon;
+
+                return (
+                  <div
+                    key={feat.key}
+                    onClick={() => handleToggleFeature(feat.key)}
+                    className={`cursor-pointer rounded-3xl p-5 border-2 transition-all duration-200 select-none flex flex-col justify-between ${
+                      isEnabled
+                        ? 'bg-white dark:bg-slate-900 border-emerald-500/60 shadow-lg shadow-emerald-500/5'
+                        : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Row: Category + Status Badge */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {feat.category}
+                        </span>
+
+                        <span
+                          className={`text-xs font-black px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                            isEnabled
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                              : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700'
+                          }`}
+                        >
+                          {isEnabled ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>مفعّل وظاهر 🟢</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3 h-3 text-rose-500" />
+                              <span>معطل ومخفي 🔴</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Icon + Title */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition ${
+                            isEnabled
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                              : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                          }`}
+                        >
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                            {feat.title}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            {feat.desc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action / Toggle Switch */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500">
+                        {isEnabled ? 'انقر للتعطيل والإخفاء' : 'انقر للتفعيل والإظهار'}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFeature(feat.key);
+                        }}
+                        className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none ${
+                          isEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            isEnabled ? '-translate-x-7' : '-translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-right">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 shrink-0">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                    تطبيق الإعدادات على المنصة في الوقت الفعلي
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    أي ميزة يتم تعطيلها هنا ستختفي فوراً وبشكل كامل من واجهة الطلاب والزوار.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSavingFeatures}
+                onClick={() => handleSavePlatformFeatures()}
+                className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm shadow-xl shadow-indigo-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSavingFeatures ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                <span>حفظ التعديلات الآن 💾</span>
+              </button>
             </div>
           </div>
         )}

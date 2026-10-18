@@ -42,6 +42,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
     'secret_session_5143545638_verified';
 
   const lecture = await CmsService.getLectureById(params.lecId);
+  const platformFeatures = await CmsService.getPlatformFeatures();
 
   if (!lecture || (lecture as any).isLive === false) {
     notFound();
@@ -140,7 +141,9 @@ export default async function LecturePage({ params }: LecturePageProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+              {platformFeatures.bookmarks !== false && (
+                <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+              )}
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">
                 <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>محتوى مقفول ({lecture.price || 50} ج.م) 🔒</span>
@@ -239,7 +242,9 @@ export default async function LecturePage({ params }: LecturePageProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+            {platformFeatures.bookmarks !== false && (
+              <LectureBookmarkButton lectureId={lecture.id} lectureTitle={lecture.title} />
+            )}
             {lecture.isFree ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
                 <Gift className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -324,6 +329,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           isFree={lecture.isFree}
           price={lecture.price || 50}
           isAdmin={false}
+          platformFeatures={platformFeatures}
         />
       </section>
 
@@ -346,13 +352,15 @@ export default async function LecturePage({ params }: LecturePageProps) {
                   <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
                     {concept.heading}
                   </h3>
-                  <div className="self-end sm:self-center">
-                    <ConceptBookmarkButton
-                      lectureId={lecture.id}
-                      conceptIndex={index}
-                      conceptHeading={concept.heading}
-                    />
-                  </div>
+                  {platformFeatures.bookmarks !== false && (
+                    <div className="self-end sm:self-center">
+                      <ConceptBookmarkButton
+                        lectureId={lecture.id}
+                        conceptIndex={index}
+                        conceptHeading={concept.heading}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -485,7 +493,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
         )}
 
         {/* Interactive Quiz with Question Bookmarks */}
-        {lecture.quiz && lecture.quiz.length > 0 && (
+        {platformFeatures.subjectQuizzes !== false && lecture.quiz && lecture.quiz.length > 0 && (
           <InteractiveQuiz
             questions={lecture.quiz}
             lectureTitle={lecture.title}

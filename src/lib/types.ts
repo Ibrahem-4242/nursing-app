@@ -334,5 +334,21 @@ export interface PanicModeConfig {
   deactivatedAt?: string;
 }
 
+export interface PlatformFeaturesConfig {
+  shakibRakib: boolean;       // باقة شاكب راكب الشهرية
+  announcementBar: boolean;   // شريط الإعلانات والتنبيهات
+  whatsappButton: boolean;    // زر ورابط جروب الواتساب الرسمي
+  bookmarks: boolean;         // نظام محفوظاتي ليلة الامتحان
+  notifications: boolean;     // جرس الإشعارات والتنبيهات
+  subjectQuizzes: boolean;    // قسم كويزات وبنك أسئلة المواد
+  coupons: boolean;           // نظام كوبونات وأكواد الخصم
+  audioSummaries: boolean;    // الملخصات الصوتية Audio
+  mindmaps: boolean;          // الخرائط الذهنية Mind Maps
+  powerpointPpt: boolean;     // عروض البوربوينت PPT
+  flashcards: boolean;        // كروت الاستذكار Flashcards
+  statsBar: boolean;          // شريط إحصائيات وأرقام المنصة
+  updatedAt?: string;
+}
+
 
 
