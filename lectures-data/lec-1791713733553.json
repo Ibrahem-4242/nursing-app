@@ -21,7 +21,7 @@
   "flashcards": [
     {
       "id": 1,
-      "front": "ما هو التعريف الأساسي للوضع التشري��ي (Anatomical Position)؟",
+      "front": "ما هو التعريف الأساسي للوضع التشر����ي (Anatomical Position)؟",
       "back": "هو وضع طبي مرجعي ثابت (Fixed medical position) يُمكّن الطبيب والفاحص والجراح وأخصائي الأشعة من فحص وفحص وفحص وتصوير وإجراء العمليات على جسم المريض وهيكله العظمي بناءً على علاقات قياسية موحدة.",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -85,7 +85,7 @@
     {
       "id": 10,
       "front": "في الوضع التشريحي القياسي لليد، ما هي العلاقة بين الإبهام (Thumb) والإصبع الصغير (Little finger)؟",
-      "back": "الإبهام يكون وحشيا��/خارجياً (Thumb -> Lateral)، بينما الإصبع الصغير يكون إنسياً/داخل��اً (Little finger -> Medial).",
+      "back": "الإبهام يكون وحشياً/خارجياً (Thumb -> Lateral)، بينما الإصبع الصغير يكون إنسياً/داخل��اً (Little finger -> Medial).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -105,7 +105,7 @@
     },
     {
       "id": 13,
-      "front": "ما أهمية المستويا�� التشريحية (Anatomical Planes) في مجال التصوير الشعاعي (Radiology)؟",
+      "front": "ما أهمية المستويات التشريحية (Anatomical Planes) في مجال التصوير الشعاع�� (Radiology)؟",
       "back": "تساعد في التغطية التضاريسية الكاملة لأي منطقة، وتحديد الموقع التشريحي الدقيق للاعتلالات الشكلية (Site, Size, Shape, Outline, Contour, Extent) سواء كانت أمراضاً أو إصابات أو مضاعفات.",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -120,7 +120,7 @@
     {
       "id": 15,
       "front": "ما نوع الرؤية (View) التي يوفرها المستوى السهمي المتوسط (Median plane)؟",
-      "back": "يوفر رؤية جانبية (Side view) من الإنسي/الداخلي إلى الوحشي/الخارجي (From medial to lateral).",
+      "back": "يوفر رؤية جانبية (Side view) من الإنسي/��لداخلي إلى الوحشي/الخارجي (From medial to lateral).",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
     },
@@ -154,7 +154,7 @@
     },
     {
       "id": 20,
-      "front": "عرف المستوى المستعرض / الأفقي / المحوري (Transverse / Horizontal / Axial Plane).",
+      "front": "عرف المستوى ال��ستعرض / الأفقي / المحوري (Transverse / Horizontal / Axial Plane).",
       "back": "هو مستوى وهمي أفقي يقسم أي منطقة في الجسم إلى أجزاء علوية (Upper/Superior) وأجزاء سفليّة (Lower/Inferior).",
       "category": "كروت استذكار",
       "clinicalPearl": "المستويات والأوضاع التشريحية (Anatomical Planes & Positions)"
@@ -169,7 +169,7 @@
     {
       "id": 22,
       "front": "حدد المستويات التشريحية الموضحة بالألوان في هذا الرسم التوضيحي للرأس.",
-      "back": "• المستوى الأحمر: المستوى السه��ي المتوسط (Midsagittal / Median plane)\n• المستوى ال��صفر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
+      "back": "• المستوى الأحمر: المستوى السه��ي المتوسط (Midsagittal / Median plane)\n• المستوى الأصفر: المستوى جنيب السهمي (Parasagittal plane)\n• المستوى الأخضر: المستوى الإكليلي/الجبهي (Frontal / Coronal plane)\n• المستوى الأزرق: المستوى المستعرض/الأفقي (Transverse plane)",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -185,7 +185,7 @@
       "front": "ماذا يعني المصطلح التشريحي الوحشي (Lateral / External)؟",
       "back": "يشير إلى التركيب الأبعد عن المستوى المنصف للجسم (Farther from the median plane) أو الاتجاه المتحرك بعيداً عنه نحو الجانب.",
       "category": "كروت استذكار",
-      "clinicalPearl": "ال��شريح العام (General Anatomy)"
+      "clinicalPearl": "التشريح العام (General Anatomy)"
     },
     {
       "id": 25,
@@ -204,7 +204,7 @@
     {
       "id": 27,
       "front": "ما المصطلح المرادف للمصطلح التشريحي سفلي (Inferior)؟",
-      "back": "ذنبي (Caudal)، ويشير للت��كيب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
+      "back": "ذنبي (Caudal)، ويشير للتركيب الأقرب إلى أسفل الجسم/القدمين (Bottom of the body).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -247,7 +247,7 @@
       "id": 33,
       "front": "في الطرف العلوي، ما الموازيان للمصطلحين إنسي (Medial) ووحشي (Lateral)؟",
       "back": "• زندي (Ulnar) = إنسي (Medial)\n• كعبري (Radial) = وحشي (Lateral)",
-      "category": "كر��ت استذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
     {
@@ -267,7 +267,7 @@
     {
       "id": 36,
       "front": "ما هما المصطلحان المستخدمان لوصف السطحين السفلي والأعلا للقدم؟",
-      "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلو�� لظهر القدم.",
+      "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -301,7 +301,7 @@
     },
     {
       "id": 41,
-      "front": "أين يقف الجراح ��لرئيسي (Main Surgeon) ��الممرض الرئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
+      "front": "أين يقف الجراح الرئيسي (Main Surgeon) ��الممرض الرئيسي (Main Nurse) بالنسبة لسرير المريض في غرفة العمليات؟",
       "back": "يقف الجراح الرئيسي والممرض الرئيسي على الجانب الأيمن من طاولة عمليات المريض (Right side of the patient's operative table).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -317,7 +317,7 @@
       "id": 43,
       "front": "إذا تحركت شحنة عصبية أو تدفق دموي باتجاه الرأس (Towards the head)، فما هو الاتجاه التشريحي لهذه الحركة؟",
       "back": "تعتبر حركة علوية / قحفية (Superior / Cranial movement).",
-      "category": "كروت اس��ذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الجهاز العصبي (Nervous System)"
     },
     {
@@ -358,7 +358,7 @@
     {
       "id": 49,
       "front": "إذا تحرك سائل أو إشارة باتجاه الجلد، فكيف تُصنف هذه الحركة تشريحياً؟",
-      "back": "تُصنف بأنها حركة نحو السطح / سطحي�� (Moving superficially).",
+      "back": "تُصنف بأنها ح��كة نحو السطح / سطحي�� (Moving superficially).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -378,7 +378,7 @@
     },
     {
       "id": 52,
-      "front": "ما هي الرؤية التي توفرها المستويات الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
+      "front": "ما ��ي الرؤية التي توفرها المستويات الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
       "back": "تسمى أيضاً بالرؤية الجبهية (Frontal view) حيث تُفحص المنطقة كشرائح من الأمام نحو الخلف.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
@@ -499,7 +499,7 @@
       "id": 69,
       "front": "إذا كان الوريد ينقل الدم من القدم نحو القلب، فما اتجاه هذه الحركة تشريحياً بالنسبة للجذع؟",
       "back": "تعتبر حركة قريبة (Proximal movement) لأنها تتجه نحو الجذع والقلب.",
-      "category": "كرو�� استذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الجهاز الدوري والقلب (Cardiovascular System)"
     },
     {
@@ -574,7 +574,7 @@
       "fileSize": "رابط سحابي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1ccPYB4vGlvzpq1G8KokJdkJHMG39CsnL/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
-      "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
+      "updatedAt": "١١��/١٠‏/٢٠٢٦، ١:١٥ م",
       "customNote": "م��ف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
     },
     {

@@ -114,7 +114,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 import { BookmarksProvider } from '@/context/BookmarksContext';
 import StudentAuthModal from '@/components/StudentAuthModal';
-import GlobalSearchModal from '@/components/GlobalSearchModal';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 
 export const dynamic = 'force-dynamic';
@@ -238,7 +237,6 @@ export default async function RootLayout({
             <StudentAuthProvider>
               <BookmarksProvider>
                 <StudentAuthModal />
-                <GlobalSearchModal />
                 <PWAInstallBanner />
                 <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
                   <AnnouncementBar />

@@ -51,7 +51,7 @@
       "id": 5,
       "front": "What are the primary etiology categories or Causes of Inflammation (أسباب الالتهاب)?",
       "back": "The primary causes include infectious agents, immunological reactions, tissue necrosis, chemical and physical agents, and nutritional factors.",
-      "category": "كروت استذ��ار",
+      "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -157,7 +157,7 @@
       "front": "How is a Phagolysosome (الفجوة البلعمية الليزوسومية) formed during phagocytosis?",
       "back": "A Phagolysosome is formed by the intracellular fusion of a phagosome with a lysosome.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والالت��اب (Pathology & Inflammation)"
     },
     {
       "id": 21,
@@ -199,7 +199,7 @@
       "front": "Which complex is formed by C5b binding to C6-C9 during complement activation?",
       "back": "C5b binding to C6-C9 forms the Membrane Attack Complex (مركب الهجوم الغشائي), which causes cell lysis by creating membrane pores.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأ��راض والالتهاب (Pathology & Inflammation)"
     },
     {
       "id": 27,
@@ -336,7 +336,7 @@
     },
     {
       "id": 46,
-      "front": "What triggers the synthesis and release of inflammatory Chemical Mediators (الوس��ئط الكيميائية)?",
+      "front": "What triggers the synthesis and release of inflammatory Chemical Mediators (الوسائط الكيميائية)?",
       "back": "Mediators are released in response to microbial products or factors released by necrotic tissues.",
       "category": "كروت استذكار",
       "clinicalPearl": "الوسائط الكيميائية (Chemical Mediators)"

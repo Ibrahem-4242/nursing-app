@@ -24,7 +24,6 @@ import { cookies } from 'next/headers';
 import { CmsService } from '@/lib/cms-db';
 import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
 import ShakibRakibBanner from '@/components/ShakibRakibBanner';
-import HeroSearchBar from '@/components/HeroSearchBar';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -84,9 +83,6 @@ export default async function HomePage({
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                 مرحباً بك في منصة <strong>ملخصات تمريض</strong>. بنك رقمي متكامل مخصص لطلاب <strong>السنة الأولى</strong> بكليات ومعاهد التمريض، تشمل كل محاضرة 5 موارد متكاملة: <strong>ملف PDF للطباعة، عروض بوربوينت PPT، خرائط ذهنية Mind Maps، كروت استذكار فلاش كاردز تفاعلية، وملخص صوتي وشرح Audio 🎧</strong>.
               </p>
-
-              {/* Global Medical Search Bar */}
-              <HeroSearchBar />
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
