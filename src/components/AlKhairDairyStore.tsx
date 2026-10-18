@@ -319,14 +319,6 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
               <span>طبيعي 100% بحلبة الصباح 🇸🇦</span>
             </span>
-            {isAdmin && (
-              <Link
-                href="/admin-dashboard"
-                className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white hover:bg-rose-700 font-black transition text-[10px] flex items-center gap-1 shadow-sm"
-              >
-                <span>🚨 لوحة الأدمن</span>
-              </Link>
-            )}
           </div>
         </div>
       </div>
