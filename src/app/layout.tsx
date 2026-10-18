@@ -63,6 +63,7 @@ import MaintenanceWrapper from '@/components/MaintenanceWrapper';
 import { MaintenanceConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
 import StudentAuthModal from '@/components/StudentAuthModal';
+import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,6 +148,7 @@ export default async function RootLayout({
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
         <StudentAuthProvider>
           <StudentAuthModal />
+          <GlobalSearchModal />
           <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
             <AnnouncementBar />
             <Navbar activeYears={activeYears} />

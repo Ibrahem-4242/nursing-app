@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { LectureFile, Flashcard } from '@/lib/types';
 import Flashcards3D from '@/components/Flashcards3D';
 import AudioWavePlayer from '@/components/AudioWavePlayer';
@@ -100,9 +101,32 @@ export default function LectureContentTabs({
     ? 'flashcards'
     : 'pdf';
 
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get('tab') as any;
+
   const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards'>(
-    defaultTab
+    urlTab && ['pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)
+      ? urlTab
+      : defaultTab
   );
+
+  React.useEffect(() => {
+    if (urlTab && ['pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)) {
+      setActiveTab(urlTab);
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash.startsWith('#quiz') || hash.startsWith('#questions')) {
+        setActiveTab('questions');
+        return;
+      }
+      if (hash.startsWith('#flashcard')) {
+        setActiveTab('flashcards');
+        return;
+      }
+    }
+  }, [urlTab]);
 
   React.useEffect(() => {
     const currentValid =

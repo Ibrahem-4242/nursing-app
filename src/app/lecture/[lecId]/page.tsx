@@ -9,6 +9,7 @@ import AdSenseBanner from '@/components/AdSenseBanner';
 import LectureContentTabs from '@/components/LectureContentTabs';
 import StudentWatermark from '@/components/StudentWatermark';
 import LockedLectureView from '@/components/LockedLectureView';
+import LectureAutoScroll from '@/components/LectureAutoScroll';
 import {
   Clock,
   Eye,
@@ -84,6 +85,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
     return (
       <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
+        <LectureAutoScroll />
         {/* 1. Breadcrumb Navigation */}
         <Breadcrumb
           items={[
@@ -176,6 +178,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
+      <LectureAutoScroll />
       {/* 🛡️ Dynamic Anti-Leak Watermark (Paid Lectures for Authenticated Students) */}
       <StudentWatermark isFree={lecture.isFree} lectureId={lecture.id} yearId={lecture.yearId} />
 
@@ -298,6 +301,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
             {lecture.concepts.map((concept, index) => (
               <div
                 key={index}
+                id={`concept-${index}`}
                 className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
               >
                 <h3 className="text-lg font-bold text-teal-800 dark:text-teal-300">
@@ -337,7 +341,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
         {/* Medical Terminology Section */}
         {lecture.terminology && lecture.terminology.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4" id="terminology-section">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-4 pb-2 border-b border-slate-200 dark:border-slate-800">
               المصطلحات الطبية والتمريضية الهامة (Key Terminology)
             </h2>
@@ -346,6 +350,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
               {lecture.terminology.map((t, idx) => (
                 <div
                   key={idx}
+                  id={`term-${idx}`}
                   className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between"
                 >
                   <div>
@@ -375,14 +380,18 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
         {/* Nursing Interventions & Actions */}
         {lecture.interventions && lecture.interventions.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4" id="interventions-section">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-4 pb-2 border-b border-slate-200 dark:border-slate-800">
               التدخلات التمريضية والإجراءات العملية (Nursing Interventions)
             </h2>
 
             <div className="space-y-4">
               {lecture.interventions.map((action, aIdx) => (
-                <div key={aIdx} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div
+                  key={aIdx}
+                  id={`intervention-${aIdx}`}
+                  className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
+                >
                   <div className="flex items-center gap-2">
                     <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                     <h3 className="font-bold text-base text-slate-900 dark:text-white">{action.title}</h3>
@@ -409,7 +418,10 @@ export default async function LecturePage({ params }: LecturePageProps) {
 
         {/* Clinical Pearls Box */}
         {lecture.clinicalPearls && lecture.clinicalPearls.length > 0 && (
-          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800/80 shadow-sm space-y-3">
+          <div
+            id="pearls-section"
+            className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800/80 shadow-sm space-y-3"
+          >
             <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
               <Lightbulb className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               <h3 className="text-lg font-bold">نقاط ذهبية وأسئلة هامة للامتحانات (Exam Pearls)</h3>
