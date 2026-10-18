@@ -73,7 +73,7 @@
       "front": "What vascular mechanism causes Redness (الحمرة) in acute inflammation?",
       "back": "Redness (الحمرة) is caused by Vasodilation (اتساع الأوعية الدموية).",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والا��تهاب (Pathology & Inflammation)"
     },
     {
       "id": 9,
@@ -112,7 +112,7 @@
     },
     {
       "id": 14,
-      "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا ��لبالعة الرئيسية) during inflammation?",
+      "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا البالعة الرئيسية) during inflammation?",
       "back": "Neutrophils (العدلات) and Macrophages (الخلايا البلعمية الكبيرة) serve as the principal phagocytic cells.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -154,7 +154,7 @@
     },
     {
       "id": 20,
-      "front": "How is a Phagolysosome (الفجوة البلعمية الليز��سومية) formed during phagocytosis?",
+      "front": "How is a Phagolysosome (الفجوة البلعمية الليزوسومية) formed during phagocytosis?",
       "back": "A Phagolysosome is formed by the intracellular fusion of a phagosome with a lysosome.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -175,7 +175,7 @@
     },
     {
       "id": 23,
-      "front": "What is the Complement System (جهاز ا��متممة)?",
+      "front": "What is the Complement System (جهاز المتممة)?",
       "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -239,7 +239,7 @@
     {
       "id": 32,
       "front": "In which inflammation type are Cardinal Signs (العلامات الرئيسية) characteristically absent?",
-      "back": "Cardinal signs are characteristically absent in Chronic Inflammation (الالتهاب المزمن).",
+      "back": "Cardinal signs are characteristically absent in Chronic Inflammation (ا��التهاب المزمن).",
       "category": "كروت ��ستذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -301,7 +301,7 @@
     },
     {
       "id": 41,
-      "front": "What are the four primary Beneficial Effects of Inflammation (الآثار النافعة للالتهاب)?",
+      "front": "What are the four primary Beneficial Effects of Inflammation (الآثار ��لنافعة للالتهاب)?",
       "back": "The beneficial effects are toxin dilution, phagocytosis of pathogens, injury localization by fibrin, and stimulation of immunity.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -388,7 +388,7 @@
       "downloadUrl": "/api/files/1791657101916-1k0o9w_المحاضرة_الاولي__باثولوجي__PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
-      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
+      "customNote": "عروض تقديمية وس��ايدات الشرح الجامعي الرسمية"
     },
     {
       "type": "mindmap",

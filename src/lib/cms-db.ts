@@ -14,6 +14,7 @@ import {
   PurchaseOrder,
   ShakibRakibConfig,
   ShakibRakibSubscription,
+  PromoCoupon,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -35,6 +36,8 @@ interface CmsStore {
   deletedStudentIds?: string[];
   orders?: PurchaseOrder[];
   deletedOrderIds?: string[];
+  coupons?: PromoCoupon[];
+  deletedCouponIds?: string[];
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -323,6 +326,28 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         }
       });
       store.orders = Array.from(orderMap.values());
+
+      // Safely merge deletedCouponIds
+      const allDeletedCoupons = new Set<string>();
+      (store.deletedCouponIds || []).forEach((id) => allDeletedCoupons.add(id.trim().toUpperCase()));
+      (existing.deletedCouponIds || []).forEach((id) => allDeletedCoupons.add(id.trim().toUpperCase()));
+      store.deletedCouponIds = Array.from(allDeletedCoupons);
+
+      // Safely merge coupons (strictly excluding deletedCouponIds)
+      const couponMap = new Map<string, PromoCoupon>();
+      (existing.coupons || []).forEach((c) => {
+        const codeKey = (c.code || '').trim().toUpperCase();
+        if (codeKey && !allDeletedCoupons.has(codeKey)) {
+          couponMap.set(codeKey, { ...c, code: codeKey });
+        }
+      });
+      (store.coupons || []).forEach((c) => {
+        const codeKey = (c.code || '').trim().toUpperCase();
+        if (codeKey && !allDeletedCoupons.has(codeKey)) {
+          couponMap.set(codeKey, { ...c, code: codeKey });
+        }
+      });
+      store.coupons = Array.from(couponMap.values());
 
       // Safely merge telemetry counters and daily maps
       store.cumulativeVisitors = Math.max(store.cumulativeVisitors || 0, existing.cumulativeVisitors || 0);
@@ -1914,6 +1939,21 @@ export const CmsService = {
       }
     }
 
+    // Record coupon usage if applied
+    if (order.couponCode) {
+      const codeKey = order.couponCode.trim().toUpperCase();
+      if (!store.coupons) store.coupons = [];
+      const coupon = store.coupons.find((c) => (c.code || '').trim().toUpperCase() === codeKey);
+      if (coupon) {
+        coupon.usedCount = (coupon.usedCount || 0) + 1;
+        if (!coupon.usedByStudents) coupon.usedByStudents = [];
+        const studentPhone = (order.studentPhone || '').trim();
+        if (studentPhone && !coupon.usedByStudents.includes(studentPhone)) {
+          coupon.usedByStudents.push(studentPhone);
+        }
+      }
+    }
+
     memoryStore = store;
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
@@ -2016,6 +2056,208 @@ export const CmsService = {
     await syncToCloud(store, customToken);
     return true;
   },
+
+  // --- PROMO COUPONS SYSTEM (كوبونات وأكواد الخصم) ---
+  async getCoupons(customToken?: string): Promise<PromoCoupon[]> {
+    const store = await getFreshStore();
+    return (store.coupons || []).filter((c) => {
+      const code = (c.code || '').trim().toUpperCase();
+      return code && !(store.deletedCouponIds || []).includes(code);
+    });
+  },
+
+  async getCouponByCode(code: string, customToken?: string): Promise<PromoCoupon | null> {
+    if (!code) return null;
+    const store = await getFreshStore();
+    const cleanCode = code.trim().toUpperCase();
+    if ((store.deletedCouponIds || []).includes(cleanCode)) return null;
+    const coupon = (store.coupons || []).find(
+      (c) => (c.code || '').trim().toUpperCase() === cleanCode
+    );
+    return coupon || null;
+  },
+
+  async saveCoupon(coupon: PromoCoupon, customToken?: string): Promise<PromoCoupon> {
+    const store = await getFreshStore();
+    if (!store.coupons) store.coupons = [];
+    if (!store.deletedCouponIds) store.deletedCouponIds = [];
+
+    const cleanCode = (coupon.code || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!cleanCode) throw new Error('كود الخصم مطلوب');
+
+    // Remove from deletedCouponIds if re-creating
+    store.deletedCouponIds = store.deletedCouponIds.filter((id) => id !== cleanCode);
+
+    const existingIndex = store.coupons.findIndex(
+      (c) => (c.code || '').trim().toUpperCase() === cleanCode
+    );
+
+    const updatedCoupon: PromoCoupon = {
+      code: cleanCode,
+      discountType: coupon.discountType === 'percentage' ? 'percentage' : 'fixed',
+      discountValue: Math.max(1, Number(coupon.discountValue) || 0),
+      maxUses: coupon.maxUses ? Math.max(1, Number(coupon.maxUses)) : undefined,
+      usedCount: existingIndex >= 0 ? store.coupons[existingIndex].usedCount : 0,
+      usedByStudents: existingIndex >= 0 ? store.coupons[existingIndex].usedByStudents || [] : [],
+      expiresAt: coupon.expiresAt || undefined,
+      isActive: coupon.isActive ?? true,
+      applicableLectureIds: Array.isArray(coupon.applicableLectureIds) ? coupon.applicableLectureIds : [],
+      createdAt: existingIndex >= 0 ? store.coupons[existingIndex].createdAt || new Date().toISOString() : new Date().toISOString(),
+      notes: coupon.notes || undefined,
+    };
+
+    if (existingIndex >= 0) {
+      store.coupons[existingIndex] = {
+        ...store.coupons[existingIndex],
+        ...updatedCoupon,
+      };
+    } else {
+      store.coupons.push(updatedCoupon);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return updatedCoupon;
+  },
+
+  async toggleCouponActive(code: string, isActive: boolean, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.coupons) return false;
+    const cleanCode = (code || '').trim().toUpperCase();
+    const coupon = store.coupons.find((c) => (c.code || '').trim().toUpperCase() === cleanCode);
+    if (!coupon) return false;
+
+    coupon.isActive = isActive;
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async deleteCoupon(code: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.deletedCouponIds) store.deletedCouponIds = [];
+    const cleanCode = (code || '').trim().toUpperCase();
+    if (cleanCode && !store.deletedCouponIds.includes(cleanCode)) {
+      store.deletedCouponIds.push(cleanCode);
+    }
+    store.coupons = (store.coupons || []).filter(
+      (c) => (c.code || '').trim().toUpperCase() !== cleanCode
+    );
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async recordCouponUsage(code: string, studentPhone: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.coupons) return false;
+    const cleanCode = (code || '').trim().toUpperCase();
+    const coupon = store.coupons.find((c) => (c.code || '').trim().toUpperCase() === cleanCode);
+    if (!coupon) return false;
+
+    coupon.usedCount = (coupon.usedCount || 0) + 1;
+    if (!coupon.usedByStudents) coupon.usedByStudents = [];
+    const phone = (studentPhone || '').trim();
+    if (phone && !coupon.usedByStudents.includes(phone)) {
+      coupon.usedByStudents.push(phone);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async validateCoupon(params: {
+    code: string;
+    studentPhone?: string;
+    lectureId?: string;
+    originalPrice: number;
+  }): Promise<{
+    valid: boolean;
+    message?: string;
+    discountAmount?: number;
+    finalPrice?: number;
+    coupon?: PromoCoupon;
+  }> {
+    const { code, studentPhone, lectureId, originalPrice } = params;
+    if (!code || !code.trim()) {
+      return { valid: false, message: 'يرجى إدخال كود الخصم أولاً' };
+    }
+
+    const cleanCode = code.trim().toUpperCase().replace(/\s+/g, '');
+    const store = await getFreshStore();
+    if ((store.deletedCouponIds || []).includes(cleanCode)) {
+      return { valid: false, message: 'كود الخصم المدخل غير صالح أو تم حذفه ❌' };
+    }
+
+    const coupon = (store.coupons || []).find(
+      (c) => (c.code || '').trim().toUpperCase() === cleanCode
+    );
+
+    if (!coupon) {
+      return { valid: false, message: 'كود الخصم المدخل غير موجود أو غير صحيح ❌' };
+    }
+
+    if (!coupon.isActive) {
+      return { valid: false, message: 'كود الخصم هذا متوقف حالياً وغير مفعل 🚫' };
+    }
+
+    // Expiry check
+    if (coupon.expiresAt) {
+      const expTime = new Date(coupon.expiresAt).getTime();
+      if (!isNaN(expTime) && expTime < Date.now()) {
+        return { valid: false, message: 'عذراً، انتهت صلاحية هذا الكود ⏳' };
+      }
+    }
+
+    // Max uses check
+    if (coupon.maxUses !== undefined && coupon.maxUses > 0) {
+      if ((coupon.usedCount || 0) >= coupon.maxUses) {
+        return { valid: false, message: 'عذراً، اكتمل الحد الأقصى لاستخدام هذا الكود 🔒' };
+      }
+    }
+
+    // Student reuse check
+    if (studentPhone && studentPhone.trim()) {
+      const cleanPhone = studentPhone.trim();
+      if (coupon.usedByStudents && coupon.usedByStudents.includes(cleanPhone)) {
+        return { valid: false, message: 'لقد استخدمت كود الخصم هذا مسبقاً، الكود صالح لمرة واحدة لكل طالب ⚠️' };
+      }
+    }
+
+    // Applicable lecture check
+    if (coupon.applicableLectureIds && coupon.applicableLectureIds.length > 0 && lectureId) {
+      if (!coupon.applicableLectureIds.includes(lectureId)) {
+        return { valid: false, message: 'كود الخصم هذا مخصص لمحاضرات أخرى محددة 🏷️' };
+      }
+    }
+
+    // Calculate discount
+    let discountAmount = 0;
+    if (coupon.discountType === 'percentage') {
+      discountAmount = Math.round((originalPrice * coupon.discountValue) / 100);
+    } else {
+      discountAmount = coupon.discountValue;
+    }
+
+    // Boundary constraints
+    discountAmount = Math.max(0, Math.min(discountAmount, originalPrice));
+    const finalPrice = Math.max(0, originalPrice - discountAmount);
+
+    return {
+      valid: true,
+      message: `تم تطبيق كود الخصم بنجاح! وفرت ${discountAmount} ج.م 🎉`,
+      discountAmount,
+      finalPrice,
+      coupon,
+    };
+  },
 };
+
 
 

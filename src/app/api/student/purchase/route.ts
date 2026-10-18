@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     let yearId = '1';
     let monthLabel = '';
     let price = 50;
+    let originalPrice = 50;
+    let couponCode = '';
+    let discountAmount = 0;
     let senderPhone = '';
     let contactPhone = '';
     let userMessage = '';
@@ -40,6 +43,9 @@ export async function POST(req: NextRequest) {
       yearId = ((formData.get('yearId') as string) || '1').trim();
       monthLabel = ((formData.get('monthLabel') as string) || '').trim();
       price = Number(formData.get('price')) || (orderType === 'shakib_rakib' ? 10 : 50);
+      originalPrice = Number(formData.get('originalPrice')) || price;
+      couponCode = ((formData.get('couponCode') as string) || '').trim().toUpperCase();
+      discountAmount = Number(formData.get('discountAmount')) || 0;
       senderPhone = ((formData.get('senderPhone') as string) || '').trim();
       contactPhone = ((formData.get('contactPhone') as string) || '').trim();
       userMessage = ((formData.get('userMessage') as string) || '').trim();
@@ -55,6 +61,9 @@ export async function POST(req: NextRequest) {
       yearId = String(body.yearId || '1').trim();
       monthLabel = String(body.monthLabel || '').trim();
       price = Number(body.price) || (orderType === 'shakib_rakib' ? 10 : 50);
+      originalPrice = Number(body.originalPrice) || price;
+      couponCode = String(body.couponCode || '').trim().toUpperCase();
+      discountAmount = Number(body.discountAmount) || 0;
       senderPhone = String(body.senderPhone || '').trim();
       contactPhone = String(body.contactPhone || '').trim();
       userMessage = String(body.userMessage || '').trim();
@@ -104,6 +113,37 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Process & Validate Coupon if provided
+    let appliedCouponCode: string | undefined = undefined;
+    let finalPrice = price;
+    let computedDiscount = 0;
+    const basePrice = originalPrice || price;
+
+    if (couponCode) {
+      const valRes = await CmsService.validateCoupon({
+        code: couponCode,
+        studentPhone: student.phone,
+        lectureId: effectiveLectureId,
+        originalPrice: basePrice,
+      });
+
+      if (!valRes.valid) {
+        return NextResponse.json(
+          { success: false, message: valRes.message || 'كود الخصم المدخل غير صالح أو منتهي' },
+          { status: 400 }
+        );
+      }
+
+      appliedCouponCode = valRes.coupon?.code || couponCode;
+      computedDiscount = valRes.discountAmount || 0;
+      finalPrice = valRes.finalPrice !== undefined ? valRes.finalPrice : Math.max(0, basePrice - computedDiscount);
+
+      // Record coupon usage right away
+      await CmsService.recordCouponUsage(appliedCouponCode, student.phone).catch((err) =>
+        console.warn('[Purchase] Error recording coupon usage:', err)
+      );
+    }
+
     // Create Order in CMS
     const order = await CmsService.createOrder({
       studentId: student.id,
@@ -118,7 +158,10 @@ export async function POST(req: NextRequest) {
       orderType,
       yearId,
       monthLabel: monthLabel || undefined,
-      price,
+      price: finalPrice,
+      originalPrice: basePrice,
+      couponCode: appliedCouponCode,
+      discountAmount: computedDiscount,
       senderPhone,
       contactPhone: contactPhone || student.phone,
       userMessage: userMessage || undefined,

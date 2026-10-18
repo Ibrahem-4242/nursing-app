@@ -247,6 +247,20 @@ export interface StudentUser {
   knownDevices?: string[];
 }
 
+export interface PromoCoupon {
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  maxUses?: number;
+  usedCount: number;
+  usedByStudents?: string[];
+  expiresAt?: string;
+  isActive: boolean;
+  applicableLectureIds?: string[];
+  createdAt?: string;
+  notes?: string;
+}
+
 export interface PurchaseOrder {
   id: string;
   studentId: string;
@@ -260,6 +274,9 @@ export interface PurchaseOrder {
   yearId?: string;
   monthLabel?: string;
   price: number;
+  originalPrice?: number;
+  couponCode?: string;
+  discountAmount?: number;
   senderPhone: string;
   contactPhone: string;
   userMessage?: string;
@@ -269,5 +286,6 @@ export interface PurchaseOrder {
   createdAt: string;
   reviewedAt?: string;
 }
+
 
 

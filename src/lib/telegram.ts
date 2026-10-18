@@ -396,10 +396,18 @@ export async function notifyNewPurchaseOrder(order: PurchaseOrder): Promise<bool
     `🏛️ <b>الجامعة:</b> ${escapeHtml(order.studentUniversity)}`,
     itemLine,
     subLine,
-    `💰 <b>المبلغ المدفوع:</b> <b>${order.price} ج.م</b>`,
-    `💸 <b>الرقم المحول منه (المحفظة):</b> <code>${escapeHtml(order.senderPhone)}</code>`,
-    `📞 <b>رقم التواصل عند الحاجة:</b> <code>${escapeHtml(order.contactPhone)}</code>`,
   ];
+
+  if (order.couponCode) {
+    const origPrice = order.originalPrice || ((order.price || 0) + (order.discountAmount || 0));
+    lines.push(`🎟️ <b>كود الخصم المطبق:</b> <code>${escapeHtml(order.couponCode)}</code> (وفر للطالب <b>${order.discountAmount || 0} ج.م</b>)`);
+    lines.push(`💵 <b>المبلغ المطلوب استلامه بعد الخصم:</b> <b>${order.price} ج.م</b> <s>(بدلاً من ${origPrice} ج.م)</s>`);
+  } else {
+    lines.push(`💰 <b>المبلغ المدفوع:</b> <b>${order.price} ج.م</b>`);
+  }
+
+  lines.push(`💸 <b>الرقم المحول منه (المحفظة):</b> <code>${escapeHtml(order.senderPhone)}</code>`);
+  lines.push(`📞 <b>رقم التواصل عند الحاجة:</b> <code>${escapeHtml(order.contactPhone)}</code>`);
 
   if (order.userMessage) {
     lines.push(`📝 <b>رسالة الطالب وتفاصيل الطلب:</b>\n<i>${escapeHtml(order.userMessage)}</i>`);

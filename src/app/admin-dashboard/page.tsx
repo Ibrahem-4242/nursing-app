@@ -47,15 +47,18 @@ import {
   Network,
   Crown,
   Zap,
+  Tag,
+  Percent,
+  Copy,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
-import { PurchaseOrder, StudentUser, ShakibRakibConfig } from '@/lib/types';
+import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon } from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'coupons' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
 
@@ -323,6 +326,20 @@ export default function AdminDashboardPage() {
   const [shakibStudentSearch, setShakibStudentSearch] = useState('');
   const [isGrantingShakib, setIsGrantingShakib] = useState(false);
 
+  // Promo Coupons State
+  const [coupons, setCoupons] = useState<PromoCoupon[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponDiscountType, setCouponDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [couponDiscountValue, setCouponDiscountValue] = useState<number>(50);
+  const [couponMaxUses, setCouponMaxUses] = useState<string>('');
+  const [couponExpiresAt, setCouponExpiresAt] = useState<string>('');
+  const [couponIsActive, setCouponIsActive] = useState<boolean>(true);
+  const [couponNotes, setCouponNotes] = useState<string>('');
+  const [isSavingCoupon, setIsSavingCoupon] = useState(false);
+  const [couponActionFeedback, setCouponActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [couponSearch, setCouponSearch] = useState('');
+
   // Cloud Sync Token state (GitHub Gist synchronization)
   const [syncToken, setSyncToken] = useState<string>('');
   const [isEditingToken, setIsEditingToken] = useState(false);
@@ -463,6 +480,7 @@ export default function AdminDashboardPage() {
     loadOrders();
     loadStudents();
     loadShakibConfig();
+    loadCoupons();
   };
 
   const loadOrders = async () => {
@@ -597,6 +615,110 @@ export default function AdminDashboardPage() {
       alert('خطأ في الاتصال: ' + err?.message);
     } finally {
       setIsGrantingShakib(false);
+    }
+  };
+
+  const loadCoupons = async () => {
+    setIsLoadingCoupons(true);
+    try {
+      const res = await fetch(`/api/admin/coupons?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: getAdminHeaders({ 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }),
+      });
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.coupons)) {
+        setCoupons(data.coupons);
+      }
+    } catch (err) {
+      console.warn('Failed to load coupons:', err);
+    } finally {
+      setIsLoadingCoupons(false);
+    }
+  };
+
+  const handleSaveCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = couponCodeInput.trim().toUpperCase().replace(/\s+/g, '');
+    if (!cleanCode) {
+      setCouponActionFeedback({ type: 'error', message: 'يرجى كتابة كود الخصم أولاً' });
+      return;
+    }
+
+    if (!couponDiscountValue || couponDiscountValue <= 0) {
+      setCouponActionFeedback({ type: 'error', message: 'قيمة الخصم يجب أن تكون أكبر من صفر' });
+      return;
+    }
+
+    setIsSavingCoupon(true);
+    setCouponActionFeedback(null);
+
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          code: cleanCode,
+          discountType: couponDiscountType,
+          discountValue: Number(couponDiscountValue),
+          maxUses: couponMaxUses ? Number(couponMaxUses) : undefined,
+          expiresAt: couponExpiresAt || undefined,
+          isActive: couponIsActive,
+          notes: couponNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data?.success) {
+        setCouponActionFeedback({ type: 'success', message: data.message || 'تم حفظ كود الخصم بنجاح ✅' });
+        setCouponCodeInput('');
+        setCouponDiscountValue(50);
+        setCouponMaxUses('');
+        setCouponExpiresAt('');
+        setCouponNotes('');
+        loadCoupons();
+      } else {
+        setCouponActionFeedback({ type: 'error', message: data?.message || 'فشل حفظ الكود' });
+      }
+    } catch (err: any) {
+      setCouponActionFeedback({ type: 'error', message: err?.message || 'حدث خطأ في الاتصال' });
+    } finally {
+      setIsSavingCoupon(false);
+    }
+  };
+
+  const handleToggleCouponActive = async (code: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'PATCH',
+        headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ code, isActive: !currentStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadCoupons();
+      } else {
+        alert(data.message || 'فشل تحديث حالة الكود');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'حدث خطأ في الاتصال');
+    }
+  };
+
+  const handleDeleteCoupon = async (code: string) => {
+    if (!confirm(`هل أنت متأكد من حذف كود الخصم "${code}" نهائياً؟`)) return;
+    try {
+      const res = await fetch(`/api/admin/coupons?code=${encodeURIComponent(code)}`, {
+        method: 'DELETE',
+        headers: getAdminHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadCoupons();
+      } else {
+        alert(data.message || 'فشل حذف الكود');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'حدث خطأ في الاتصال');
     }
   };
 
@@ -3023,6 +3145,26 @@ export default function AdminDashboardPage() {
             {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length > 0 && (
               <span className="bg-amber-900 text-amber-200 text-[10px] font-black px-1.5 py-0.5 rounded-full">
                 {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length} مشترك
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('coupons');
+              loadCoupons();
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'coupons'
+                ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md'
+                : 'text-pink-800 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/30 hover:bg-pink-100 dark:hover:bg-pink-900/40 border border-pink-300/50'
+            }`}
+          >
+            <Gift className="w-4 h-4 text-pink-500" />
+            <span>كوبونات الخصم 🎟️ ({coupons.length})</span>
+            {coupons.filter((c) => c.isActive).length > 0 && (
+              <span className="bg-pink-900 text-pink-200 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                {coupons.filter((c) => c.isActive).length} مفعّل
               </span>
             )}
           </button>
@@ -6748,6 +6890,15 @@ export default function AdminDashboardPage() {
                             <td className="py-3.5 px-3 whitespace-nowrap">
                               <span className="font-black text-sm text-slate-900 dark:text-white">{order.price || 50}</span>
                               <span className="text-[10px] text-slate-500 font-bold mr-1">ج.م</span>
+                              {order.couponCode && (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-pink-100 dark:bg-pink-950/70 text-pink-800 dark:text-pink-300 font-mono text-[10px] font-bold border border-pink-300/50">
+                                    <Gift className="w-2.5 h-2.5 text-pink-600" />
+                                    <span>{order.couponCode}</span>
+                                    {order.discountAmount ? <span>(-{order.discountAmount}ج)</span> : null}
+                                  </span>
+                                </div>
+                              )}
                             </td>
 
                             {/* Transfer Info */}
@@ -7667,6 +7818,429 @@ export default function AdminDashboardPage() {
                                     إلغاء ❌
                                   </button>
                                 </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: إدارة كوبونات وأكواد الخصم الترويجية */}
+        {activeTab === 'coupons' && (
+          <div className="space-y-8" dir="rtl">
+            {/* Header Card */}
+            <div className="bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border-2 border-pink-300/40">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-pink-100 text-xs font-black border border-white/30">
+                  <Gift className="w-3.5 h-3.5 text-pink-200 fill-pink-200" />
+                  <span>نظام الحملات الترويجية والخصومات</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black">
+                  إدارة كوبونات وأكواد الخصم 🎟️
+                </h3>
+                <p className="text-xs sm:text-sm text-pink-100 max-w-2xl leading-relaxed">
+                  أنشئ أكواد خصم ترويجية (نسبة مئوية % أو مبلغ ثابت بالجنيه)، حدد أقصى عدد مرات استخدام، وتابع في الوقت الفعلي هواتف الطلاب المستفيدين من كل كود.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[90px]">
+                  <span className="text-[11px] font-bold text-pink-100 block mb-0.5">إجمالي الأكواد</span>
+                  <span className="text-3xl font-black text-white">{coupons.length}</span>
+                </div>
+                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[90px]">
+                  <span className="text-[11px] font-bold text-pink-100 block mb-0.5">الأكواد النشطة</span>
+                  <span className="text-3xl font-black text-emerald-300">
+                    {coupons.filter((c) => c.isActive).length}
+                  </span>
+                </div>
+                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[90px]">
+                  <span className="text-[11px] font-bold text-pink-100 block mb-0.5">إجمالي الاستخدام</span>
+                  <span className="text-3xl font-black text-yellow-300">
+                    {coupons.reduce((acc, c) => acc + (c.usedCount || 0), 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Create / Edit Coupon Form Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-pink-600" />
+                    <span>إنشاء كود خصم جديد</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    أدخل تفاصيل الكود، نوع الخصم، وتاريخ الانتهاء وشروط الاستخدام.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveCoupon} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* Coupon Code Input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      كود الخصم (Code) *:
+                    </label>
+                    <input
+                      type="text"
+                      value={couponCodeInput}
+                      onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                      placeholder="مثال: NURSE2026 أو WELCOME50"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-black text-sm uppercase focus:ring-2 focus:ring-pink-500"
+                      dir="ltr"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">أحرف وأرقام إنجليزية بدون مسافات.</span>
+                  </div>
+
+                  {/* Discount Type */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      نوع الخصم *:
+                    </label>
+                    <select
+                      value={couponDiscountType}
+                      onChange={(e) => setCouponDiscountType(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-pink-500"
+                    >
+                      <option value="percentage">نسبة مئوية (مثال: 50% خصم) ٪</option>
+                      <option value="fixed">مبلغ ثابت بالجنيه (مثال: 15 ج.م خصم) 💵</option>
+                    </select>
+                  </div>
+
+                  {/* Discount Value */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      قيمة الخصم ({couponDiscountType === 'percentage' ? '%' : 'ج.م'}) *:
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={couponDiscountType === 'percentage' ? 100 : 1000}
+                      value={couponDiscountValue}
+                      onChange={(e) => setCouponDiscountValue(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm focus:ring-2 focus:ring-pink-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Max Uses */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      الحد الأقصى للاستخدام (اختياري):
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={couponMaxUses}
+                      onChange={(e) => setCouponMaxUses(e.target.value)}
+                      placeholder="اتركه فارغاً لعدد غير محدود"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-pink-500"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">مثلاً: لأول 30 طالب فقط.</span>
+                  </div>
+
+                  {/* Expiration Date */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      تاريخ انتهاء الصلاحية (اختياري):
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={couponExpiresAt}
+                      onChange={(e) => setCouponExpiresAt(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+
+                  {/* Active Toggle */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      حالة تفعيل الكود فور الإنشاء:
+                    </label>
+                    <div className="flex items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCouponIsActive(!couponIsActive)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          couponIsActive ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            couponIsActive ? 'translate-x-1' : 'translate-x-6'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {couponIsActive ? 'مفعّل وجاهز للاستخدام 🟢' : 'معطل مؤقتاً ⚪'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional Notes */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    ملاحظات أو مناسبة الكود (داخلي للأدمن):
+                  </label>
+                  <input
+                    type="text"
+                    value={couponNotes}
+                    onChange={(e) => setCouponNotes(e.target.value)}
+                    placeholder="مثال: عرض أسبوع الميدتيرم لطلاب سنة ثانية"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+
+                {couponActionFeedback && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      couponActionFeedback.type === 'success'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300'
+                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300'
+                    }`}
+                  >
+                    {couponActionFeedback.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
+                    <span>{couponActionFeedback.message}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSavingCoupon}
+                    className="px-6 py-3 rounded-xl bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white font-black text-xs flex items-center gap-2 shadow-md transition"
+                  >
+                    {isSavingCoupon ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>جاري حفظ الكود...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>إنشاء وحفظ كود الخصم 🚀</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Coupons List / Table Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-pink-600" />
+                    <span>قائمة كوبونات وأكواد الخصم ({coupons.length})</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    تابع الأكواد المنشأة، معدل استخدام كل كود، وهوية الطلاب المستفيدين.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={couponSearch}
+                    onChange={(e) => setCouponSearch(e.target.value)}
+                    placeholder="بحث بالكود أو الملاحظة..."
+                    className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={loadCoupons}
+                    disabled={isLoadingCoupons}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
+                    title="تحديث القائمة"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingCoupons ? 'animate-spin text-pink-600' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingCoupons ? (
+                <div className="py-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-7 h-7 animate-spin text-pink-600" />
+                  <span className="text-xs font-bold">جاري تحميل الكوبونات...</span>
+                </div>
+              ) : coupons.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <Gift className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+                  <h5 className="font-bold text-slate-700 dark:text-slate-300 text-sm">لا توجد أكواد خصم منشأة حتى الآن</h5>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    أنشئ أول كود خصم ترويجي من النموذج أعلاه لمكافأة الطلاب وتقديم خصومات خاصة.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
+                        <th className="py-3 px-3">الكود</th>
+                        <th className="py-3 px-3">قيمة الخصم</th>
+                        <th className="py-3 px-3">مرات الاستخدام</th>
+                        <th className="py-3 px-3">الانتهاء</th>
+                        <th className="py-3 px-3">الطلاب المستفيدين</th>
+                        <th className="py-3 px-3">الحالة</th>
+                        <th className="py-3 px-3 text-center">الإجراء</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {coupons
+                        .filter(
+                          (c) =>
+                            !couponSearch ||
+                            c.code.toLowerCase().includes(couponSearch.toLowerCase()) ||
+                            (c.notes && c.notes.toLowerCase().includes(couponSearch.toLowerCase()))
+                        )
+                        .map((c) => {
+                          const isExpired = c.expiresAt && new Date(c.expiresAt).getTime() < Date.now();
+                          const isMaxReached = c.maxUses && (c.usedCount || 0) >= c.maxUses;
+                          return (
+                            <tr key={c.code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                              {/* Code */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-sm text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/40 px-2 py-1 rounded-lg border border-pink-200 dark:border-pink-800">
+                                    {c.code}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(c.code);
+                                      alert(`تم نسخ الكود: ${c.code}`);
+                                    }}
+                                    className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    title="نسخ الكود"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                {c.notes && <div className="text-[10px] text-slate-400 mt-1">{c.notes}</div>}
+                              </td>
+
+                              {/* Discount */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <span className="font-black text-sm text-slate-900 dark:text-white">
+                                  {c.discountType === 'percentage' ? `${c.discountValue}%` : `${c.discountValue} ج.م`}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-bold mr-1 block">
+                                  {c.discountType === 'percentage' ? 'خصم نسبي' : 'خصم نقدي ثابت'}
+                                </span>
+                              </td>
+
+                              {/* Usage / Max */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
+                                  <span>{c.usedCount || 0}</span>
+                                  <span className="text-slate-400">/</span>
+                                  <span>{c.maxUses ? c.maxUses : 'غير محدود'}</span>
+                                </div>
+                                {c.maxUses && (
+                                  <div className="w-24 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mt-1.5">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        isMaxReached ? 'bg-rose-500' : 'bg-pink-500'
+                                      }`}
+                                      style={{
+                                        width: `${Math.min(100, Math.round(((c.usedCount || 0) / c.maxUses) * 100))}%`,
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Expiry */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                {c.expiresAt ? (
+                                  <div className="space-y-0.5">
+                                    <div className={`font-mono text-xs ${isExpired ? 'text-rose-600 font-bold line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                                      {new Date(c.expiresAt).toLocaleDateString('ar-EG')}
+                                    </div>
+                                    <span className={`text-[10px] font-bold ${isExpired ? 'text-rose-600' : 'text-slate-400'}`}>
+                                      {isExpired ? 'منتهي ⏳' : 'ساري'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 font-bold">دائم بدون انتهاء ♾️</span>
+                                )}
+                              </td>
+
+                              {/* Beneficiaries */}
+                              <td className="py-3.5 px-3">
+                                {c.usedByStudents && c.usedByStudents.length > 0 ? (
+                                  <div className="max-w-[180px] space-y-1">
+                                    <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 block">
+                                      {c.usedByStudents.length} طالب استفاد منه:
+                                    </span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {c.usedByStudents.slice(0, 3).map((ph, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="font-mono text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                        >
+                                          {ph}
+                                        </span>
+                                      ))}
+                                      {c.usedByStudents.length > 3 && (
+                                        <span className="text-[9px] font-bold text-slate-400 self-center">
+                                          +{c.usedByStudents.length - 3} آخرين
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">لم يستخدمه أحد بعد</span>
+                                )}
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCouponActive(c.code, c.isActive)}
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black transition border ${
+                                    c.isActive && !isExpired && !isMaxReached
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300'
+                                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300'
+                                  }`}
+                                  title="اضغط للتبديل بين التفعيل والإيقاف"
+                                >
+                                  {isExpired
+                                    ? 'منتهي ⏳'
+                                    : isMaxReached
+                                    ? 'مكتمل 🔒'
+                                    : c.isActive
+                                    ? 'مفعّل 🟢'
+                                    : 'معطل ⚪'}
+                                </button>
+                              </td>
+
+                              {/* Action */}
+                              <td className="py-3.5 px-3 whitespace-nowrap text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCoupon(c.code)}
+                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
+                                  title="حذف الكود"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </td>
                             </tr>
                           );

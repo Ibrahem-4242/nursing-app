@@ -16,6 +16,8 @@ import {
   MessageSquare,
   ShieldCheck,
   Sparkles,
+  Gift,
+  Tag,
 } from 'lucide-react';
 
 interface PurchaseLectureModalProps {
@@ -53,6 +55,75 @@ export default function PurchaseLectureModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopiedWallet, setIsCopiedWallet] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Promo Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+  } | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
+  const finalEffectivePrice = Math.max(0, price - discountAmount);
+
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanCode = couponCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!cleanCode) {
+      setCouponFeedback({ success: false, message: 'يرجى كتابة كود الخصم أولاً 🎁' });
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    setCouponFeedback(null);
+
+    try {
+      const res = await fetch('/api/student/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cleanCode,
+          studentPhone: student?.phone || '',
+          lectureId,
+          originalPrice: price,
+        }),
+      });
+
+      const data = await res.json();
+      if (data && data.valid) {
+        setAppliedCoupon(data.coupon);
+        setDiscountAmount(data.discountAmount || 0);
+        setCouponFeedback({
+          success: true,
+          message: data.message || `تم تطبيق كود الخصم! وفرت ${data.discountAmount} ج.م 🎉`,
+        });
+      } else {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponFeedback({
+          success: false,
+          message: data?.message || 'كود الخصم غير صالح أو منتهي ❌',
+        });
+      }
+    } catch {
+      setCouponFeedback({
+        success: false,
+        message: 'حدث خطأ في الاتصال أثناء التحقق من الكود',
+      });
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponCode('');
+    setCouponFeedback(null);
+  };
 
   React.useEffect(() => {
     if (student?.phone) {
@@ -125,8 +196,12 @@ export default function PurchaseLectureModal({
       formData.append('subjectTitle', subjectTitle);
       formData.append('orderType', orderType);
       formData.append('yearId', yearId);
-      formData.append('monthLabel', monthLabel);
-      formData.append('price', String(price));
+      formData.append('price', String(finalEffectivePrice));
+      formData.append('originalPrice', String(price));
+      if (appliedCoupon) {
+        formData.append('couponCode', appliedCoupon.code);
+        formData.append('discountAmount', String(discountAmount));
+      }
       formData.append('senderPhone', senderPhone.trim());
       formData.append('contactPhone', (contactPhone || student.phone).trim());
       formData.append('userMessage', userMessage.trim());
@@ -215,25 +290,141 @@ export default function PurchaseLectureModal({
                 isShakib ? 'text-amber-800 dark:text-amber-300' : 'text-teal-700 dark:text-teal-300'
               }`}
             >
-              {isShakib ? 'قيمة الاشتراك الشهري الشامل (شاكب راكب):' : 'قيمة الاشتراك وتفعيل المحاضرة:'}
+              {appliedCoupon
+                ? 'السعر المطلوب بعد تطبيق الخصم:'
+                : isShakib
+                ? 'قيمة الاشتراك الشهري الشامل (شاكب راكب):'
+                : 'قيمة الاشتراك وتفعيل المحاضرة:'}
             </span>
-            <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-              {price}{' '}
-              <span className={`text-sm font-bold ${isShakib ? 'text-amber-700 dark:text-amber-400' : 'text-teal-600'}`}>
-                جنية مصري (EGP)
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                {finalEffectivePrice}{' '}
+                <span className={`text-sm font-bold ${isShakib ? 'text-amber-700 dark:text-amber-400' : 'text-teal-600'}`}>
+                  جنية مصري (EGP)
+                </span>
               </span>
-            </span>
+              {appliedCoupon && (
+                <span className="text-xs sm:text-sm font-bold text-slate-400 dark:text-slate-500 line-through">
+                  {price} ج.م
+                </span>
+              )}
+            </div>
+            {appliedCoupon && (
+              <span className="inline-block text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                🎉 تم توفير {discountAmount} ج.م بفضل كود ({appliedCoupon.code})
+              </span>
+            )}
           </div>
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${
-              isShakib
+              appliedCoupon
+                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300'
+                : isShakib
                 ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border-amber-400'
                 : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isShakib ? 'وصول شامل لكل المواد' : 'تفعيل دائم بحسابك'}</span>
+            {appliedCoupon ? <Tag className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>
+              {appliedCoupon
+                ? `خصم ${appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `${appliedCoupon.discountValue} ج.م`}`
+                : isShakib
+                ? 'وصول شامل لكل المواد'
+                : 'تفعيل دائم بحسابك'}
+            </span>
           </span>
+        </div>
+
+        {/* Promo Coupon Section (هل لديك كود خصم؟ 🎁) */}
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Gift className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+              <span>هل لديك كود خصم أو كوبون ترويجي؟ 🎁</span>
+            </label>
+            {appliedCoupon && (
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline transition"
+              >
+                إلغاء الكود
+              </button>
+            )}
+          </div>
+
+          {appliedCoupon ? (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="font-mono font-black text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">
+                    {appliedCoupon.code}
+                  </div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                    وفرت {discountAmount} ج.م (خصم {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `${appliedCoupon.discountValue} ج.م`})
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
+                مفعّل الآن ✅
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplyCoupon();
+                    }
+                  }}
+                  placeholder="أدخل كود الخصم (مثال: NURSE2026)"
+                  className="w-full px-3 py-2 text-xs font-mono font-bold uppercase rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:normal-case placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  dir="ltr"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleApplyCoupon()}
+                disabled={isValidatingCoupon || !couponCode.trim()}
+                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm whitespace-nowrap"
+              >
+                {isValidatingCoupon ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الفحص...</span>
+                  </>
+                ) : (
+                  <span>تطبيق الكود</span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {couponFeedback && (
+            <div
+              className={`text-[11px] font-bold p-2 rounded-lg flex items-center gap-1.5 ${
+                couponFeedback.success
+                  ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30'
+                  : 'text-rose-800 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30'
+              }`}
+            >
+              {couponFeedback.success ? (
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-rose-600" />
+              )}
+              <span>{couponFeedback.message}</span>
+            </div>
+          )}
         </div>
 
         {/* Official Transfer Instructions Box as requested by User */}
@@ -244,6 +435,15 @@ export default function PurchaseLectureModal({
               تقدر تحول اجمالي المبلغ اللي انت هتحوله (حسب اللي انت عاوزه) وتكتب في الرسالة عاوز محاضرات اي بالظبط، علي المحفظة علي الرقم دا:
             </p>
           </div>
+
+          {appliedCoupon && (
+            <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-300/70 dark:border-emerald-700/60 flex items-center gap-2">
+              <Tag className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>
+                المبلغ المطلوب تحويله بعد الخصم: <b className="text-sm underline">{finalEffectivePrice} ج.م</b> (تم توفير {discountAmount} ج.م بكود {appliedCoupon.code})
+              </span>
+            </div>
+          )}
 
           {/* Wallet Number Pill with 1-Click Copy */}
           <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-600 flex items-center justify-between gap-2">
