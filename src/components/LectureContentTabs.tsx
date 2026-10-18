@@ -426,12 +426,16 @@ export default function LectureContentTabs({
             )}
           </div>
 
-          {/* Interactive Animated Sound Wave Player when Audio Tab is active & unlocked */}
-          {activeTab === 'audio' && isUnlocked && activeFile.downloadUrl && (
+          {/* Interactive Animated Sound Wave Player with continuous background playback */}
+          {audioFile && isUnlocked && audioFile.downloadUrl && (
             <AudioWavePlayer
-              audioUrl={activeFile.downloadUrl}
-              title={activeFile.title}
+              audioUrl={audioFile.downloadUrl}
+              title={audioFile.title || lectureTitle || 'التسجيل الصوتي للمحاضرة'}
               subjectTitle={subjectTitle}
+              audioId={lectureId || `lec-${audioFile.downloadUrl.slice(-24)}`}
+              lectureId={lectureId}
+              isActiveTab={activeTab === 'audio'}
+              onOpenFullPlayer={() => setActiveTab('audio')}
             />
           )}
 

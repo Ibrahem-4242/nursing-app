@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { SubjectQuizFile } from '@/lib/types';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
+import AudioWavePlayer from '@/components/AudioWavePlayer';
 import {
   FileText,
   ArrowDownCircle,
@@ -299,10 +300,13 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
               </div>
 
               {quizFile.isFree !== false && (
-                <div className="pt-1">
-                  <audio controls className="w-full h-10 rounded-xl" src={quizFile.audioUrl} preload="none">
-                    متصفحك لا يدعم تشغيل الملف الصوتي مباشرة.
-                  </audio>
+                <div className="pt-2">
+                  <AudioWavePlayer
+                    audioUrl={quizFile.audioUrl}
+                    title={quizFile.audioTitle || 'التسجيل الصوتي الشامل لمراجعة أسئلة الكويز'}
+                    subjectTitle={quizFile.subjectTitle}
+                    audioId={quizFile.id || `quiz-${quizFile.subjectId}`}
+                  />
                 </div>
               )}
             </div>
