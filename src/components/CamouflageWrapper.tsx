@@ -70,7 +70,7 @@ export default function CamouflageWrapper({
             if (isEnabled) {
               try {
                 localStorage.setItem('nursing_panic_mode_active', 'true');
-                document.title = 'متجر ألبان الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
+                document.title = 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
                 // Stop any audio playback immediately
                 document.querySelectorAll('audio').forEach((el) => {
                   try {
@@ -78,13 +78,12 @@ export default function CamouflageWrapper({
                     el.currentTime = 0;
                   } catch {}
                 });
-                // Seamlessly clean address bar if on any nursing route
+                // Seamlessly clean address bar if on any nursing route to /store
                 if (
                   typeof window !== 'undefined' &&
-                  window.location.pathname !== '/' &&
                   !window.location.pathname.startsWith('/admin-dashboard')
                 ) {
-                  window.history.replaceState(null, '', '/');
+                  window.history.replaceState({ page: 'store' }, '', '/store');
                 }
               } catch {}
             } else {

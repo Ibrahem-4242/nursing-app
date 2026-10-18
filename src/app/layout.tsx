@@ -35,16 +35,16 @@ export async function generateMetadata(): Promise<Metadata> {
   if (panicMode.isEnabled) {
     return {
       title: {
-        default: 'متجر ألبان الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية',
-        template: '%s | ألبان الخير',
+        default: 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية',
+        template: '%s | حليب الخير',
       },
       description:
-        'متجر ألبان الخير للتجارة: حليب نجد البقري الطازج، ألبان إبل ونياق، أجبان بلدية، زبدة، وقشطة وسمن بري طبيعي 100% من مزارعنا لباب بيتك بجميع مناطق المملكة.',
+        'متجر حليب الخير للتجارة: حليب نجد البقري الطازج، ألبان إبل ونياق، أجبان بلدية، زبدة، وقشطة وسمن بري طبيعي 100% من مزارعنا لباب بيتك بجميع مناطق المملكة.',
       icons: {
         icon: [{ url: '/favicon.ico' }],
       },
       openGraph: {
-        title: 'متجر ألبان الخير الطازجة 🥛🇸🇦 | ألبان وأجبان المزارع الطبيعية',
+        title: 'متجر حليب الخير الطازجة 🥛🇸🇦 | ألبان وأجبان المزارع الطبيعية',
         description: 'توصيل مبرد خلال 3 ساعات لجميع مناطق المملكة. ألبان طازجة يومياً بدون إضافات.',
         type: 'website',
         locale: 'ar_SA',
@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
       other: {
         'mobile-web-app-capable': 'yes',
         'apple-mobile-web-app-capable': 'yes',
-        'apple-mobile-web-app-title': 'ألبان الخير',
+        'apple-mobile-web-app-title': 'حليب الخير',
       },
     };
   }
@@ -217,7 +217,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta
           name="apple-mobile-web-app-title"
-          content={panicModeConfig.isEnabled ? 'ألبان الخير' : 'ملخصات تمريض'}
+          content={panicModeConfig.isEnabled ? 'حليب الخير' : 'ملخصات تمريض'}
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta

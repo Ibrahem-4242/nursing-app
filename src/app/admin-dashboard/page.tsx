@@ -1562,7 +1562,7 @@ export default function AdminDashboardPage() {
   const handleTogglePanicMode = async () => {
     const nextState = !panicIsEnabled;
     const confirmMsg = nextState
-      ? '🚨 كبسة يمعلم مشمش:\n\nهل تريد تفعيل وضع التمويه وتحويل المنصة بالكامل لـ "متجر ألبان الخير الطازجة 🥛🇸🇦" فوراً وبدون أي توقف؟\n\nسيختفي أي أثر للتمريض والمحاضرات والكويزات عن جميع الزوار والصفحات!'
+      ? '🚨 كبسة يمعلم مشمش:\n\nهل تريد تفعيل وضع التمويه وتحويل المنصة بالكامل لـ "متجر حليب الخير الطازجة 🥛🇸🇦" فوراً وبدون أي توقف؟\n\nسيختفي أي أثر للتمريض والمحاضرات والكويزات عن جميع الزوار والصفحات!'
       : '🟢 هل أنت متأكد من إيقاف وضع التمويه والعودة لمنصة ملخصات تمريض الطبيعية؟';
 
     if (!confirm(confirmMsg)) return;
@@ -3287,7 +3287,7 @@ export default function AdminDashboardPage() {
                   ? 'bg-gradient-to-r from-emerald-600 via-green-600 to-rose-600 text-white border-emerald-400 animate-pulse ring-2 ring-emerald-400/50'
                   : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-900/30'
               }`}
-              title="كبسة يمعلم مشمش: تحويل المنصة فوراً لمتجر ألبان الخير السعودي"
+              title="كبسة يمعلم مشمش: تحويل المنصة فوراً لمتجر حليب الخير السعودي"
             >
               {isTogglingPanic ? (
                 <>
@@ -3297,7 +3297,7 @@ export default function AdminDashboardPage() {
               ) : panicIsEnabled ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                  <span>🟢 وضع التمويه شغال الآن (متجر الألبان) - اضغط للإلغاء والعودة لمنصة التمريض 🥛</span>
+                  <span>🟢 وضع التمويه شغال الآن (متجر حليب الخير) - اضغط للإلغاء والعودة لمنصة التمريض 🥛</span>
                 </>
               ) : (
                 <>
@@ -3361,14 +3361,14 @@ export default function AdminDashboardPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-black text-emerald-300">
-                    وضع التمويه والطوارئ مفعّل حالياً (متجر ألبان الخير 🇸🇦)
+                    وضع التمويه والطوارئ مفعّل حالياً (متجر حليب الخير 🇸🇦)
                   </h3>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black animate-pulse">
                     مباشر للزوار الآن
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  جميع الزوار والصفحات العامة تشاهد الآن متجر ألبان سعودي طبيعي 100% بكافة منتجاته وسلته بدون أي أثر لمحتوى التمريض. لوحة التحكم هذه متاحة لك فقط.
+                  جميع الزوار والصفحات العامة تشاهد الآن متجر ألبان وحليب سعودي طبيعي 100% بكافة منتجاته وسلته بدون أي أثر لمحتوى التمريض. لوحة التحكم هذه متاحة لك فقط.
                 </p>
               </div>
             </div>
