@@ -23,9 +23,10 @@ export const viewport: Viewport = {
 
 import { CmsService } from '@/lib/cms-db';
 import { ACADEMIC_YEARS } from '@/lib/mock-data';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import MaintenanceWrapper from '@/components/MaintenanceWrapper';
 import CamouflageWrapper from '@/components/CamouflageWrapper';
+import AlKhairDairyStore from '@/components/AlKhairDairyStore';
 import { MaintenanceConfig, PanicModeConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
 
@@ -117,6 +118,7 @@ import GlobalSearchModal from '@/components/GlobalSearchModal';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function RootLayout({
   children,
@@ -139,6 +141,11 @@ export default async function RootLayout({
   const isAdmin =
     cookieStore.get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
+  const panicCookie = cookieStore.get('nursing_panic_mode')?.value;
+
+  const headersList = headers();
+  const pathname = headersList.get('x-pathname') || '';
+  const isAdminPath = pathname.startsWith('/admin-dashboard') || pathname.startsWith('/api/admin');
 
   try {
     const [liveLectures, quizzesList, allSubjects, fetchedMaintenance, fetchedPanicMode] = await Promise.all([
@@ -154,6 +161,11 @@ export default async function RootLayout({
     }
     if (fetchedPanicMode) {
       panicModeConfig = fetchedPanicMode;
+    }
+    if (panicCookie === 'true') {
+      panicModeConfig = { ...panicModeConfig, isEnabled: true };
+    } else if (panicCookie === 'false' && !fetchedPanicMode?.isEnabled) {
+      panicModeConfig = { ...panicModeConfig, isEnabled: false };
     }
 
     const subjectYearMap = new Map<string, string>();
@@ -220,21 +232,25 @@ export default async function RootLayout({
       </head>
       <body className="font-cairo min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white transition-colors duration-200">
         <CamouflageWrapper panicMode={panicModeConfig} isAdmin={isAdmin}>
-          <StudentAuthProvider>
-            <BookmarksProvider>
-              <StudentAuthModal />
-              <GlobalSearchModal />
-              <PWAInstallBanner />
-              <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
-                <AnnouncementBar />
-                <Navbar activeYears={activeYears} />
-                <main className="flex-1">{children}</main>
-                <Footer activeYears={activeYears} />
-              </MaintenanceWrapper>
-              <VisitorTracker />
-              <Analytics />
-            </BookmarksProvider>
-          </StudentAuthProvider>
+          {panicModeConfig.isEnabled && !isAdminPath ? (
+            <AlKhairDairyStore isAdmin={isAdmin} />
+          ) : (
+            <StudentAuthProvider>
+              <BookmarksProvider>
+                <StudentAuthModal />
+                <GlobalSearchModal />
+                <PWAInstallBanner />
+                <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
+                  <AnnouncementBar />
+                  <Navbar activeYears={activeYears} />
+                  <main className="flex-1">{children}</main>
+                  <Footer activeYears={activeYears} />
+                </MaintenanceWrapper>
+                <VisitorTracker />
+                <Analytics />
+              </BookmarksProvider>
+            </StudentAuthProvider>
+          )}
         </CamouflageWrapper>
       </body>
     </html>

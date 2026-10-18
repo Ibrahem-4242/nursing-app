@@ -50,12 +50,12 @@ export default function Footer({
           <div>
             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-              السنوات الدراسية
+              <span>السنوات الدراسية</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-slate-400">
+            <ul className="space-y-2.5 text-xs text-slate-400 p-0 pr-0 m-0 list-none">
               {activeYears.map((yr) => (
                 <li key={yr.id}>
-                  <Link href={`/year/${yr.id}`} className="hover:text-teal-400 transition font-bold">
+                  <Link href={`/year/${yr.id}`} className="hover:text-teal-400 transition font-bold block text-slate-300">
                     {yr.title}
                   </Link>
                 </li>
@@ -67,26 +67,26 @@ export default function Footer({
           <div>
             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-              السياسات والمعايير
+              <span>السياسات والمعايير</span>
             </h4>
-            <ul className="space-y-2.5 text-xs text-slate-400">
+            <ul className="space-y-2.5 text-xs text-slate-400 p-0 pr-0 m-0 list-none">
               <li>
-                <Link href="/privacy-policy" className="hover:text-teal-400 transition">
+                <Link href="/privacy-policy" className="hover:text-teal-400 transition block">
                   سياسة الخصوصية (Privacy Policy)
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-teal-400 transition">
+                <Link href="/terms" className="hover:text-teal-400 transition block">
                   شروط الاستخدام والأمانة العلمية (Terms)
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-teal-400 transition">
+                <Link href="/about" className="hover:text-teal-400 transition block">
                   من نحن والرؤية التعليمية (About Us)
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-teal-400 transition">
+                <Link href="/contact" className="hover:text-teal-400 transition block">
                   اتصل بنا والدعم (Contact)
                 </Link>
               </li>

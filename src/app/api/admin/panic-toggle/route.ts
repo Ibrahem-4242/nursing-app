@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       revalidatePath('/', 'layout');
     } catch {}
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       isEnabled: result.isEnabled,
       activatedAt: result.activatedAt,
@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
         ? '🚨 تم تفعيل وضع التمويه بنجاح! تحولت المنصة الآن فوراً لمتجر ألبان الخير 🥛🇸🇦'
         : '🟢 تم إيقاف وضع التمويه! عادت المنصة لطبيعتها كمنصة ملخصات تمريض 🩺',
     });
+
+    response.cookies.set('nursing_panic_mode', result.isEnabled ? 'true' : 'false', {
+      path: '/',
+      maxAge: 31536000,
+      sameSite: 'lax',
+    });
+
+    return response;
   } catch (err: any) {
     return NextResponse.json(
       { success: false, message: 'حدث خطأ في الخادم: ' + (err?.message || 'خطأ غير معروف') },

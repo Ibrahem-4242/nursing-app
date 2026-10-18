@@ -375,6 +375,12 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         ...(existing.shakibRakibConfig || {}),
         ...(store.shakibRakibConfig || {}),
       };
+
+      if (store.panicMode !== undefined) {
+        // preserve incoming panicMode setting
+      } else if (existing.panicMode) {
+        store.panicMode = existing.panicMode;
+      }
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -606,6 +612,9 @@ function initMemoryStore(): CmsStore {
     if (!loadedStore.shakibRakibConfig) {
       loadedStore.shakibRakibConfig = DEFAULT_SHAKIB_RAKIB_CONFIG;
     }
+    if (!loadedStore.panicMode) {
+      loadedStore.panicMode = { isEnabled: false };
+    }
     memoryStore = maskRawGithubUrls(loadedStore);
     return memoryStore;
   }
@@ -614,6 +623,7 @@ function initMemoryStore(): CmsStore {
       announcement: DEFAULT_ANNOUNCEMENT,
       maintenance: DEFAULT_MAINTENANCE,
       shakibRakibConfig: DEFAULT_SHAKIB_RAKIB_CONFIG,
+      panicMode: { isEnabled: false },
       lectures: [],
       deletedLectureIds: [],
       subjects: MOCK_SUBJECTS.filter((s) => s.id !== 'fundamentals'),
@@ -790,6 +800,16 @@ async function getFreshStore(): Promise<CmsStore> {
       store.shakibRakibConfig = DEFAULT_SHAKIB_RAKIB_CONFIG;
     }
 
+    if (cloudStore.panicMode) {
+      store.panicMode = {
+        isEnabled: Boolean(cloudStore.panicMode.isEnabled),
+        activatedAt: cloudStore.panicMode.activatedAt,
+        deactivatedAt: cloudStore.panicMode.deactivatedAt,
+      };
+    } else if (!store.panicMode) {
+      store.panicMode = { isEnabled: false };
+    }
+
     store = maskRawGithubUrls(store);
     memoryStore = store;
 
@@ -938,7 +958,19 @@ export const CmsService = {
     };
     store.panicMode = updated;
     memoryStore = store;
-    persistStore(store, customToken);
+
+    try {
+      const candidates = [
+        path.join(process.cwd(), 'data', 'cms-store.json'),
+        getStoreFilePath(),
+      ];
+      for (const p of candidates) {
+        const d = path.dirname(p);
+        if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+        fs.writeFileSync(p, JSON.stringify(store, null, 2), 'utf-8');
+      }
+    } catch {}
+
     await syncToCloud(store, customToken);
     return {
       success: true,
