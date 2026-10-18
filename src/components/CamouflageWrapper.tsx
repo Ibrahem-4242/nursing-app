@@ -35,11 +35,14 @@ export default function CamouflageWrapper({
     setCurrentPanicMode(panicMode);
   }, [panicMode]);
 
-  // Live real-time instant switch: poll every 2.5 seconds with zero-cache
+  // Live real-time instant switch: 1-second pulse interval + BroadcastChannel for 0ms same-browser sync
   useEffect(() => {
     let isMounted = true;
+    let isChecking = false;
 
     const checkPanicStatus = async () => {
+      if (isChecking) return;
+      isChecking = true;
       try {
         const res = await fetch(`/api/panic-status?t=${Date.now()}`, {
           cache: 'no-store',
@@ -93,12 +96,17 @@ export default function CamouflageWrapper({
             }
           }
         }
-      } catch {}
+      } catch {
+        // network error / ignore
+      } finally {
+        isChecking = false;
+      }
     };
 
-    // Check immediately on mount and on visibility change
+    // 1. Check immediately on mount
     checkPanicStatus();
 
+    // 2. Check on visibility change (when tab gains focus)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkPanicStatus();
@@ -106,11 +114,30 @@ export default function CamouflageWrapper({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Fast pulse interval: 2.5 seconds
-    const interval = setInterval(checkPanicStatus, 2500);
+    // 3. Ultra-fast BroadcastChannel for 0ms instant trigger across tabs on the same device
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('nursing_panic_channel');
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'PANIC_TOGGLED') {
+            checkPanicStatus();
+          }
+        };
+      } catch {}
+    }
+
+    // 4. Fast 1-second pulse interval for all devices and external users
+    const interval = setInterval(checkPanicStatus, 1000);
+
     return () => {
       isMounted = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        try {
+          channel.close();
+        } catch {}
+      }
       clearInterval(interval);
     };
   }, []);

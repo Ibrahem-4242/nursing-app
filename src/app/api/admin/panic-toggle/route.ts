@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       isEnabled: result.isEnabled,
       activatedAt: result.activatedAt,
       message: result.isEnabled
-        ? '🚨 تم تفعيل وضع التمويه بنجاح! تحولت المنصة الآن فوراً لمتجر ألبان الخير 🥛🇸🇦'
+        ? '🚨 تم تفعيل وضع التمويه بنجاح! تحولت المنصة الآن فوراً لمتجر حليب الخير 🥛🇸🇦'
         : '🟢 تم إيقاف وضع التمويه! عادت المنصة لطبيعتها كمنصة ملخصات تمريض 🩺',
     });
 

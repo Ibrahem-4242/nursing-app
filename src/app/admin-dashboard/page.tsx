@@ -1577,6 +1577,13 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success) {
         setPanicIsEnabled(data.isEnabled);
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const channel = new BroadcastChannel('nursing_panic_channel');
+            channel.postMessage({ type: 'PANIC_TOGGLED', isEnabled: data.isEnabled });
+            channel.close();
+          }
+        } catch {}
         alert(data.message || (data.isEnabled ? '🚨 تم تفعيل وضع التمويه بنجاح!' : '🟢 تم إيقاف وضع التمويه بنجاح!'));
       } else {
         alert(data.message || 'فشل في تغيير وضع التمويه');
