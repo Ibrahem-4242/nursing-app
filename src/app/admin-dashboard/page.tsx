@@ -50,6 +50,11 @@ import {
   Tag,
   Percent,
   Copy,
+  DollarSign,
+  TrendingUp,
+  Download,
+  Filter,
+  Calendar,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
@@ -318,7 +323,7 @@ export default function AdminDashboardPage() {
   const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
   const [lectureGrantSearch, setLectureGrantSearch] = useState('');
 
-  // Shakib Rakib Bundle State
+  // Shakib Rakib Bundle & Financial Management State
   const [shakibPrice, setShakibPrice] = useState<number>(10);
   const [shakibIsEnabled, setShakibIsEnabled] = useState<boolean>(true);
   const [shakibMonthLabel, setShakibMonthLabel] = useState<string>('اشتراك الشهر الحالي (شامل كل المواد)');
@@ -326,6 +331,9 @@ export default function AdminDashboardPage() {
   const [shakibFeedback, setShakibFeedback] = useState<string | null>(null);
   const [shakibStudentSearch, setShakibStudentSearch] = useState('');
   const [isGrantingShakib, setIsGrantingShakib] = useState(false);
+  const [financialPeriod, setFinancialPeriod] = useState<'all' | 'this_month' | 'last_month' | 'today'>('this_month');
+  const [subscribersFilter, setSubscribersFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
+  const [subscriberSearchQuery, setSubscriberSearchQuery] = useState<string>('');
 
   // Promo Coupons State
   const [coupons, setCoupons] = useState<PromoCoupon[]>([]);
@@ -568,6 +576,7 @@ export default function AdminDashboardPage() {
   const handleGrantShakib = async (studentId: string, days = 30) => {
     setIsGrantingShakib(true);
     try {
+      const studentObj = students.find((s) => s.id === studentId || s.phone === studentId);
       const res = await fetch('/api/admin/students/shakib-rakib', {
         method: 'POST',
         headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
@@ -575,7 +584,7 @@ export default function AdminDashboardPage() {
           studentId,
           action: 'grant',
           days,
-          yearId: '1',
+          yearId: studentObj?.yearId || '1',
           monthLabel: shakibMonthLabel,
         }),
       });
@@ -594,7 +603,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleRevokeShakib = async (studentId: string) => {
-    if (!confirm('هل أنت متأكد من رغبتك في إلغاء باقة شاكب راكب لهذا الطالب؟')) return;
+    if (!confirm('هل أنت متأكد من رغبتك في إيقاف باقة شاكب راكب لهذا الطالب؟ سيتم تعليق وصوله فوراً.')) return;
     setIsGrantingShakib(true);
     try {
       const res = await fetch('/api/admin/students/shakib-rakib', {
@@ -607,16 +616,84 @@ export default function AdminDashboardPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message || 'تم إلغاء الاشتراك بنجاح ✅');
+        alert(data.message || 'تم إيقاف الاشتراك بنجاح ⏹️');
         loadStudents();
       } else {
-        alert(data.message || 'تعذر إلغاء الاشتراك');
+        alert(data.message || 'تعذر إيقاف الاشتراك');
       }
     } catch (err: any) {
       alert('خطأ في الاتصال: ' + err?.message);
     } finally {
       setIsGrantingShakib(false);
     }
+  };
+
+  const getWhatsAppReminderUrl = (student: StudentUser) => {
+    const sub = student.shakibRakibSubscription;
+    const nowMs = Date.now();
+    const expiryMs = sub?.expiresAt ? new Date(sub.expiresAt).getTime() : 0;
+    const daysLeft = Math.ceil((expiryMs - nowMs) / (1000 * 60 * 60 * 24));
+
+    let cleanPhone = (student.phone || '').replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '2' + cleanPhone;
+    } else if (!cleanPhone.startsWith('20') && cleanPhone.length === 10) {
+      cleanPhone = '20' + cleanPhone;
+    }
+
+    let messageText = '';
+    if (sub?.isActive && daysLeft > 0) {
+      messageText = `أهلاً يا دكتور ${student.name} 🩺\n\nنود تذكيرك بأن اشتراك باقة شاكب راكب في منصة ملخصات تمريض يوشك على الانتهاء خلال ${daysLeft} ${daysLeft === 1 ? 'يوم' : 'أيام'} (ينتهي في ${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}).\n\nيمكنك تجديد اشتراكك للشهر الجديد لتستمر في الوصول الفوري لكافة المحاضرات والشروحات والخرائط الذهنية وبنوك الأسئلة لجميع مواد سنتك الدراسية 🚀.\n\nمنصة ملخصات تمريض ترحب بك دائماً ✨`;
+    } else {
+      messageText = `أهلاً يا دكتور ${student.name} 🩺\n\nنود إعلامك بأن اشتراك باقة شاكب راكب في منصة ملخصات تمريض قد انتهى.\n\nيمكنك تجديد اشتراكك الآن لتستعيد الوصول الفوري لكافة المحاضرات والشروحات والخرائط الذهنية والكويزات لجميع المواد 🚀.\n\nمنصة ملخصات تمريض ترحب بك دائماً ✨`;
+    }
+
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText)}`;
+  };
+
+  const exportFinancialCSV = (targetOrders: PurchaseOrder[], periodLabel: string) => {
+    const headers = [
+      'معرف العملية (Order ID)',
+      'اسم الطالب',
+      'رقم هاتف الطالب',
+      'الجامعة',
+      'نوع الخدمة',
+      'المحاضرة أو الباقة',
+      'المبلغ المحصل (ج.م)',
+      'السعر الأصلي (ج.م)',
+      'كود الخصم',
+      'قيمة الخصم',
+      'رقم المحفظة المحول منها',
+      'رقم التواصل (واتساب)',
+      'تاريخ وتوقيت العملية',
+    ];
+
+    const rows = targetOrders.map((o) => [
+      `"${o.id}"`,
+      `"${(o.studentName || '').replace(/"/g, '""')}"`,
+      `"${o.studentPhone || ''}"`,
+      `"${(o.studentUniversity || '').replace(/"/g, '""')}"`,
+      o.orderType === 'shakib_rakib' ? 'باقة شاكب راكب الشهرية' : 'محاضرة فردية',
+      `"${(o.orderType === 'shakib_rakib' ? (o.monthLabel || 'اشتراك شهري شامل') : (o.lectureTitle || '')).replace(/"/g, '""')}"`,
+      Number(o.price) || 0,
+      Number(o.originalPrice) || Number(o.price) || 0,
+      o.couponCode || 'بدون كوبون',
+      Number(o.discountAmount) || 0,
+      `"${o.senderPhone || ''}"`,
+      `"${o.contactPhone || ''}"`,
+      `"${new Date(o.createdAt).toLocaleString('ar-EG')}"`,
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `financial-report-${periodLabel}-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const loadCoupons = async () => {
@@ -2870,6 +2947,109 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // --- FINANCIAL & SUBSCRIPTION CALCULATIONS (100% Mathematically Accurate) ---
+  const approvedOrders = orders.filter((o) => o.status === 'approved');
+
+  // Time boundaries
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
+
+  // 1. This Month Revenue (أرباح هذا الشهر)
+  const thisMonthOrders = approvedOrders.filter((o) => {
+    const d = new Date(o.createdAt);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+  const thisMonthRevenue = thisMonthOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const thisMonthLecturesRevenue = thisMonthOrders
+    .filter((o) => o.orderType !== 'shakib_rakib')
+    .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const thisMonthShakibRevenue = thisMonthOrders
+    .filter((o) => o.orderType === 'shakib_rakib')
+    .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+
+  // 2. Active Shakib Rakib Subscribers (مشتركو باقة شاكب راكب النشطون)
+  const activeSubscribersList = students.filter(
+    (s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()
+  );
+  const activeSubscribersCount = activeSubscribersList.length;
+
+  // 3. Today's Sales (مبيعات اليوم)
+  const todayOrders = approvedOrders.filter((o) => {
+    const d = new Date(o.createdAt);
+    return (
+      d.getFullYear() === currentYear &&
+      d.getMonth() === currentMonth &&
+      d.getDate() === currentDate
+    );
+  });
+  const todayRevenue = todayOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const todayOrdersCount = todayOrders.length;
+
+  // 4. Expiring Soon (اشتراكات تنتهي قريباً - خلال 3 أيام)
+  const expiringSoonList = students.filter((s) => {
+    if (!s.shakibRakibSubscription?.isActive) return false;
+    const expiry = new Date(s.shakibRakibSubscription.expiresAt).getTime();
+    const diffDays = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 3;
+  });
+  const expiringSoonCount = expiringSoonList.length;
+
+  // Period filtering for Revenue & Subscriptions tab
+  const getFilteredOrdersByPeriod = (period: 'all' | 'this_month' | 'last_month' | 'today') => {
+    if (period === 'all') return approvedOrders;
+    if (period === 'this_month') return thisMonthOrders;
+    if (period === 'today') return todayOrders;
+    if (period === 'last_month') {
+      const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      return approvedOrders.filter((o) => {
+        const d = new Date(o.createdAt);
+        return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+      });
+    }
+    return approvedOrders;
+  };
+
+  const periodFilteredOrders = getFilteredOrdersByPeriod(financialPeriod);
+  const periodTotalRevenue = periodFilteredOrders.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const periodLectureRevenue = periodFilteredOrders
+    .filter((o) => o.orderType !== 'shakib_rakib')
+    .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const periodShakibRevenue = periodFilteredOrders
+    .filter((o) => o.orderType === 'shakib_rakib')
+    .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+
+  // All subscribers with a record
+  const allSubscribersWithRecord = students.filter((s) => s.shakibRakibSubscription);
+  const filteredSubscribers = allSubscribersWithRecord.filter((s) => {
+    const sub = s.shakibRakibSubscription!;
+    const nowMs = Date.now();
+    const expiryMs = new Date(sub.expiresAt).getTime();
+    const isActive = sub.isActive && expiryMs > nowMs;
+    const daysLeft = Math.ceil((expiryMs - nowMs) / (1000 * 60 * 60 * 24));
+
+    if (subscriberSearchQuery.trim()) {
+      const q = subscriberSearchQuery.toLowerCase().trim();
+      const matchName = (s.name || '').toLowerCase().includes(q);
+      const matchPhone = (s.phone || '').includes(q);
+      const matchUniv = (s.university || '').toLowerCase().includes(q);
+      if (!matchName && !matchPhone && !matchUniv) return false;
+    }
+
+    if (subscribersFilter === 'active') {
+      return isActive && daysLeft > 3;
+    }
+    if (subscribersFilter === 'expiring') {
+      return isActive && daysLeft <= 3 && daysLeft > 0;
+    }
+    if (subscribersFilter === 'expired') {
+      return !isActive || daysLeft <= 0;
+    }
+    return true; // 'all'
+  });
+
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white" dir="rtl">
@@ -3065,6 +3245,100 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
+        {/* Financial Stat Cards (المؤشرات المالية والاشتراكات في قمة اللوحة) */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" dir="rtl">
+          {/* 1. أرباح هذا الشهر */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/30 dark:border-emerald-500/20 shadow-sm flex items-center gap-4 relative overflow-hidden group hover:border-emerald-500 transition">
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  {thisMonthRevenue.toLocaleString('ar-EG')}
+                </span>
+                <span className="text-xs font-bold text-slate-500">ج.م</span>
+              </div>
+              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                💵 أرباح هذا الشهر ({now.toLocaleDateString('ar-EG', { month: 'long' })})
+              </span>
+              <span className="block text-[11px] text-slate-400 mt-0.5 truncate">
+                محاضرات: {thisMonthLecturesRevenue} ج.م • شاكب راكب: {thisMonthShakibRevenue} ج.م
+              </span>
+            </div>
+          </div>
+
+          {/* 2. مشتركو باقة شاكب راكب النشطون */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-500/30 dark:border-amber-500/20 shadow-sm flex items-center gap-4 relative overflow-hidden group hover:border-amber-500 transition">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+              <Crown className="w-6 h-6 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                  {activeSubscribersCount}
+                </span>
+                <span className="text-xs font-bold text-slate-500">مشترك</span>
+              </div>
+              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                🚀 مشتركو باقة شاكب راكب النشطون
+              </span>
+              <span className="block text-[11px] text-slate-400 mt-0.5 truncate">
+                اشتراكات شهرية سارية حالياً
+              </span>
+            </div>
+          </div>
+
+          {/* 3. مبيعات اليوم */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-sky-500/30 dark:border-sky-500/20 shadow-sm flex items-center gap-4 relative overflow-hidden group hover:border-sky-500 transition">
+            <div className="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+              <TrendingUp className="w-6 h-6 text-sky-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-sky-600 dark:text-sky-400 font-mono">
+                  {todayRevenue.toLocaleString('ar-EG')}
+                </span>
+                <span className="text-xs font-bold text-slate-500">ج.م</span>
+              </div>
+              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                📈 مبيعات اليوم (آخر 24 ساعة)
+              </span>
+              <span className="block text-[11px] text-slate-400 mt-0.5 truncate">
+                {todayOrdersCount} {todayOrdersCount === 1 ? 'معاملة معتمدة' : 'معاملات معتمدة'} اليوم
+              </span>
+            </div>
+          </div>
+
+          {/* 4. اشتراكات تنتهي قريباً */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-rose-500/30 dark:border-rose-500/20 shadow-sm flex items-center gap-4 relative overflow-hidden group hover:border-rose-500 transition">
+            <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+              <Clock className="w-6 h-6 text-rose-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-rose-600 dark:text-rose-400 font-mono">
+                  {expiringSoonCount}
+                </span>
+                <span className="text-xs font-bold text-slate-500">طالب</span>
+              </div>
+              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                ⏳ اشتراكات تنتهي قريباً (خلال 3 أيام)
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('shakibRakib');
+                  setSubscribersFilter('expiring');
+                }}
+                className="text-[11px] text-rose-600 dark:text-rose-400 font-bold hover:underline mt-0.5 inline-flex items-center gap-0.5"
+              >
+                <span>تذكيرهم عبر واتساب ←</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* 2. Tabs Navigation */}
         <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <button
@@ -3155,6 +3429,7 @@ export default function AdminDashboardPage() {
               setActiveTab('shakibRakib');
               loadShakibConfig();
               loadStudents();
+              loadOrders();
             }}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
               activeTab === 'shakibRakib'
@@ -3163,10 +3438,10 @@ export default function AdminDashboardPage() {
             }`}
           >
             <Crown className="w-4 h-4 text-yellow-400" />
-            <span>باقة شاكب راكب 🚀 ({shakibPrice} ج.م)</span>
-            {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length > 0 && (
-              <span className="bg-amber-900 text-amber-200 text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length} مشترك
+            <span>الإدارة المالية واشتراكات شاكب راكب 💰 ({activeSubscribersCount})</span>
+            {expiringSoonCount > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse">
+                {expiringSoonCount} ينتهي قريباً
               </span>
             )}
           </button>
@@ -7638,7 +7913,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB: باقة شاكب راكب الشهرية الشاملة */}
+        {/* TAB: الإدارة المالية واشتراكات باقة شاكب راكب الشهرية */}
         {activeTab === 'shakibRakib' && (
           <div className="space-y-8" dir="rtl">
             {/* Header Card */}
@@ -7646,33 +7921,136 @@ export default function AdminDashboardPage() {
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-amber-100 text-xs font-black border border-white/30">
                   <Crown className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
-                  <span>نظام الاشتراك الشهري الشامل</span>
+                  <span>لوحة الإدارة المالية والاشتراكات الشهرية</span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black">
-                  باقة شاكب راكب الشهرية 🚀
+                  الإدارة المالية واشتراكات باقة شاكب راكب 💰
                 </h3>
                 <p className="text-xs sm:text-sm text-amber-100 max-w-2xl leading-relaxed">
-                  تتيح للطلاب فتح جميع مواد ومحاضرات السنة الدراسية بالكامل لهذا الشهر دفعة واحدة بسعر شهري موحد، مع ظهور بانر ذهبي مميز في الصفحة الرئيسية وصفحات السنوات.
+                  متابعة أرباح المنصة المعتمدة بدقة رياضية 100%، تصدير التقارير المحاسبية، وإدارة وتجديد اشتراكات الطلاب الشهرية مع إمكانية التذكير الفوري عبر واتساب.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
-                  <span className="text-[11px] font-bold text-amber-100 block mb-0.5">المشتركين النشطين</span>
-                  <span className="text-3xl font-black text-white">
-                    {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[10px] font-bold text-amber-100 block mb-0.5">أرباح هذا الشهر</span>
+                  <span className="text-xl font-black text-white font-mono">
+                    {thisMonthRevenue.toLocaleString('ar-EG')} <span className="text-[10px] text-amber-200">ج.م</span>
                   </span>
                 </div>
-                <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center">
-                  <span className="text-[11px] font-bold text-amber-100 block mb-0.5">السعر الشهري</span>
-                  <span className="text-3xl font-black text-yellow-300">
-                    {shakibPrice} <span className="text-xs font-bold text-white">ج.م</span>
+                <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[10px] font-bold text-amber-100 block mb-0.5">المشتركون النشطون</span>
+                  <span className="text-xl font-black text-white font-mono">
+                    {activeSubscribersCount}
+                  </span>
+                </div>
+                <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[10px] font-bold text-amber-100 block mb-0.5">تنتهي خلال 3 أيام</span>
+                  <span className="text-xl font-black text-rose-200 font-mono">
+                    {expiringSoonCount}
+                  </span>
+                </div>
+                <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 text-center">
+                  <span className="text-[10px] font-bold text-amber-100 block mb-0.5">سعر الباقة</span>
+                  <span className="text-xl font-black text-yellow-300 font-mono">
+                    {shakibPrice} <span className="text-[10px] text-white">ج.م</span>
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Settings Form Card */}
+            {/* 1. Financial Analytics & Accounting Export Section */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-4">
+                <div>
+                  <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    <span>المحفظة المالية والتقارير المحاسبية (دقة حسابية 100%)</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    احصائيات مالية دقيقة مبنية على سجل الطلبات والتحويلات المعتمدة (Approved Orders) فقط، مع ميزة التصدير لملف Excel بضغطة واحدة.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => exportFinancialCSV(periodFilteredOrders, financialPeriod)}
+                  disabled={periodFilteredOrders.length === 0}
+                  className="py-2.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2 disabled:opacity-50 self-start md:self-auto"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>تصدير تقرير مالي (CSV / Excel) 📥</span>
+                </button>
+              </div>
+
+              {/* Period Filter Selector */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5 ml-2">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <span>الفترة الزمنية:</span>
+                </span>
+                {[
+                  { key: 'this_month', label: `هذا الشهر (${thisMonthOrders.length})` },
+                  { key: 'last_month', label: `الشهر الماضي (${getFilteredOrdersByPeriod('last_month').length})` },
+                  { key: 'today', label: `اليوم (${todayOrders.length})` },
+                  { key: 'all', label: `كل الأوقات (${approvedOrders.length})` },
+                ].map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setFinancialPeriod(p.key as any)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                      financialPeriod === p.key
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Metric Breakdown Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60">
+                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block mb-1">
+                    💵 إجمالي الإيرادات المحصلة
+                  </span>
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    {periodTotalRevenue.toLocaleString('ar-EG')} <span className="text-xs">ج.م</span>
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800/60">
+                  <span className="text-[11px] font-bold text-teal-800 dark:text-teal-300 block mb-1">
+                    📚 مبيعات المحاضرات الفردية
+                  </span>
+                  <span className="text-2xl font-black text-teal-600 dark:text-teal-400 font-mono">
+                    {periodLectureRevenue.toLocaleString('ar-EG')} <span className="text-xs">ج.م</span>
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60">
+                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 block mb-1">
+                    🚀 إيرادات باقة شاكب راكب
+                  </span>
+                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                    {periodShakibRevenue.toLocaleString('ar-EG')} <span className="text-xs">ج.م</span>
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    🧾 عدد العمليات المعتمدة
+                  </span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+                    {periodFilteredOrders.length} <span className="text-xs font-bold text-slate-500">عملية</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Settings Form Card */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
@@ -7753,14 +8131,14 @@ export default function AdminDashboardPage() {
               </form>
             </div>
 
-            {/* Quick Grant Subscription Box */}
+            {/* 3. Quick Grant Subscription Box */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-600" />
-                <span>تفعيل باقة شاكب راكب لطالب بالاسم أو رقم الهاتف مباشرة ⚡️</span>
+                <span>تفعيل أو تمديد باقة شاكب راكب لطالب بالاسم أو رقم الهاتف مباشرة ⚡️</span>
               </h4>
               <p className="text-xs text-slate-500">
-                ابحث عن أي طالب مسجل وقم بتفعيل أو تمديد باقة شاكب راكب له لمدة 30 يوماً بضغطة واحدة دون الحاجة لتحويله إيصال.
+                ابحث عن أي طالب مسجل وقم بتفعيل أو تمديد باقة شاكب راكب له لمدة 30 يوماً بضغطة واحدة دون الحاجة لتحويله إيصال يدوي.
               </p>
 
               <div className="max-w-md">
@@ -7769,7 +8147,7 @@ export default function AdminDashboardPage() {
                   value={shakibStudentSearch}
                   onChange={(e) => setShakibStudentSearch(e.target.value)}
                   placeholder="ابحث باسم الطالب أو رقم الهاتف..."
-                  className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                 />
               </div>
 
@@ -7778,8 +8156,8 @@ export default function AdminDashboardPage() {
                   {students
                     .filter(
                       (s) =>
-                        s.name.toLowerCase().includes(shakibStudentSearch.toLowerCase()) ||
-                        s.phone.includes(shakibStudentSearch)
+                        (s.name || '').toLowerCase().includes(shakibStudentSearch.toLowerCase()) ||
+                        (s.phone || '').includes(shakibStudentSearch)
                     )
                     .slice(0, 8)
                     .map((s) => {
@@ -7803,7 +8181,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => handleRevokeShakib(s.id)}
                                 className="py-1 px-3 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 text-xs font-bold transition"
                               >
-                                إلغاء الباقة ❌
+                                إيقاف الاشتراك ⏹️
                               </button>
                             ) : null}
 
@@ -7814,7 +8192,7 @@ export default function AdminDashboardPage() {
                               className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition flex items-center gap-1"
                             >
                               <Crown className="w-3.5 h-3.5 text-yellow-200" />
-                              <span>{isActive ? 'تمديد 30 يوم 🚀' : 'تفعيل شاكب راكب 30 يوم 🚀'}</span>
+                              <span>{isActive ? 'تجديد شهر إضافي (30 يوم) 🔄' : 'تفعيل شاكب راكب 30 يوم 🚀'}</span>
                             </button>
                           </div>
                         </div>
@@ -7824,86 +8202,171 @@ export default function AdminDashboardPage() {
               )}
             </div>
 
-            {/* Active Subscribers List Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            {/* 4. Comprehensive Subscribers Table & Renewal Manager */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-4">
                 <div>
-                  <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                     <Users className="w-5 h-5 text-amber-600" />
-                    <span>قائمة المشتركين الحاليين في باقة شاكب راكب 🎓</span>
+                    <span>جدول إدارة وتجديد مشتركي باقة شاكب راكب 🎓</span>
                   </h4>
-                  <p className="text-xs text-slate-500">
-                    الطلاب الذين لديهم اشتراك سارٍ يتيح لهم الوصول الفوري لجميع مواد ومحاضرات هذا الشهر.
+                  <p className="text-xs text-slate-500 mt-1">
+                    متابعة صلاحية باقة كل طالب، فترات الانتهاء، التجديد الفوري لشهر إضافي، والتذكير المباشر عبر واتساب.
                   </p>
                 </div>
 
-                <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-300">
-                  {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length} مشترك نشط
-                </span>
+                {/* Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { key: 'all', label: `الكل (${allSubscribersWithRecord.length})` },
+                    {
+                      key: 'active',
+                      label: `نشط (${activeSubscribersList.filter((s) => Math.ceil((new Date(s.shakibRakibSubscription!.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) > 3).length})`,
+                    },
+                    { key: 'expiring', label: `يوشك على الانتهاء (${expiringSoonCount}) ⏳` },
+                    {
+                      key: 'expired',
+                      label: `منتهية / ملغية (${allSubscribersWithRecord.filter((s) => !s.shakibRakibSubscription?.isActive || new Date(s.shakibRakibSubscription.expiresAt).getTime() <= Date.now()).length}) ⏹️`,
+                    },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setSubscribersFilter(tab.key as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                        subscribersFilter === tab.key
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {students.filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now()).length === 0 ? (
-                <div className="p-8 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+              {/* Search within subscribers */}
+              <div className="max-w-md">
+                <input
+                  type="text"
+                  value={subscriberSearchQuery}
+                  onChange={(e) => setSubscriberSearchQuery(e.target.value)}
+                  placeholder="ابحث في المشتركين بالاسم، الهاتف، أو الجامعة..."
+                  className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              {filteredSubscribers.length === 0 ? (
+                <div className="p-10 text-center space-y-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <Crown className="w-10 h-10 mx-auto text-amber-400/40" />
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا يوجد طلاب مشتركون حالياً في باقة شاكب راكب</p>
-                  <p className="text-xs text-slate-400">عندما يطلب الطالب الاشتراك وتوافق عليه، أو تقوم بتفعيله يدوياً، سيظهر هنا.</p>
+                  <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                    {subscriberSearchQuery.trim()
+                      ? 'لا يوجد طلاب مطابقون لبحثك في هذا الفلتر'
+                      : 'لا توجد سجلات اشتراك في هذه القائمة حالياً'}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    يمكنك تفعيل الباقة لأي طالب من صندوق التفعيل السريع بالأعلى أو اعتماد طلبات الشراء.
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-right text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold">
-                        <th className="py-3 px-3">الطالب</th>
-                        <th className="py-3 px-3">الجامعة</th>
-                        <th className="py-3 px-3">الهاتف</th>
-                        <th className="py-3 px-3">بداية الاشتراك</th>
-                        <th className="py-3 px-3">تاريخ الانتهاء</th>
-                        <th className="py-3 px-3">المتبقي</th>
-                        <th className="py-3 px-3 text-center">الإجراء</th>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold bg-slate-50/50 dark:bg-slate-800/40">
+                        <th className="py-3.5 px-3">الطالب والجامعة</th>
+                        <th className="py-3.5 px-3">رقم الهاتف</th>
+                        <th className="py-3.5 px-3">تاريخ البداية</th>
+                        <th className="py-3.5 px-3">تاريخ الانتهاء</th>
+                        <th className="py-3.5 px-3">حالة الاشتراك والمتبقي</th>
+                        <th className="py-3.5 px-3 text-center">الإجراءات السريعة والتذكير</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {students
-                        .filter((s) => s.shakibRakibSubscription?.isActive && new Date(s.shakibRakibSubscription.expiresAt).getTime() > Date.now())
-                        .map((s) => {
-                          const sub = s.shakibRakibSubscription!;
-                          const daysLeft = Math.max(0, Math.ceil((new Date(sub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-                          return (
-                            <tr key={s.id} className="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition">
-                              <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{s.name}</td>
-                              <td className="py-3 px-3 text-slate-600 dark:text-slate-400">{s.university}</td>
-                              <td className="py-3 px-3 font-mono text-teal-600" dir="ltr">{s.phone}</td>
-                              <td className="py-3 px-3 text-slate-500">{new Date(sub.startDate).toLocaleDateString('ar-EG')}</td>
-                              <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-bold">{new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</td>
-                              <td className="py-3 px-3">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[11px]">
-                                  <Clock className="w-3 h-3" />
-                                  <span>{daysLeft} يوم</span>
+                      {filteredSubscribers.map((s) => {
+                        const sub = s.shakibRakibSubscription!;
+                        const nowMs = Date.now();
+                        const expiryMs = new Date(sub.expiresAt).getTime();
+                        const isActive = sub.isActive && expiryMs > nowMs;
+                        const daysLeft = Math.ceil((expiryMs - nowMs) / (1000 * 60 * 60 * 24));
+                        const isExpiringSoon = isActive && daysLeft <= 3 && daysLeft > 0;
+
+                        return (
+                          <tr key={s.id} className="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition">
+                            <td className="py-3.5 px-3">
+                              <span className="font-bold text-slate-900 dark:text-white block">{s.name}</span>
+                              <span className="text-[11px] text-slate-500 block mt-0.5">{s.university}</span>
+                            </td>
+                            <td className="py-3.5 px-3 font-mono text-teal-600 font-bold" dir="ltr">
+                              {s.phone}
+                            </td>
+                            <td className="py-3.5 px-3 text-slate-500">
+                              {sub.startDate ? new Date(sub.startDate).toLocaleDateString('ar-EG') : '—'}
+                            </td>
+                            <td className="py-3.5 px-3 text-slate-700 dark:text-slate-300 font-bold">
+                              {new Date(sub.expiresAt).toLocaleDateString('ar-EG')}
+                            </td>
+                            <td className="py-3.5 px-3">
+                              {isActive ? (
+                                isExpiringSoon ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-black text-[11px] border border-amber-300 animate-pulse">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>⏳ ينتهي قريباً ({daysLeft} يوم)</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[11px] border border-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>نشط ({daysLeft} يوم متبقٍ)</span>
+                                  </span>
+                                )
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 font-bold text-[11px] border border-rose-300">
+                                  <span>منتهي الصلاحية ⏹️</span>
                                 </span>
-                              </td>
-                              <td className="py-3 px-3 text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    disabled={isGrantingShakib}
-                                    onClick={() => handleGrantShakib(s.id, 30)}
-                                    className="py-1 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-sm transition"
-                                  >
-                                    تمديد شهر 🚀
-                                  </button>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-3 text-center">
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                {/* WhatsApp Reminder Button */}
+                                <a
+                                  href={getWhatsAppReminderUrl(s)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="تذكير الطالب عبر رسالة واتساب مخصصة"
+                                  className="py-1 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] shadow-sm transition flex items-center gap-1"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                  <span>تذكير واتساب 💬</span>
+                                </a>
+
+                                {/* 30-Day Extension / Renewal Button */}
+                                <button
+                                  type="button"
+                                  disabled={isGrantingShakib}
+                                  onClick={() => handleGrantShakib(s.id, 30)}
+                                  title="تمديد الاشتراك 30 يوماً إضافية"
+                                  className="py-1 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-sm transition flex items-center gap-1"
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                  <span>تجديد شهر 🔄</span>
+                                </button>
+
+                                {/* Revoke / Stop Button */}
+                                {isActive ? (
                                   <button
                                     type="button"
                                     disabled={isGrantingShakib}
                                     onClick={() => handleRevokeShakib(s.id)}
+                                    title="إيقاف الاشتراك فوراً"
                                     className="py-1 px-2.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px] transition"
                                   >
-                                    إلغاء ❌
+                                    إيقاف ⏹️
                                   </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

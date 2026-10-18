@@ -28,22 +28,43 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'revoke') {
-      const ok = await CmsService.updateStudentShakibRakib(studentId, null);
-      if (!ok) {
-        return NextResponse.json({ success: false, message: 'تعذر إلغاء اشتراك الطالب' }, { status: 400 });
+      const student = await CmsService.getStudentById(studentId);
+      if (student?.shakibRakibSubscription) {
+        const updatedSub: ShakibRakibSubscription = {
+          ...student.shakibRakibSubscription,
+          isActive: false,
+        };
+        await CmsService.updateStudentShakibRakib(studentId, updatedSub);
+      } else {
+        await CmsService.updateStudentShakibRakib(studentId, null);
       }
-      return NextResponse.json({ success: true, message: 'تم إلغاء باقة شاكب راكب للطالب بنجاح ✅' });
+      return NextResponse.json({ success: true, message: 'تم إيقاف باقة شاكب راكب للطالب بنجاح ⏹️' });
     }
 
-    // Grant or extend
+    // Grant or extend (تمديد أو تفعيل بدون إضاعة الأيام المتبقية)
+    const existingStudent = await CmsService.getStudentById(studentId);
     const now = new Date();
-    const expires = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    let baseTime = now.getTime();
+    let originalStartDate = now.toISOString();
+
+    if (existingStudent?.shakibRakibSubscription?.isActive && existingStudent.shakibRakibSubscription.expiresAt) {
+      const currentExpiry = new Date(existingStudent.shakibRakibSubscription.expiresAt).getTime();
+      // If currently active and expiry is in future, stack new days onto the remaining time
+      if (currentExpiry > now.getTime()) {
+        baseTime = currentExpiry;
+        if (existingStudent.shakibRakibSubscription.startDate) {
+          originalStartDate = existingStudent.shakibRakibSubscription.startDate;
+        }
+      }
+    }
+
+    const expires = new Date(baseTime + days * 24 * 60 * 60 * 1000);
     const sub: ShakibRakibSubscription = {
       isActive: true,
-      yearId,
-      startDate: now.toISOString(),
+      yearId: yearId || existingStudent?.yearId || '1',
+      startDate: originalStartDate,
       expiresAt: expires.toISOString(),
-      monthLabel,
+      monthLabel: monthLabel || existingStudent?.shakibRakibSubscription?.monthLabel || 'اشتراك الشهر الحالي 🚀',
     };
 
     const ok = await CmsService.updateStudentShakibRakib(studentId, sub);
@@ -51,9 +72,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'تعذر تفعيل الاشتراك للطالب' }, { status: 400 });
     }
 
+    const isExtended = baseTime > now.getTime();
     return NextResponse.json({
       success: true,
-      message: `تم تفعيل باقة شاكب راكب للطالب بنجاح لمدة ${days} يوماً! 🚀`,
+      message: isExtended
+        ? `تم تمديد اشتراك باقة شاكب راكب للطالب بنجاح لمدة ${days} يوماً إضافية دون إضاعة رصيده المتبقي! 🚀`
+        : `تم تفعيل باقة شاكب راكب للطالب بنجاح لمدة ${days} يوماً! 🚀`,
       subscription: sub,
     });
   } catch (err: any) {

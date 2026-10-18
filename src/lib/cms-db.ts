@@ -2122,11 +2122,24 @@ export const CmsService = {
     if (student) {
       if (order.orderType === 'shakib_rakib') {
         const now = new Date();
-        const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        let baseTime = now.getTime();
+        let originalStartDate = now.toISOString();
+
+        if (student.shakibRakibSubscription?.isActive && student.shakibRakibSubscription.expiresAt) {
+          const currentExpiry = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+          if (currentExpiry > now.getTime()) {
+            baseTime = currentExpiry;
+            if (student.shakibRakibSubscription.startDate) {
+              originalStartDate = student.shakibRakibSubscription.startDate;
+            }
+          }
+        }
+
+        const expires = new Date(baseTime + 30 * 24 * 60 * 60 * 1000);
         student.shakibRakibSubscription = {
           isActive: true,
-          yearId: order.yearId || '1',
-          startDate: now.toISOString(),
+          yearId: order.yearId || student.yearId || '1',
+          startDate: originalStartDate,
           expiresAt: expires.toISOString(),
           monthLabel: order.monthLabel || store.shakibRakibConfig?.monthLabel || 'باقة شاكب راكب الشهرية 🚀',
         };
