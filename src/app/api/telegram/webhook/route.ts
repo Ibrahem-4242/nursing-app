@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CmsService } from '@/lib/cms-db';
 import { sendDailySummary, sendTelegramMessage } from '@/lib/telegram';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
       // A. Emergency Camouflage: Switch to Dairy Store (كبسة / ألبان)
       if (cbData === 'toggle_panic_on') {
         await CmsService.setPanicMode(true);
+        try {
+          revalidatePath('/', 'layout');
+        } catch {}
         if (targetChatId) {
           const msg = `🚨 <b>تم تفعيل وضع التمويه فوراً بنجاح! 🥛🇸🇦</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -72,6 +76,9 @@ export async function POST(req: NextRequest) {
       // B. Emergency Camouflage: Switch to Nursing Platform (تمريض / ملخصات)
       if (cbData === 'toggle_panic_off') {
         await CmsService.setPanicMode(false);
+        try {
+          revalidatePath('/', 'layout');
+        } catch {}
         if (targetChatId) {
           const msg = `🟢 <b>تم إيقاف وضع التمويه والعودة لمنصة تمريض! 🩺</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -208,6 +215,9 @@ export async function POST(req: NextRequest) {
       }
 
       await CmsService.setPanicMode(true);
+      try {
+        revalidatePath('/', 'layout');
+      } catch {}
       const msg = `🚨 <b>تم تفعيل وضع التمويه فوراً بنجاح! 🥛🇸🇦</b>
 ━━━━━━━━━━━━━━━━━━━━
 🏪 <b>الموقع الآن:</b> متجر حليب الخير للألبان الطازجة
@@ -251,6 +261,9 @@ export async function POST(req: NextRequest) {
       }
 
       await CmsService.setPanicMode(false);
+      try {
+        revalidatePath('/', 'layout');
+      } catch {}
       const msg = `🟢 <b>تم إيقاف وضع التمويه والعودة لمنصة تمريض! 🩺</b>
 ━━━━━━━━━━━━━━━━━━━━
 🎓 <b>الموقع الآن:</b> منصة ملخصات تمريض الشاملة

@@ -175,28 +175,52 @@ async function fetchFromCloudFast(): Promise<PanicModeConfig | null> {
         const data = await res.json();
         const panicFile = data.files?.['panic-state.json'];
 
-        if (panicFile?.content && panicFile.content.trim()) {
-          try {
-            const parsed = JSON.parse(panicFile.content);
-            if (typeof parsed?.isEnabled === 'boolean') {
-              return {
-                isEnabled: parsed.isEnabled,
-                activatedAt: parsed.activatedAt,
-                deactivatedAt: parsed.deactivatedAt,
-              };
-            }
-          } catch {}
+        if (panicFile) {
+          let content = panicFile.content;
+
+          // When GitHub Gist truncates the file or leaves content empty, fetch raw_url directly
+          if ((!content || !content.trim() || panicFile.truncated) && panicFile.raw_url) {
+            try {
+              const rawRes = await fetch(panicFile.raw_url, {
+                cache: 'no-store',
+                headers: {
+                  Authorization: `token ${token}`,
+                  'User-Agent': 'NursingStudyHubApp',
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  Pragma: 'no-cache',
+                },
+              });
+              if (rawRes.ok) {
+                content = await rawRes.text();
+              }
+            } catch {}
+          }
+
+          if (content && content.trim()) {
+            try {
+              const parsed = JSON.parse(content);
+              if (typeof parsed?.isEnabled === 'boolean') {
+                return {
+                  isEnabled: parsed.isEnabled,
+                  activatedAt: parsed.activatedAt,
+                  deactivatedAt: parsed.deactivatedAt,
+                };
+              }
+            } catch {}
+          }
         }
 
-        // Check cms-store.json fallback inside same gist response
-        const cmsFile = data.files?.['cms-store.json'];
-        if (cmsFile?.content && cmsFile.content.trim()) {
-          try {
-            const cmsParsed = JSON.parse(cmsFile.content);
-            if (typeof cmsParsed?.panicMode?.isEnabled === 'boolean') {
-              return cmsParsed.panicMode;
-            }
-          } catch {}
+        // Only fallback to cms-store.json if panic-state.json does not exist in the Gist at all
+        if (!panicFile) {
+          const cmsFile = data.files?.['cms-store.json'];
+          if (cmsFile?.content && cmsFile.content.trim()) {
+            try {
+              const cmsParsed = JSON.parse(cmsFile.content);
+              if (typeof cmsParsed?.panicMode?.isEnabled === 'boolean') {
+                return cmsParsed.panicMode;
+              }
+            } catch {}
+          }
         }
       }
     } catch (apiErr) {

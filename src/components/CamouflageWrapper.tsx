@@ -141,30 +141,50 @@ export default function CamouflageWrapper({
 
         const data = await res.json();
         if (isMounted && data) {
-          const isEnabled = Boolean(data.isEnabled);
-          if (isEnabled) {
+          const isServerEnabled = Boolean(data.isEnabled);
+          if (isServerEnabled) {
             consecutiveFalseCount.current = 0;
             applyPanicState(true, data.panicMode?.activatedAt);
           } else {
-            // Check if server has confirmed deactivation
-            const deactivatedAt = data.panicMode?.deactivatedAt;
-            const activatedAt = data.panicMode?.activatedAt;
+            // Server returned isServerEnabled: false.
+            // Check if this client is currently active in panic mode.
+            const isCurrentlyActive =
+              currentPanicMode?.isEnabled ||
+              (typeof window !== 'undefined' &&
+                localStorage.getItem('nursing_panic_mode_active') === 'true');
+
+            if (!isCurrentlyActive) {
+              // Not active anyway, nothing to do
+              return;
+            }
+
+            // CRITICAL DEFENSE AGAINST 1-SECOND REVERT:
+            // A deactivation is ONLY valid if the server provides an explicit deactivatedAt
+            // timestamp that occurred STRICTLY AFTER this client was activated!
+            const clientActIso =
+              (typeof window !== 'undefined' &&
+                localStorage.getItem('nursing_panic_mode_activated_at')) ||
+              currentPanicMode?.activatedAt;
+            const clientActTime = clientActIso ? new Date(clientActIso).getTime() : 0;
+
+            const serverDeactIso = data.panicMode?.deactivatedAt;
+            const serverDeactTime = serverDeactIso ? new Date(serverDeactIso).getTime() : 0;
+
+            // Strict mathematical verification:
+            // serverDeactTime must be strictly newer than clientActTime
             const isConfirmedDeactivation =
-              deactivatedAt &&
-              (!activatedAt || new Date(deactivatedAt).getTime() >= new Date(activatedAt).getTime());
+              serverDeactTime > 0 &&
+              (!clientActTime || serverDeactTime > clientActTime);
 
             if (isConfirmedDeactivation) {
               applyPanicState(false, undefined, true);
-            } else {
-              consecutiveFalseCount.current += 1;
-              if (consecutiveFalseCount.current >= 2) {
-                applyPanicState(false, undefined, false);
-              }
             }
+            // If NOT confirmed, WE KEEP PANIC MODE LOCKED IN!
+            // Never revert an emergency camouflage session due to stale responses, rate limits, or network drops!
           }
         }
       } catch {
-        // network error / ignore
+        // network error / ignore - never revert on network blips
       } finally {
         isChecking = false;
       }
