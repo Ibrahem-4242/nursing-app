@@ -12,6 +12,14 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json(
+        { success: false, message: 'الخدمة غير متوفرة حالياً' },
+        { status: 503 }
+      );
+    }
+
     const cookieStore = cookies();
     let currentStudentId = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
 

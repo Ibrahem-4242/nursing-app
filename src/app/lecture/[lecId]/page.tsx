@@ -41,6 +41,12 @@ export default async function LecturePage({ params }: LecturePageProps) {
     cookieStore.get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
 
+  // 🛡️ Camouflage Check: If panic mode is active, prevent SSR of lecture content for non-admins
+  const panicMode = await CmsService.getPanicMode();
+  if (panicMode.isEnabled && !isAdmin) {
+    return null;
+  }
+
   const lecture = await CmsService.getLectureById(params.lecId);
 
   if (!lecture || (lecture as any).isLive === false) {

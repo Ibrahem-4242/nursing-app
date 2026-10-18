@@ -35,6 +35,12 @@ export default async function SubjectPage({ params, searchParams }: SubjectPageP
     cookies().get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
 
+  // 🛡️ Camouflage Check
+  const panicMode = await CmsService.getPanicMode();
+  if (panicMode.isEnabled && !isAdmin) {
+    return null;
+  }
+
   const allSubjects = await CmsService.getAllSubjects();
   const liveSubjects = await CmsService.getLiveSubjects();
   const lectures = await CmsService.getLiveLecturesBySubject(params.subId);

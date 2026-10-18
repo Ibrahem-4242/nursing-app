@@ -4,6 +4,11 @@ import { CmsService } from '@/lib/cms-db';
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({ success: true, message: 'تم استلام بلاغك' });
+    }
+
     const body = await req.json();
     const { lectureTitle, subjectTitle, linkUrl, userNote, userPhone, lectureId } = body;
 

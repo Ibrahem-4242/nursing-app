@@ -7,6 +7,18 @@ export const revalidate = 60;
 
 export async function GET() {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json(
+        { success: true, count: 0, index: [] },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          },
+        }
+      );
+    }
+
     const [liveLectures, liveSubjects] = await Promise.all([
       CmsService.getLiveLectures(),
       CmsService.getLiveSubjects(),

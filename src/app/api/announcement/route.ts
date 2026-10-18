@@ -11,6 +11,19 @@ const AUTH_SECRET_VALUE = 'secret_session_5143545638_verified';
 
 export async function GET() {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({
+        success: true,
+        announcement: {
+          text: '',
+          isActive: false,
+          linkText: '',
+          linkUrl: '',
+        },
+      });
+    }
+
     const announcement = await CmsService.getAnnouncement();
     return NextResponse.json(
       { success: true, announcement },

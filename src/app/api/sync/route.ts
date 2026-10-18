@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { DataService } from '@/lib/data-service';
 import { BOT_CONFIG } from '@/lib/mock-data';
+import { CmsService } from '@/lib/cms-db';
 
 export async function GET() {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({ status: 'error', message: 'Not found' }, { status: 404 });
+    }
+
     const syncResult = await DataService.syncWithGoogleSheets();
     return NextResponse.json({
       status: 'success',

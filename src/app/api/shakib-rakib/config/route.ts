@@ -7,6 +7,11 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 });
+    }
+
     const config = await CmsService.getShakibRakibConfig();
     return NextResponse.json({ success: true, config });
   } catch (err: any) {

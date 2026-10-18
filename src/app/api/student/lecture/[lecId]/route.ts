@@ -28,7 +28,16 @@ export async function GET(
     // 1. Admin Access Check
     const isAdmin = cookieStore.get(ADMIN_COOKIE_NAME)?.value === ADMIN_SECRET_VALUE;
 
-    // 2. Student Access Check
+    // 2. Camouflage Security Check
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled && !isAdmin) {
+      return NextResponse.json(
+        { success: false, message: 'المحاضرة غير موجودة' },
+        { status: 404 }
+      );
+    }
+
+    // 3. Student Access Check
     let student: StudentUser | null = null;
     const rawStudentVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
     if (rawStudentVal) {

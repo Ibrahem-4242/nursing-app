@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. ت��مل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -98,7 +98,7 @@
     },
     {
       "id": 12,
-      "front": "What is a carbuncle (الجمرة / الخراج العنقودي)?",
+      "front": "What is a carbuncle (الجمر�� / الخراج العنقودي)?",
       "back": "It is a large suppurative lesion formed by multiple communicating abscess cavities in the subcutaneous tissue.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -163,7 +163,7 @@
       "id": 21,
       "front": "What is an ulcer (قرحة)?",
       "back": "An ulcer is a local defect or breach in the surface of an organ or tissue produced by the sloughing of inflammatory necrotic tissue.",
-      "category": "كروت اس��ذكار",
+      "category": "كروت اس����ذكار",
       "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
     },
     {
@@ -267,7 +267,7 @@
     {
       "id": 36,
       "front": "Through which vascular route do septic emboli travel to cause portal pyemia (قيام الدم البابي)?",
-      "back": "They travel through the portal venous system (الوريد البابي).",
+      "back": "They travel through the portal venous system (الوري�� البابي).",
       "category": "كروت استذكار",
       "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
     },
@@ -280,7 +280,7 @@
     },
     {
       "id": 38,
-      "front": "What characterizes fibrinous inflammation (التهاب ليفين��)?",
+      "front": "What characterizes fibrinous inflammation (التهاب ليفينى)?",
       "back": "It is an acute non-suppurative inflammation where large vascular leaks allow fibrinogen to enter tissue and precipitate as dense fibrin threads.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"

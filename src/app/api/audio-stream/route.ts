@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CmsService } from '@/lib/cms-db';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const cookieStore = cookies();
+    const isAdmin =
+      cookieStore.get('nursing_admin_token')?.value ===
+      'secret_session_5143545638_verified';
+
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled && !isAdmin) {
+      return new NextResponse('Audio stream not found', { status: 404 });
+    }
+
     const { searchParams } = new URL(req.url);
     const driveId = searchParams.get('id');
     const rawUrl = searchParams.get('url');

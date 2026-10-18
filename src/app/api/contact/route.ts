@@ -4,6 +4,14 @@ import { CmsService } from '@/lib/cms-db';
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({
+        success: true,
+        message: 'تم استلام استفساركم وسيتواصل معكم فريق خدمة عملاء ألبان الخير.',
+      });
+    }
+
     const body = await req.json();
     const { name, phone, year, type, message } = body;
 

@@ -8,22 +8,27 @@ export async function GET(
   { params }: { params: { fileId: string } }
 ) {
   try {
+    const cookieStore = cookies();
+    const isAdmin =
+      cookieStore.get('nursing_admin_token')?.value ===
+      'secret_session_5143545638_verified';
+
+    // Check camouflage / panic mode
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled && !isAdmin) {
+      return new NextResponse('File Not Found', { status: 404 });
+    }
+
     // Check maintenance mode: if locked, block downloads for non-admins
     const maintenance = await CmsService.getMaintenanceConfig();
-    if (maintenance.isEnabled) {
-      const cookieStore = cookies();
-      const isAdmin =
-        cookieStore.get('nursing_admin_token')?.value ===
-        'secret_session_5143545638_verified';
-      if (!isAdmin) {
-        return new NextResponse(
-          JSON.stringify({
-            error: 'المنصة في وضع الصيانة والتحديث حالياً',
-            message: maintenance.message,
-          }),
-          { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
-        );
-      }
+    if (maintenance.isEnabled && !isAdmin) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'المنصة في وضع الصيانة والتحديث حالياً',
+          message: maintenance.message,
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      );
     }
 
     const fileId = decodeURIComponent(params.fileId);

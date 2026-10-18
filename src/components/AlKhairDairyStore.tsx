@@ -35,6 +35,9 @@ interface CartItem {
   quantity: number;
 }
 
+const DAIRY_FALLBACK_IMG =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect fill="%23f0fdf4" width="400" height="400"/><text fill="%23059669" font-family="sans-serif" font-size="64" font-weight="bold" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle">🥛 ألبان الخير</text></svg>';
+
 export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
   // Page title override for complete camouflage
   useEffect(() => {
@@ -48,6 +51,29 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Hydration-safe localStorage cart persistence
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('alkhair_dairy_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('alkhair_dairy_cart', JSON.stringify(cart));
+    } catch {
+      // ignore
+    }
+  }, [cart]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
@@ -416,6 +442,10 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
                       src={prod.image}
                       alt={prod.name}
                       loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DAIRY_FALLBACK_IMG;
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
                     {prod.badge && (
@@ -572,6 +602,10 @@ export default function AlKhairDairyStore({ isAdmin }: { isAdmin?: boolean }) {
                       <img
                         src={item.product.image}
                         alt={item.product.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DAIRY_FALLBACK_IMG;
+                        }}
                         className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">

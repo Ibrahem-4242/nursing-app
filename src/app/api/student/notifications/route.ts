@@ -9,6 +9,18 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
 export async function GET(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json(
+        { success: true, notifications: [], yearId: '1' },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     let yearId = searchParams.get('yearId') || undefined;
     let studentId = searchParams.get('studentId') || undefined;

@@ -21,68 +21,96 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية',
-    template: '%s | ملخصات تمريض',
-  },
-  description:
-    'المنصة الأكاديمية الشاملة لطلاب كليات ومعاهد التمريض: ملخصات PDF، عروض بوربوينت PPT، خرائط ذهنية، فلاش كاردز تفاعلية، ملخصات صوتية Audio، وكويزات تجريبية معتمدة لجميع السنوات الدراسية.',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'ملخصات تمريض',
-  },
-  icons: {
-    icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-  },
-  keywords: [
-    'ملخصات تمريض',
-    'ملخص صوتي تمريض',
-    'تسجيلات صوتية تمريض',
-    'كويزات تمريض',
-    'تشريح اناتومي تمريض',
-    'فارماكولوجي تمريض',
-    'أساسيات التمريض',
-    'تمريض باطني وجراحي',
-    'تمريض أطفال',
-    'تمريض نساء وتوليد',
-    'فلاش كاردز طبية',
-    'خرائط ذهنية تمريض',
-  ],
-  authors: [{ name: 'فريق ملخصات تمريض الأكاديمي' }],
-  creator: 'ملخصات تمريض',
-  metadataBase: new URL('https://www.nursingsum.live'),
-  openGraph: {
-    title: 'ملخصات تمريض | بنك ملخصات وكويزات التمريض التفاعلي',
-    description: 'استكشف ملخصات مواد التمريض التفاعلية ثلاثية الأبعاد والخرائط الذهنية وبنك الأسئلة.',
-    type: 'website',
-    locale: 'ar_EG',
-  },
-  other: {
-    'google-adsense-account': 'ca-pub-9204080838190086',
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'ملخصات تمريض',
-  },
-};
-
-import { ACADEMIC_YEARS } from '@/lib/mock-data';
 import { CmsService } from '@/lib/cms-db';
+import { ACADEMIC_YEARS } from '@/lib/mock-data';
 import { cookies } from 'next/headers';
 import MaintenanceWrapper from '@/components/MaintenanceWrapper';
 import CamouflageWrapper from '@/components/CamouflageWrapper';
 import { MaintenanceConfig, PanicModeConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const panicMode = await CmsService.getPanicMode();
+  if (panicMode.isEnabled) {
+    return {
+      title: {
+        default: 'متجر ألبان الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية',
+        template: '%s | ألبان الخير',
+      },
+      description:
+        'متجر ألبان الخير للتجارة: حليب نجد البقري الطازج، ألبان إبل ونياق، أجبان بلدية، زبدة، وقشطة وسمن بري طبيعي 100% من مزارعنا لباب بيتك بجميع مناطق المملكة.',
+      icons: {
+        icon: [{ url: '/favicon.ico' }],
+      },
+      openGraph: {
+        title: 'متجر ألبان الخير الطازجة 🥛🇸🇦 | ألبان وأجبان المزارع الطبيعية',
+        description: 'توصيل مبرد خلال 3 ساعات لجميع مناطق المملكة. ألبان طازجة يومياً بدون إضافات.',
+        type: 'website',
+        locale: 'ar_SA',
+      },
+      other: {
+        'mobile-web-app-capable': 'yes',
+        'apple-mobile-web-app-capable': 'yes',
+        'apple-mobile-web-app-title': 'ألبان الخير',
+      },
+    };
+  }
+
+  return {
+    title: {
+      default: 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية',
+      template: '%s | ملخصات تمريض',
+    },
+    description:
+      'المنصة الأكاديمية الشاملة لطلاب كليات ومعاهد التمريض: ملخصات PDF، عروض بوربوينت PPT، خرائط ذهنية، فلاش كاردز تفاعلية، ملخصات صوتية Audio، وكويزات تجريبية معتمدة لجميع السنوات الدراسية.',
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'ملخصات تمريض',
+    },
+    icons: {
+      icon: [
+        { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      apple: [
+        { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+        { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    },
+    keywords: [
+      'ملخصات تمريض',
+      'ملخص صوتي تمريض',
+      'تسجيلات صوتية تمريض',
+      'كويزات تمريض',
+      'تشريح اناتومي تمريض',
+      'فارماكولوجي تمريض',
+      'أساسيات التمريض',
+      'تمريض باطني وجراحي',
+      'تمريض أطفال',
+      'تمريض نساء وتوليد',
+      'فلاش كاردز طبية',
+      'خرائط ذهنية تمريض',
+    ],
+    authors: [{ name: 'فريق ملخصات تمريض الأكاديمي' }],
+    creator: 'ملخصات تمريض',
+    metadataBase: new URL('https://www.nursingsum.live'),
+    openGraph: {
+      title: 'ملخصات تمريض | بنك ملخصات وكويزات التمريض التفاعلي',
+      description: 'استكشف ملخصات مواد التمريض التفاعلية ثلاثية الأبعاد والخرائط الذهنية وبنك الأسئلة.',
+      type: 'website',
+      locale: 'ar_EG',
+    },
+    other: {
+      'google-adsense-account': 'ca-pub-9204080838190086',
+      'mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'apple-mobile-web-app-title': 'ملخصات تمريض',
+    },
+  };
+}
 import { BookmarksProvider } from '@/context/BookmarksContext';
 import StudentAuthModal from '@/components/StudentAuthModal';
 import GlobalSearchModal from '@/components/GlobalSearchModal';
@@ -157,16 +185,24 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="ملخصات تمريض" />
+        <meta
+          name="apple-mobile-web-app-title"
+          content={panicModeConfig.isEnabled ? 'ألبان الخير' : 'ملخصات تمريض'}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#0f172a" />
+        <meta
+          name="theme-color"
+          content={panicModeConfig.isEnabled ? '#064e3b' : '#0f172a'}
+        />
 
-        {/* Google AdSense Script */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9204080838190086"
-          crossOrigin="anonymous"
-        ></script>
+        {/* Google AdSense Script (disabled during camouflage) */}
+        {!panicModeConfig.isEnabled && (
+          <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9204080838190086"
+            crossOrigin="anonymous"
+          ></script>
+        )}
         {/* Script to avoid theme flash */}
         <script
           dangerouslySetInnerHTML={{

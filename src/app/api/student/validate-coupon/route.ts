@@ -6,6 +6,14 @@ export const revalidate = 0;
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json(
+        { success: false, valid: false, message: 'الكوبون غير صالح' },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const code = String(body.code || '').trim();
     const studentPhone = String(body.studentPhone || '').trim();

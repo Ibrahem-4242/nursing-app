@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+import { cookies } from 'next/headers';
+
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
 const TARGET_WEBHOOK_URL = 'https://www.nursingsum.live/api/telegram/webhook';
 
 export async function GET() {
   try {
+    const cookieStore = cookies();
+    const isAdmin =
+      cookieStore.get('nursing_admin_token')?.value ===
+      'secret_session_5143545638_verified';
+    if (!isAdmin) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     // 1. Fetch current webhook info
     const infoRes = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`
@@ -38,6 +48,14 @@ export async function GET() {
 
 export async function POST() {
   try {
+    const cookieStore = cookies();
+    const isAdmin =
+      cookieStore.get('nursing_admin_token')?.value ===
+      'secret_session_5143545638_verified';
+    if (!isAdmin) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const setRes = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(
         TARGET_WEBHOOK_URL

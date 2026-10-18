@@ -12,6 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default async function BookmarksPage() {
+  const panicMode = await CmsService.getPanicMode();
+  if (panicMode.isEnabled) {
+    return null;
+  }
   const allLectures = await CmsService.getLiveLectures();
   return <BookmarksClientView allLectures={allLectures} />;
 }

@@ -9,6 +9,15 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
 export async function GET(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({
+        success: true,
+        guest: true,
+        bookmarks: { lectureIds: [], questionIds: [], conceptIds: [] },
+      });
+    }
+
     const cookieStore = cookies();
     const sessionVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
 

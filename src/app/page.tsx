@@ -38,6 +38,12 @@ export default async function HomePage({
     cookies().get('nursing_admin_token')?.value ===
     'secret_session_5143545638_verified';
 
+  // 🛡️ Camouflage Check
+  const panicMode = await CmsService.getPanicMode();
+  if (panicMode.isEnabled && !isAdmin) {
+    return null;
+  }
+
   const allSubjects = await CmsService.getLiveSubjects();
   const liveLectures = await CmsService.getLiveLectures();
   const allQuizFiles = await CmsService.getAllSubjectQuizFilesList();

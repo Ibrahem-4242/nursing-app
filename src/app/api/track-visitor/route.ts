@@ -6,6 +6,11 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({ success: true, camouflage: true });
+    }
+
     const body = await req.json();
     const {
       deviceType,

@@ -4,6 +4,11 @@ import { CmsService } from '@/lib/cms-db';
 
 export async function GET(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json({ success: true, message: 'Paused during camouflage' });
+    }
+
     const stats = await CmsService.getTodayAnalytics();
 
     const ok = await sendDailySummary({

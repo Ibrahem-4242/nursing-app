@@ -19,6 +19,14 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled) {
+      return NextResponse.json(
+        { success: false, message: 'عذراً، الخدمة متوقفة مؤقتاً لأعمال الصيانة والتحديث.' },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const action = body.action;
 
