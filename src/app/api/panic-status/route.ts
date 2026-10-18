@@ -26,6 +26,12 @@ export async function GET() {
         maxAge: 31536000,
         sameSite: 'lax',
       });
+    } else {
+      res.cookies.set('nursing_panic_mode', '', {
+        path: '/',
+        maxAge: 0,
+        sameSite: 'lax',
+      });
     }
 
     return res;

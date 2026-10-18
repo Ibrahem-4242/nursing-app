@@ -81,24 +81,24 @@ export default function CamouflageWrapper({
           localStorage.removeItem('nursing_panic_mode_active');
           localStorage.removeItem('nursing_panic_mode_activated_at');
           document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
+          document.cookie = 'nursing_panic_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
           document.title = 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية';
-
-          // Smoothly restore URL without page reload if on masked /store route
-          if (typeof window !== 'undefined') {
-            if (window.location.pathname === '/store' || window.location.pathname.startsWith('/product')) {
-              window.history.replaceState(null, '', '/');
-            }
-          }
         } catch {}
 
         consecutiveFalseCount.current = 0;
 
-        setCurrentPanicMode((prev) => {
-          if (prev.isEnabled) {
-            return { isEnabled: false };
+        setCurrentPanicMode({ isEnabled: false });
+
+        // If on masked /store or /product route, seamlessly navigate back to home /
+        if (typeof window !== 'undefined') {
+          if (
+            window.location.pathname === '/store' ||
+            window.location.pathname.startsWith('/product')
+          ) {
+            window.location.href = '/';
+            return;
           }
-          return prev;
-        });
+        }
       }
     },
     []
@@ -142,6 +142,7 @@ export default function CamouflageWrapper({
         const data = await res.json();
         if (isMounted && data) {
           const isServerEnabled = Boolean(data.isEnabled);
+
           if (isServerEnabled) {
             consecutiveFalseCount.current = 0;
             applyPanicState(true, data.panicMode?.activatedAt);
@@ -151,36 +152,12 @@ export default function CamouflageWrapper({
             const isCurrentlyActive =
               currentPanicMode?.isEnabled ||
               (typeof window !== 'undefined' &&
-                localStorage.getItem('nursing_panic_mode_active') === 'true');
+                (localStorage.getItem('nursing_panic_mode_active') === 'true' ||
+                  document.cookie.includes('nursing_panic_mode=true')));
 
-            if (!isCurrentlyActive) {
-              // Not active anyway, nothing to do
-              return;
-            }
-
-            // CRITICAL DEFENSE AGAINST 1-SECOND REVERT:
-            // A deactivation is ONLY valid if the server provides an explicit deactivatedAt
-            // timestamp that occurred STRICTLY AFTER this client was activated!
-            const clientActIso =
-              (typeof window !== 'undefined' &&
-                localStorage.getItem('nursing_panic_mode_activated_at')) ||
-              currentPanicMode?.activatedAt;
-            const clientActTime = clientActIso ? new Date(clientActIso).getTime() : 0;
-
-            const serverDeactIso = data.panicMode?.deactivatedAt;
-            const serverDeactTime = serverDeactIso ? new Date(serverDeactIso).getTime() : 0;
-
-            // Strict mathematical verification:
-            // serverDeactTime must be strictly newer than clientActTime
-            const isConfirmedDeactivation =
-              serverDeactTime > 0 &&
-              (!clientActTime || serverDeactTime > clientActTime);
-
-            if (isConfirmedDeactivation) {
+            if (isCurrentlyActive) {
               applyPanicState(false, undefined, true);
             }
-            // If NOT confirmed, WE KEEP PANIC MODE LOCKED IN!
-            // Never revert an emergency camouflage session due to stale responses, rate limits, or network drops!
           }
         }
       } catch {

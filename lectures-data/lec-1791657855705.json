@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. ت��مل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفا��ئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -98,7 +98,7 @@
     },
     {
       "id": 12,
-      "front": "What is a carbuncle (الجمر�� / الخراج العنقودي)?",
+      "front": "What is a carbuncle (الجمرة / الخراج العنقودي)?",
       "back": "It is a large suppurative lesion formed by multiple communicating abscess cavities in the subcutaneous tissue.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -163,7 +163,7 @@
       "id": 21,
       "front": "What is an ulcer (قرحة)?",
       "back": "An ulcer is a local defect or breach in the surface of an organ or tissue produced by the sloughing of inflammatory necrotic tissue.",
-      "category": "كروت اس����ذكار",
+      "category": "كروت اس��ذكار",
       "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
     },
     {
@@ -302,7 +302,7 @@
     {
       "id": 41,
       "front": "Which white blood cell type accumulates heavily in allergic inflammation (التهاب تحسسي)?",
-      "back": "Eosinophils (الخلايا الحمضية) accumulate prominently in allergic inflammation.",
+      "back": "Eosinophils (الخلاي�� الحمضية) accumulate prominently in allergic inflammation.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
     },
@@ -315,7 +315,7 @@
     },
     {
       "id": 43,
-      "front": "What is cellulitis (التهاب الخل��ي / التهاب صديدي منتشر)?",
+      "front": "What is cellulitis (التهاب الخلوي / التهاب صديدي منتشر)?",
       "back": "Cellulitis is a diffuse, rapidly spreading acute suppurative inflammation of connective tissue and tissue spaces.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -387,7 +387,7 @@
       "fileSize": "1.8 MB",
       "downloadUrl": "/api/files/1791657853103-hyadk2_المحاضرة_الثانية_باثولوجي_PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
-      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:��٤ م",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:����٤ م",
       "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
     },
     {
@@ -400,5 +400,5 @@
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
-  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحا��ات السابقة لتثبيت المعلومة."
+  "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
 }
