@@ -4,6 +4,8 @@ import { Stethoscope, MessageCircle, Heart } from 'lucide-react';
 import { BOT_CONFIG } from '@/lib/mock-data';
 import SecretAdminTrigger from './SecretAdminTrigger';
 
+import PWAInstallButton from './PWAInstallButton';
+
 interface FooterProps {
   activeYears?: { id: string; title: string }[];
 }
@@ -29,7 +31,7 @@ export default function Footer({
             <p className="text-xs text-slate-400 leading-relaxed">
               المنصة الأكاديمية الأولى المتخصصة في دعم طلاب كليات ومعاهد التمريض بأحدث الملخصات، الخرائط الذهنية، الكويزات التفاعلية وبطاقات الاستذكار التفاعلية.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
               <a
                 href={BOT_CONFIG.whatsappGroupLink}
                 target="_blank"
@@ -39,6 +41,8 @@ export default function Footer({
                 <MessageCircle className="w-4 h-4 fill-emerald-500/20" />
                 <span>انضم لجروب الواتساب الرسمي</span>
               </a>
+
+              <PWAInstallButton variant="footer" className="mt-1" />
             </div>
           </div>
 

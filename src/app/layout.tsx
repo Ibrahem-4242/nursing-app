@@ -15,7 +15,7 @@ const cairo = Cairo({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#0d9488',
+  themeColor: '#0f172a',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -28,6 +28,22 @@ export const metadata: Metadata = {
   },
   description:
     'المنصة الأكاديمية الشاملة لطلاب كليات ومعاهد التمريض: ملخصات PDF، عروض بوربوينت PPT، خرائط ذهنية، فلاش كاردز تفاعلية، ملخصات صوتية Audio، وكويزات تجريبية معتمدة لجميع السنوات الدراسية.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ملخصات تمريض',
+  },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
   keywords: [
     'ملخصات تمريض',
     'ملخص صوتي تمريض',
@@ -53,6 +69,10 @@ export const metadata: Metadata = {
   },
   other: {
     'google-adsense-account': 'ca-pub-9204080838190086',
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'ملخصات تمريض',
   },
 };
 
@@ -64,6 +84,7 @@ import { MaintenanceConfig } from '@/lib/types';
 import { StudentAuthProvider } from '@/context/StudentAuthContext';
 import StudentAuthModal from '@/components/StudentAuthModal';
 import GlobalSearchModal from '@/components/GlobalSearchModal';
+import PWAInstallBanner from '@/components/PWAInstallBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,6 +145,15 @@ export default async function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
       <head>
+        {/* PWA & Mobile Web App Meta Tags */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="ملخصات تمريض" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#0f172a" />
+
         {/* Google AdSense Script */}
         <script
           async
@@ -149,6 +179,7 @@ export default async function RootLayout({
         <StudentAuthProvider>
           <StudentAuthModal />
           <GlobalSearchModal />
+          <PWAInstallBanner />
           <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
             <AnnouncementBar />
             <Navbar activeYears={activeYears} />
