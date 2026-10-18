@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { PanicModeConfig } from '@/lib/types';
 import AlKhairDairyStore from './AlKhairDairyStore';
@@ -17,6 +17,7 @@ export default function CamouflageWrapper({
   children,
 }: CamouflageWrapperProps) {
   const pathname = usePathname();
+  const consecutiveFalseCount = useRef(0);
 
   // Instant hydration-safe local memory initialization
   const [currentPanicMode, setCurrentPanicMode] = useState<PanicModeConfig>(() => {
@@ -25,62 +26,93 @@ export default function CamouflageWrapper({
         const cached = localStorage.getItem('nursing_panic_mode_active');
         const hasCookie = document.cookie.includes('nursing_panic_mode=true');
         if (cached === 'true' || hasCookie) {
-          return { isEnabled: true };
+          const actAt = localStorage.getItem('nursing_panic_mode_activated_at') || undefined;
+          return { isEnabled: true, activatedAt: actAt };
         }
       } catch {}
     }
     return panicMode;
   });
 
-  const applyPanicState = useCallback((isEnabled: boolean, activatedAt?: string) => {
-    setCurrentPanicMode((prev) => {
-      if (prev.isEnabled !== isEnabled) {
-        if (!isEnabled && prev.isEnabled) {
-          // Mode was just deactivated by admin! Reload to restore fresh nursing platform
-          try {
-            localStorage.removeItem('nursing_panic_mode_active');
-            document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
-          } catch {}
-          window.location.href = '/';
-          return { isEnabled: false };
-        }
-        return { isEnabled, activatedAt };
-      }
-      return prev;
-    });
+  const applyPanicState = useCallback(
+    (isEnabled: boolean, activatedAt?: string, isExplicitAdminAction = false) => {
+      const isAdminPath =
+        typeof window !== 'undefined' &&
+        (window.location.pathname.startsWith('/admin-dashboard') ||
+          window.location.pathname.startsWith('/admin-login'));
 
-    if (isEnabled) {
-      try {
-        localStorage.setItem('nursing_panic_mode_active', 'true');
-        document.cookie = 'nursing_panic_mode=true; path=/; max-age=31536000; SameSite=Lax';
-        document.title = 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
-        // Stop any audio/video playback immediately
-        document.querySelectorAll('audio, video').forEach((el) => {
-          try {
-            (el as HTMLMediaElement).pause();
-            (el as HTMLMediaElement).currentTime = 0;
-          } catch {}
+      if (isEnabled) {
+        consecutiveFalseCount.current = 0;
+        const nowIso = activatedAt || new Date().toISOString();
+        try {
+          localStorage.setItem('nursing_panic_mode_active', 'true');
+          localStorage.setItem('nursing_panic_mode_activated_at', nowIso);
+          document.cookie = 'nursing_panic_mode=true; path=/; max-age=31536000; SameSite=Lax';
+          document.title = 'متجر حليب الخير الطازجة 🥛🇸🇦 | منتجات المزارع السعودية الطبيعية';
+
+          // Stop any audio/video playback immediately
+          document.querySelectorAll('audio, video').forEach((el) => {
+            try {
+              (el as HTMLMediaElement).pause();
+              (el as HTMLMediaElement).currentTime = 0;
+            } catch {}
+          });
+
+          // Seamlessly mask URL to /store if on any nursing route (never mask admin pages)
+          if (
+            typeof window !== 'undefined' &&
+            !isAdminPath &&
+            !window.location.pathname.startsWith('/store') &&
+            !window.location.pathname.startsWith('/product')
+          ) {
+            window.history.replaceState({ page: 'store' }, '', '/store');
+          }
+        } catch {}
+
+        setCurrentPanicMode((prev) => {
+          if (!prev.isEnabled) {
+            return { isEnabled: true, activatedAt: nowIso };
+          }
+          return prev;
         });
-        // Seamlessly mask URL to /store if on any nursing route
-        if (
-          typeof window !== 'undefined' &&
-          !window.location.pathname.startsWith('/admin-dashboard') &&
-          !window.location.pathname.startsWith('/admin-login') &&
-          !window.location.pathname.startsWith('/store') &&
-          !window.location.pathname.startsWith('/product')
-        ) {
-          window.history.replaceState({ page: 'store' }, '', '/store');
+      } else {
+        // Deactivation requested:
+        // SAFEGUARD 1: If not an explicit admin toggle, check the propagation grace period
+        if (!isExplicitAdminAction) {
+          try {
+            const lastAct = localStorage.getItem('nursing_panic_mode_activated_at');
+            if (lastAct) {
+              const timeDiff = Date.now() - new Date(lastAct).getTime();
+              // If activated less than 45 seconds ago, ignore any stray negative polls from lagging serverless lambdas
+              if (timeDiff < 45000) {
+                return;
+              }
+            }
+          } catch {}
         }
-      } catch {}
-    } else {
-      try {
-        localStorage.removeItem('nursing_panic_mode_active');
-        document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
-      } catch {}
-    }
-  }, []);
 
-  // Sync prop changes safely
+        try {
+          localStorage.removeItem('nursing_panic_mode_active');
+          localStorage.removeItem('nursing_panic_mode_activated_at');
+          document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
+        } catch {}
+
+        setCurrentPanicMode((prev) => {
+          if (prev.isEnabled) {
+            // If on a store route, smoothly redirect to home (NEVER redirect if on admin pages)
+            if (typeof window !== 'undefined' && !isAdminPath) {
+              window.location.href = '/';
+            }
+            return { isEnabled: false };
+          }
+          return prev;
+        });
+      }
+    },
+    []
+  );
+
+  // Sync initial server prop changes safely
   useEffect(() => {
     if (panicMode?.isEnabled) {
       applyPanicState(true, panicMode.activatedAt);
@@ -104,15 +136,27 @@ export default function CamouflageWrapper({
           },
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && data) {
-            const isEnabled = Boolean(data.isEnabled);
-            applyPanicState(isEnabled, data.panicMode?.activatedAt);
+        if (!res.ok) {
+          // CRITICAL: NEVER DEACTIVATE ON SERVER OR NETWORK ERROR!
+          return;
+        }
+
+        const data = await res.json();
+        if (isMounted && data) {
+          const isEnabled = Boolean(data.isEnabled);
+          if (isEnabled) {
+            consecutiveFalseCount.current = 0;
+            applyPanicState(true, data.panicMode?.activatedAt);
+          } else {
+            // Require 3 consecutive confirmed false polls to prevent any flukes/lag from tearing down camouflage
+            consecutiveFalseCount.current += 1;
+            if (consecutiveFalseCount.current >= 3) {
+              applyPanicState(false, undefined, false);
+            }
           }
         }
       } catch {
-        // network error / ignore
+        // network error / ignore - fail-safe maintains current state
       } finally {
         isChecking = false;
       }
@@ -132,7 +176,7 @@ export default function CamouflageWrapper({
     // 3. Storage event for 0ms cross-tab synchronization on the same browser
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'nursing_panic_mode_active') {
-        applyPanicState(e.newValue === 'true');
+        applyPanicState(e.newValue === 'true', undefined, true);
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -144,7 +188,7 @@ export default function CamouflageWrapper({
         channel = new BroadcastChannel('nursing_panic_channel');
         channel.onmessage = (event) => {
           if (event.data?.type === 'PANIC_TOGGLED') {
-            applyPanicState(Boolean(event.data.isEnabled));
+            applyPanicState(Boolean(event.data.isEnabled), event.data.activatedAt, true);
           }
         };
       } catch {}

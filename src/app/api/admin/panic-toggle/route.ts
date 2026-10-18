@@ -76,11 +76,19 @@ export async function POST(req: NextRequest) {
         : '🟢 تم إيقاف وضع التمويه! عادت المنصة لطبيعتها كمنصة ملخصات تمريض 🩺',
     });
 
-    response.cookies.set('nursing_panic_mode', result.isEnabled ? 'true' : 'false', {
-      path: '/',
-      maxAge: 31536000,
-      sameSite: 'lax',
-    });
+    if (result.isEnabled) {
+      response.cookies.set('nursing_panic_mode', 'true', {
+        path: '/',
+        maxAge: 31536000,
+        sameSite: 'lax',
+      });
+    } else {
+      response.cookies.set('nursing_panic_mode', '', {
+        path: '/',
+        maxAge: 0,
+        sameSite: 'lax',
+      });
+    }
 
     return response;
   } catch (err: any) {

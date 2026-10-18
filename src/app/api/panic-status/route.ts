@@ -20,11 +20,13 @@ export async function GET() {
       }
     );
 
-    res.cookies.set('nursing_panic_mode', isEnabled ? 'true' : 'false', {
-      path: '/',
-      maxAge: 31536000,
-      sameSite: 'lax',
-    });
+    if (isEnabled) {
+      res.cookies.set('nursing_panic_mode', 'true', {
+        path: '/',
+        maxAge: 31536000,
+        sameSite: 'lax',
+      });
+    }
 
     return res;
   } catch (err: any) {

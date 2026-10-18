@@ -1567,11 +1567,19 @@ export default function AdminDashboardPage() {
     setPanicIsEnabled(nextState);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('nursing_panic_mode_active', nextState ? 'true' : 'false');
-        document.cookie = `nursing_panic_mode=${nextState ? 'true' : 'false'}; path=/; max-age=31536000; SameSite=Lax`;
+        const nowIso = new Date().toISOString();
+        if (nextState) {
+          localStorage.setItem('nursing_panic_mode_active', 'true');
+          localStorage.setItem('nursing_panic_mode_activated_at', nowIso);
+          document.cookie = `nursing_panic_mode=true; path=/; max-age=31536000; SameSite=Lax`;
+        } else {
+          localStorage.removeItem('nursing_panic_mode_active');
+          localStorage.removeItem('nursing_panic_mode_activated_at');
+          document.cookie = `nursing_panic_mode=; path=/; max-age=0; SameSite=Lax`;
+        }
         if ('BroadcastChannel' in window) {
           const channel = new BroadcastChannel('nursing_panic_channel');
-          channel.postMessage({ type: 'PANIC_TOGGLED', isEnabled: nextState });
+          channel.postMessage({ type: 'PANIC_TOGGLED', isEnabled: nextState, activatedAt: nowIso });
           channel.close();
         }
       }

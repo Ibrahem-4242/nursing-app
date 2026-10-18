@@ -414,11 +414,8 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         ...(store.platformFeatures || {}),
       };
 
-      if (store.panicMode !== undefined) {
-        // preserve incoming panicMode setting
-      } else if (existing.panicMode) {
-        store.panicMode = existing.panicMode;
-      }
+      // Always synchronize authoritative panicMode from PanicEngine
+      store.panicMode = await PanicEngine.getPanicMode();
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -842,15 +839,8 @@ async function getFreshStore(): Promise<CmsStore> {
       store.shakibRakibConfig = DEFAULT_SHAKIB_RAKIB_CONFIG;
     }
 
-    if (cloudStore.panicMode) {
-      store.panicMode = {
-        isEnabled: Boolean(cloudStore.panicMode.isEnabled),
-        activatedAt: cloudStore.panicMode.activatedAt,
-        deactivatedAt: cloudStore.panicMode.deactivatedAt,
-      };
-    } else if (!store.panicMode) {
-      store.panicMode = { isEnabled: false };
-    }
+    // Always synchronize authoritative panicMode from PanicEngine
+    store.panicMode = await PanicEngine.getPanicMode();
 
     if (cloudStore.platformFeatures) {
       store.platformFeatures = {
