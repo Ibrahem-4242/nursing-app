@@ -6,6 +6,7 @@ import { CmsService } from '@/lib/cms-db';
 import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import LectureContentTabs from '@/components/LectureContentTabs';
+import StudentWatermark from '@/components/StudentWatermark';
 import {
   Clock,
   Eye,
@@ -47,7 +48,10 @@ export default async function LecturePage({ params }: LecturePageProps) {
   const lecSemester = lecture.semester || (subject?.semester === '2' ? '2' : '1');
 
   return (
-    <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
+    <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
+      {/* 🛡️ Dynamic Anti-Leak Watermark (Paid Lectures for Authenticated Students) */}
+      <StudentWatermark isFree={lecture.isFree} lectureId={lecture.id} />
+
       {/* 1. Breadcrumb Navigation */}
       <Breadcrumb
         items={[
