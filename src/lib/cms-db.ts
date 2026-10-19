@@ -2351,8 +2351,9 @@ export const CmsService = {
   },
 
   async getOrdersByStudent(studentId: string): Promise<PurchaseOrder[]> {
+    const cleanId = studentId && studentId.includes(':::') ? studentId.split(':::')[0] : studentId;
     const orders = await this.getOrders();
-    return orders.filter((o) => o.studentId === studentId || o.studentPhone === studentId);
+    return orders.filter((o) => o.studentId === cleanId || o.studentPhone === cleanId);
   },
 
   async createOrder(

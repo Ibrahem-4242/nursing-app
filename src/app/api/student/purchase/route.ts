@@ -204,7 +204,10 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const cookieStore = cookies();
-    const studentId = searchParams.get('studentId') || cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    let studentId = searchParams.get('studentId') || cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    if (studentId && studentId.includes(':::')) {
+      studentId = studentId.split(':::')[0];
+    }
 
     if (!studentId) {
       return NextResponse.json({ success: true, orders: [] });
