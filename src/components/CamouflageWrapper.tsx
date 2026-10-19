@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { PanicModeConfig } from '@/lib/types';
 import AlKhairDairyStore from './AlKhairDairyStore';
@@ -17,32 +17,18 @@ export default function CamouflageWrapper({
   children,
 }: CamouflageWrapperProps) {
   const pathname = usePathname();
-  const consecutiveFalseCount = useRef(0);
 
-  // Instant hydration-safe local memory initialization
-  const [currentPanicMode, setCurrentPanicMode] = useState<PanicModeConfig>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('nursing_panic_mode_active');
-        const hasCookie = document.cookie.includes('nursing_panic_mode=true');
-        if (cached === 'true' || hasCookie) {
-          const actAt = localStorage.getItem('nursing_panic_mode_activated_at') || undefined;
-          return { isEnabled: true, activatedAt: actAt };
-        }
-      } catch {}
-    }
-    return panicMode;
-  });
+  // Initialize strictly with authoritative server prop
+  const [currentPanicMode, setCurrentPanicMode] = useState<PanicModeConfig>(panicMode);
 
   const applyPanicState = useCallback(
-    (isEnabled: boolean, activatedAt?: string, isConfirmedAction = false) => {
+    (isEnabled: boolean, activatedAt?: string) => {
       const isAdminPath =
         typeof window !== 'undefined' &&
         (window.location.pathname.startsWith('/admin-dashboard') ||
           window.location.pathname.startsWith('/admin-login'));
 
       if (isEnabled) {
-        consecutiveFalseCount.current = 0;
         const nowIso = activatedAt || new Date().toISOString();
         try {
           localStorage.setItem('nursing_panic_mode_active', 'true');
@@ -58,7 +44,7 @@ export default function CamouflageWrapper({
             } catch {}
           });
 
-          // Seamlessly mask URL to /store if on any nursing route (never mask admin pages)
+          // Seamlessly mask URL in address bar to /store without page reload
           if (
             typeof window !== 'undefined' &&
             !isAdminPath &&
@@ -80,19 +66,16 @@ export default function CamouflageWrapper({
         try {
           localStorage.removeItem('nursing_panic_mode_active');
           localStorage.removeItem('nursing_panic_mode_activated_at');
-          document.cookie = 'nursing_panic_mode=; path=/; max-age=0; SameSite=Lax';
-          document.cookie = 'nursing_panic_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+          document.cookie = 'nursing_panic_mode=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
           document.title = 'ملخصات تمريض | المنصة الشاملة لكويزات ومواد التمريض التفاعلية';
 
-          // Silently restore URL to / without ANY page reload or flicker
+          // Silently restore URL in address bar to / without page reload
           if (typeof window !== 'undefined') {
             if (window.location.pathname === '/store' || window.location.pathname.startsWith('/product')) {
               window.history.replaceState(null, '', '/');
             }
           }
         } catch {}
-
-        consecutiveFalseCount.current = 0;
 
         setCurrentPanicMode((prev) => {
           if (prev.isEnabled) {
@@ -105,21 +88,16 @@ export default function CamouflageWrapper({
     []
   );
 
-  // Sync initial server prop changes safely
+  // Sync when initial server prop changes
   useEffect(() => {
     if (panicMode?.isEnabled) {
       applyPanicState(true, panicMode.activatedAt);
     } else if (panicMode && !panicMode.isEnabled) {
-      if (typeof window !== 'undefined') {
-        const cached = localStorage.getItem('nursing_panic_mode_active');
-        if (cached !== 'true') {
-          applyPanicState(false, undefined, true);
-        }
-      }
+      applyPanicState(false);
     }
   }, [panicMode, applyPanicState]);
 
-  // Live real-time instant switch: 1-second pulse interval + BroadcastChannel + storage event
+  // Live real-time polling pulse (1.2s) + BroadcastChannel + storage sync
   useEffect(() => {
     let isMounted = true;
     let isChecking = false;
@@ -136,29 +114,22 @@ export default function CamouflageWrapper({
           },
         });
 
-        if (!res.ok) {
-          return;
-        }
+        if (!res.ok) return;
 
         const data = await res.json();
-        if (isMounted && data) {
+        if (isMounted && data && typeof data.isEnabled === 'boolean') {
           const isServerEnabled = Boolean(data.isEnabled);
 
-          if (isServerEnabled) {
-            consecutiveFalseCount.current = 0;
-            applyPanicState(true, data.panicMode?.activatedAt);
-          } else {
-            // Anti-Flicker Guard:
-            // Require 3 consecutive false checks before turning off panic mode.
-            // This completely stops single-lambda cold starts or network hiccups from flickering!
-            consecutiveFalseCount.current += 1;
-            if (consecutiveFalseCount.current >= 3) {
-              applyPanicState(false);
+          setCurrentPanicMode((prev) => {
+            if (prev.isEnabled !== isServerEnabled) {
+              applyPanicState(isServerEnabled, data.panicMode?.activatedAt);
+              return { isEnabled: isServerEnabled, activatedAt: data.panicMode?.activatedAt };
             }
-          }
+            return prev;
+          });
         }
       } catch {
-        // network error / ignore - never revert on network blips
+        // Ignore network glitches silently
       } finally {
         isChecking = false;
       }
@@ -167,7 +138,7 @@ export default function CamouflageWrapper({
     // 1. Check immediately on mount
     checkPanicStatus();
 
-    // 2. Check on visibility change (when tab gains focus)
+    // 2. Check on tab visibility change (instant reaction when returning to tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkPanicStatus();
@@ -175,29 +146,29 @@ export default function CamouflageWrapper({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 3. Storage event for 0ms cross-tab synchronization on the same browser
+    // 3. Storage event for instant sync across tabs in the same browser
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'nursing_panic_mode_active') {
-        applyPanicState(e.newValue === 'true', undefined, true);
+        applyPanicState(e.newValue === 'true');
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // 4. Ultra-fast BroadcastChannel for 0ms instant trigger across tabs
+    // 4. Ultra-fast BroadcastChannel for 0ms instant trigger across all browser tabs
     let channel: BroadcastChannel | null = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         channel = new BroadcastChannel('nursing_panic_channel');
         channel.onmessage = (event) => {
           if (event.data?.type === 'PANIC_TOGGLED') {
-            applyPanicState(Boolean(event.data.isEnabled), event.data.activatedAt, true);
+            applyPanicState(Boolean(event.data.isEnabled), event.data.activatedAt);
           }
         };
       } catch {}
     }
 
-    // 5. Fast 1-second pulse interval for all devices and external users
-    const interval = setInterval(checkPanicStatus, 1000);
+    // 5. Fast 1.2-second pulse interval for external remote changes
+    const interval = setInterval(checkPanicStatus, 1200);
 
     return () => {
       isMounted = false;
@@ -212,7 +183,7 @@ export default function CamouflageWrapper({
     };
   }, [applyPanicState]);
 
-  // NEVER block admin-dashboard or admin APIs so the admin can always turn it off
+  // NEVER block admin routes so admin can always manage the platform
   const isAdminPath =
     pathname?.startsWith('/admin-dashboard') ||
     pathname?.startsWith('/admin-login') ||

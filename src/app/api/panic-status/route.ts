@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { CmsService } from '@/lib/cms-db';
+import { PanicEngine } from '@/lib/panic-engine';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
   try {
-    const panicMode = await CmsService.getPanicMode();
+    const panicMode = await PanicEngine.getPanicMode();
     const isEnabled = Boolean(panicMode?.isEnabled);
 
     const res = NextResponse.json(

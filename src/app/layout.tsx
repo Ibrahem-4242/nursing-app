@@ -180,10 +180,10 @@ export default async function RootLayout({
     if (fetchedFeatures) {
       platformFeatures = fetchedFeatures;
     }
-    if (panicCookie === 'true') {
-      panicModeConfig = { ...panicModeConfig, isEnabled: true };
-    } else if (panicCookie === 'false' && !fetchedPanicMode?.isEnabled) {
-      panicModeConfig = { ...panicModeConfig, isEnabled: false };
+    if (fetchedPanicMode) {
+      panicModeConfig = fetchedPanicMode;
+    } else if (panicCookie === 'true') {
+      panicModeConfig = { isEnabled: true };
     }
 
     const subjectYearMap = new Map<string, string>();
