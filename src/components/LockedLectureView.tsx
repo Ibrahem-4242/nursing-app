@@ -15,22 +15,11 @@ import {
   HelpCircle,
   Stethoscope,
   Layers,
-  ChevronLeft,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
 } from 'lucide-react';
 import { LectureFile } from '@/lib/types';
 import MindmapPreviewModal from '@/components/MindmapPreviewModal';
 import PurchaseLectureModal from '@/components/PurchaseLectureModal';
 import { useStudentAuth } from '@/context/StudentAuthContext';
-
-interface LockedConceptNode {
-  heading: string;
-  summary: string;
-  points?: string[];
-  clinicalWarning?: string;
-}
 
 interface LockedLectureViewProps {
   lectureId: string;
@@ -41,7 +30,6 @@ interface LockedLectureViewProps {
   yearId: string;
   price: number;
   mindmapFile?: LectureFile | null;
-  concepts?: LockedConceptNode[];
 }
 
 export default function LockedLectureView({
@@ -53,14 +41,12 @@ export default function LockedLectureView({
   yearId,
   price = 50,
   mindmapFile,
-  concepts = [],
 }: LockedLectureViewProps) {
   const router = useRouter();
   const { student, openAuthModal } = useStudentAuth();
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isMindmapModalOpen, setIsMindmapModalOpen] = useState(false);
-  const [activeBranchIndex, setActiveBranchIndex] = useState<number>(0);
 
   const rawMindmapUrl = (mindmapFile?.downloadUrl || mindmapFile?.fileUrl || '').trim();
 
@@ -181,87 +167,14 @@ export default function LockedLectureView({
             </div>
           </div>
         ) : (
-          <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-2">
             <Network className="w-10 h-10 text-purple-600 mx-auto" />
             <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
-              معاينة الخريطة الهيكلية للمحاضرة
+              معاينة الخريطة الذهنية غير متوفرة لهذه المحاضرة حالياً
             </h4>
             <p className="text-xs text-slate-500">
-              يمكنك الاطلاع على الهيكل والتقسيمات السريرية للمحاضرة بالأسفل.
+              يمكنك الاشتراك أو شراء المحاضرة لفتح جميع ملفات الشرح والملخصات والكويزات وكروت الحفظ فوراً.
             </p>
-          </div>
-        )}
-
-        {/* Interactive Mindmap Branches & Mental Concept Tree */}
-        {concepts && concepts.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>محاور وفروع الخريطة الذهنية السريرية (Interactive Mental Tree)</span>
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  انقر على أي فرع من الفروع التالية لمعاينة طريقة تلخيص المفاهيم الطبية:
-                </p>
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
-                {concepts.length} فروع رئيسية
-              </span>
-            </div>
-
-            {/* Branch Pills */}
-            <div className="flex flex-wrap gap-2">
-              {concepts.map((concept, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setActiveBranchIndex(idx)}
-                  className={`px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 ${
-                    activeBranchIndex === idx
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                  }`}
-                >
-                  <span className="w-5 h-5 rounded-full bg-black/15 flex items-center justify-center text-[10px]">
-                    {idx + 1}
-                  </span>
-                  <span className="truncate max-w-[200px]">{concept.heading}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Selected Branch Content Preview */}
-            {concepts[activeBranchIndex] && (
-              <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-purple-600" />
-                  <h5 className="font-black text-sm sm:text-base text-purple-900 dark:text-purple-300">
-                    {concepts[activeBranchIndex].heading}
-                  </h5>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {concepts[activeBranchIndex].summary}
-                </p>
-
-                {concepts[activeBranchIndex].points && (
-                  <ul className="space-y-1.5 mr-2 pt-1">
-                    {concepts[activeBranchIndex].points!.map((pt, pIdx) => (
-                      <li key={pIdx} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                        <span className="text-purple-600 font-bold">•</span>
-                        <span>{pt}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {concepts[activeBranchIndex].clinicalWarning && (
-                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <span>{concepts[activeBranchIndex].clinicalWarning}</span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </section>

@@ -109,13 +109,6 @@ export default async function LecturePage({ params }: LecturePageProps) {
           Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#')
       ) || null;
 
-    const previewConcepts = (lecture.concepts || []).map((c) => ({
-      heading: c.heading,
-      summary: c.summary,
-      points: c.points?.slice(0, 3) || [],
-      clinicalWarning: c.clinicalWarning,
-    }));
-
     return (
       <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
         <LectureAutoScroll />
@@ -155,9 +148,11 @@ export default async function LecturePage({ params }: LecturePageProps) {
             {lecture.title}
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-            {lecture.subtitle}
-          </p>
+          {lecture.subtitle && (
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              {lecture.subtitle}
+            </p>
+          )}
 
           {/* Metadata info */}
           <div className="pt-2 flex flex-wrap items-center gap-5 text-xs text-slate-500 dark:text-slate-400">
@@ -170,18 +165,6 @@ export default async function LecturePage({ params }: LecturePageProps) {
               <span>شاهد هذه المحاضرة {lecture.viewCount} طالب</span>
             </span>
           </div>
-
-          {lecture.overview && (
-            <div className="p-5 sm:p-6 rounded-2xl bg-teal-50/80 dark:bg-slate-900 border border-teal-200/70 dark:border-teal-800 text-slate-800 dark:text-slate-200 leading-relaxed shadow-sm mt-3">
-              <h2 className="text-sm sm:text-base font-bold text-teal-900 dark:text-teal-300 mb-2 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-teal-700 dark:text-teal-400" />
-                <span>وصف وملخص المحاضرة</span>
-              </h2>
-              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
-                {lecture.overview}
-              </div>
-            </div>
-          )}
         </header>
 
         {/* 3. Top Google AdSense Placement */}
@@ -191,7 +174,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           label="إعلان ممول - منصة ملخصات التمريض"
         />
 
-        {/* 4. LOCKED LECTURE VIEW (FREE MINDMAP PREVIEW + LOCKED CONTENT SHIELD) */}
+        {/* 4. LOCKED LECTURE VIEW (ONLY FREE MINDMAP PREVIEW + LOCKED CONTENT SHIELD) */}
         <LockedLectureView
           lectureId={lecture.id}
           lectureTitle={lecture.title}
@@ -201,7 +184,6 @@ export default async function LecturePage({ params }: LecturePageProps) {
           yearId={lecture.yearId}
           price={lecture.price || 50}
           mindmapFile={mindmapFile}
-          concepts={previewConcepts}
         />
 
         {/* 5. Bottom AdSense Banner */}
