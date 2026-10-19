@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
 
     const cookieStore = cookies();
     let currentStudentId = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    if (currentStudentId && currentStudentId.includes(':::')) {
+      currentStudentId = currentStudentId.split(':::')[0];
+    }
 
     const contentType = req.headers.get('content-type') || '';
     let studentId = '';

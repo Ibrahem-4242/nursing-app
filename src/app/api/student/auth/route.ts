@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
           yearId: result.student.yearId || '1',
           readNotificationIds: result.student.readNotificationIds || [],
           purchasedLectureIds: result.student.purchasedLectureIds || [],
+          shakibRakibSubscription: result.student.shakibRakibSubscription,
         },
       });
 
@@ -244,6 +245,7 @@ export async function POST(req: NextRequest) {
           yearId: student.yearId || '1',
           readNotificationIds: student.readNotificationIds || [],
           purchasedLectureIds: student.purchasedLectureIds || [],
+          shakibRakibSubscription: student.shakibRakibSubscription,
         },
       });
 
@@ -337,6 +339,7 @@ export async function GET() {
         readNotificationIds: student.readNotificationIds || [],
         purchasedLectureIds: student.purchasedLectureIds || [],
         knownDevicesCount: student.knownDevices?.length || 1,
+        shakibRakibSubscription: student.shakibRakibSubscription,
       },
     });
   } catch (err: any) {

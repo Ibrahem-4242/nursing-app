@@ -136,13 +136,22 @@ function getGistConfig(customToken?: string) {
   return { gistId, token };
 }
 
+let memoryStoreLastFetched = 0;
+const STORE_CACHE_TTL_MS = 2500;
+let inFlightCloudSyncPromise: Promise<CmsStore | null> | null = null;
+
 export async function syncFromCloud(customToken?: string): Promise<CmsStore | null> {
   const { gistId, token } = getGistConfig(customToken);
   if (!gistId) return null;
 
-  // 1. Direct Authenticated GitHub Gist API fetch (Authoritative, 100% LIVE, zero CDN delay)
-  try {
-    const headers: Record<string, string> = {
+  if (inFlightCloudSyncPromise && !customToken) {
+    return inFlightCloudSyncPromise;
+  }
+
+  const doSync = async (): Promise<CmsStore | null> => {
+    // 1. Direct Authenticated GitHub Gist API fetch (Authoritative, 100% LIVE, zero CDN delay)
+    try {
+      const headers: Record<string, string> = {
       'User-Agent': 'NursingStudyHubApp',
       'Accept': 'application/vnd.github.v3+json',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -236,30 +245,41 @@ export async function syncFromCloud(customToken?: string): Promise<CmsStore | nu
     console.warn('[CMS DB] Cloud sync API fetch notice, trying CDN fallback:', apiErr);
   }
 
-  // 2. Direct Gist Raw CDN fetch fallback with cache bust
-  try {
-    const owner = process.env.GITHUB_OWNER || 'Ibrahem-4242';
-    const rawRes = await fetch(
-      `https://gist.githubusercontent.com/${owner}/${gistId}/raw/cms-store.json?_cb=${Date.now()}`,
-      {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
+    // 2. Direct Gist Raw CDN fetch fallback with cache bust
+    try {
+      const owner = process.env.GITHUB_OWNER || 'Ibrahem-4242';
+      const rawRes = await fetch(
+        `https://gist.githubusercontent.com/${owner}/${gistId}/raw/cms-store.json?_cb=${Date.now()}`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        }
+      );
+      if (rawRes.ok) {
+        const parsed = await rawRes.json();
+        if (parsed && Array.isArray(parsed.lectures)) {
+          return parsed as CmsStore;
+        }
       }
-    );
-    if (rawRes.ok) {
-      const parsed = await rawRes.json();
-      if (parsed && Array.isArray(parsed.lectures)) {
-        return parsed as CmsStore;
-      }
+    } catch (rawErr) {
+      console.warn('[CMS DB] Cloud sync raw fetch notice:', rawErr);
     }
-  } catch (rawErr) {
-    // Fallback to local disk
+    return null;
+  };
+
+  if (!customToken) {
+    inFlightCloudSyncPromise = doSync();
+    try {
+      return await inFlightCloudSyncPromise;
+    } finally {
+      inFlightCloudSyncPromise = null;
+    }
   }
 
-  return null;
+  return await doSync();
 }
 
 export async function syncToCloud(store: CmsStore, customToken?: string): Promise<boolean> {
@@ -479,6 +499,7 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       console.warn('[CMS DB] Cloud sync write response error:', res.status);
       return false;
     }
+    memoryStoreLastFetched = Date.now();
     return true;
   } catch (err) {
     console.warn('[CMS DB] Cloud sync write error:', err);
@@ -681,6 +702,16 @@ function initMemoryStore(): CmsStore {
   }
 
 async function getFreshStore(): Promise<CmsStore> {
+  const now = Date.now();
+  if (
+    memoryStore &&
+    Array.isArray(memoryStore.lectures) &&
+    memoryStore.lectures.length > 0 &&
+    now - memoryStoreLastFetched < STORE_CACHE_TTL_MS
+  ) {
+    return memoryStore;
+  }
+
   const cloudStore = await syncFromCloud();
   let store = initMemoryStore();
 
@@ -872,13 +903,16 @@ async function getFreshStore(): Promise<CmsStore> {
       }
     } catch {}
 
+    memoryStoreLastFetched = Date.now();
     return memoryStore;
   }
   store = maskRawGithubUrls(store);
+  memoryStoreLastFetched = Date.now();
   return store;
 }
 
 function persistStore(store: CmsStore, customToken?: string): void {
+  memoryStoreLastFetched = 0;
   for (const lec of (store.lectures || [])) {
     saveLectureToFile(lec);
   }

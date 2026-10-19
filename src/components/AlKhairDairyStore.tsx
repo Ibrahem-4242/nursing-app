@@ -105,7 +105,7 @@ export default function AlKhairDairyStore({ isAdmin, initialProductId }: AlKhair
         }
       } else {
         // Mask the URL cleanly to /store so it never shows nursing paths
-        if (!currentPath.startsWith('/admin-dashboard')) {
+        if (!currentPath.startsWith('/admin-dashboard') && !currentPath.startsWith('/admin-login')) {
           window.history.replaceState({ page: 'store' }, '', '/store');
         }
       }
