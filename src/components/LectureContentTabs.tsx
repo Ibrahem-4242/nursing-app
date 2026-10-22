@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { LectureFile, Flashcard, PlatformFeaturesConfig } from '@/lib/types';
 import Flashcards3D from '@/components/Flashcards3D';
 import AudioWavePlayer from '@/components/AudioWavePlayer';
+import VideoPlayer from '@/components/VideoPlayer';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
 import PurchaseLectureModal from '@/components/PurchaseLectureModal';
@@ -15,6 +16,7 @@ import {
   GitFork,
   Layers,
   Headphones,
+  Video,
   CheckCircle2,
   Info,
   ArrowDownCircle,
@@ -56,11 +58,15 @@ export default function LectureContentTabs({
   const getFileUrl = (f: any) => (f?.downloadUrl || f?.fileUrl || '').trim();
   const isValidUrl = (u: string) => Boolean(u && u !== '#');
 
+  const allowVideo = platformFeatures?.videoLectures !== false;
   const allowPpt = platformFeatures?.powerpointPpt !== false;
   const allowMindmap = platformFeatures?.mindmaps !== false;
   const allowAudio = platformFeatures?.audioSummaries !== false;
   const allowFlashcards = platformFeatures?.flashcards !== false;
 
+  const rawVideo = files.find(
+    (f: any) => (f.type === 'video' || f.fileType === 'video') && isValidUrl(getFileUrl(f))
+  );
   const rawPdf = files.find(
     (f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValidUrl(getFileUrl(f))
   );
@@ -77,6 +83,9 @@ export default function LectureContentTabs({
     (f: any) => (f.type === 'questions' || f.fileType === 'questions') && isValidUrl(getFileUrl(f))
   );
 
+  const videoFile: LectureFile | null = (allowVideo && rawVideo)
+    ? { ...rawVideo, type: 'video', downloadUrl: getFileUrl(rawVideo) }
+    : null;
   const pdfFile: LectureFile | null = rawPdf
     ? { ...rawPdf, type: 'pdf', downloadUrl: getFileUrl(rawPdf) }
     : null;
@@ -94,7 +103,11 @@ export default function LectureContentTabs({
     : null;
   const hasFlashcards = allowFlashcards && Array.isArray(flashcards) && flashcards.length > 0;
 
-  const defaultTab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards' = pdfFile
+  type TabType = 'video' | 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards';
+
+  const defaultTab: TabType = videoFile
+    ? 'video'
+    : pdfFile
     ? 'pdf'
     : audioFile
     ? 'audio'
@@ -111,19 +124,23 @@ export default function LectureContentTabs({
   const searchParams = useSearchParams();
   const urlTab = searchParams.get('tab') as any;
 
-  const [activeTab, setActiveTab] = useState<'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards'>(
-    urlTab && ['pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)
+  const [activeTab, setActiveTab] = useState<TabType>(
+    urlTab && ['video', 'pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)
       ? urlTab
       : defaultTab
   );
 
   React.useEffect(() => {
-    if (urlTab && ['pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)) {
+    if (urlTab && ['video', 'pdf', 'ppt', 'mindmap', 'audio', 'questions', 'flashcards'].includes(urlTab)) {
       setActiveTab(urlTab);
       return;
     }
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
+      if (hash.startsWith('#video')) {
+        setActiveTab('video');
+        return;
+      }
       if (hash.startsWith('#quiz') || hash.startsWith('#questions')) {
         setActiveTab('questions');
         return;
@@ -137,6 +154,7 @@ export default function LectureContentTabs({
 
   React.useEffect(() => {
     const currentValid =
+      (activeTab === 'video' && !!videoFile) ||
       (activeTab === 'pdf' && !!pdfFile) ||
       (activeTab === 'ppt' && !!pptFile) ||
       (activeTab === 'mindmap' && !!mindmapFile) ||
@@ -146,7 +164,7 @@ export default function LectureContentTabs({
     if (!currentValid) {
       setActiveTab(defaultTab);
     }
-  }, [pdfFile, pptFile, mindmapFile, audioFile, questionsFile, hasFlashcards, activeTab, defaultTab]);
+  }, [videoFile, pdfFile, pptFile, mindmapFile, audioFile, questionsFile, hasFlashcards, activeTab, defaultTab]);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -158,6 +176,8 @@ export default function LectureContentTabs({
 
   const getActiveFile = () => {
     switch (activeTab) {
+      case 'video':
+        return videoFile;
       case 'pdf':
         return pdfFile;
       case 'ppt':
@@ -175,7 +195,7 @@ export default function LectureContentTabs({
 
   const hasTrackedFlashcards = React.useRef(false);
 
-  const handleSelectTab = (tab: 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'questions' | 'flashcards') => {
+  const handleSelectTab = (tab: TabType) => {
     setActiveTab(tab);
     if (tab === 'flashcards' && !hasTrackedFlashcards.current) {
       hasTrackedFlashcards.current = true;
@@ -286,6 +306,14 @@ export default function LectureContentTabs({
   // Strictly display ONLY the tabs that actually have uploaded content in this lecture!
   const visibleTabs = [
     {
+      id: 'video' as const,
+      label: 'فيديو الشرح',
+      hasContent: !!videoFile,
+      activeClass: 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]',
+      icon: Video,
+      pulseDot: !!videoFile,
+    },
+    {
       id: 'pdf' as const,
       label: 'ملف PDF',
       hasContent: !!pdfFile,
@@ -385,7 +413,9 @@ export default function LectureContentTabs({
             <div className="flex items-start gap-4">
               <div
                 className={`p-4 rounded-2xl ${
-                  activeTab === 'pdf'
+                  activeTab === 'video'
+                    ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
+                    : activeTab === 'pdf'
                     ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
                     : activeTab === 'ppt'
                     ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
@@ -396,6 +426,7 @@ export default function LectureContentTabs({
                     : 'bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400'
                 }`}
               >
+                {activeTab === 'video' && <Video className="w-8 h-8" />}
                 {activeTab === 'pdf' && <FileText className="w-8 h-8" />}
                 {activeTab === 'ppt' && <Presentation className="w-8 h-8" />}
                 {activeTab === 'mindmap' && <GitFork className="w-8 h-8" />}
@@ -405,6 +436,7 @@ export default function LectureContentTabs({
 
               <div>
                 <span className="text-xs font-bold text-teal-600 dark:text-teal-400 block mb-1">
+                  {activeTab === 'video' && 'فيديو الشرح التفاعلي الشامل (Video Lecture)'}
                   {activeTab === 'pdf' && 'ملخص المحاضرة المعتمد (PDF)'}
                   {activeTab === 'ppt' && 'سلايدات الشرح الجامعي (PowerPoint)'}
                   {activeTab === 'mindmap' && 'الخريطة الذهنية التفاعلية الشاملة'}
@@ -417,7 +449,14 @@ export default function LectureContentTabs({
                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-2">
                   <span>الحجم: {activeFile.fileSize}</span>
                   {activeFile.pageCount && <span>• {activeFile.pageCount}</span>}
-                  <span>• {activeTab === 'audio' ? 'جاهز للاستماع والتحميل الفوري' : 'جاهز للتنزيل الفوري'}</span>
+                  <span>
+                    •{' '}
+                    {activeTab === 'video'
+                      ? 'جاهز للمشاهدة التفاعلية الفورية 🎬'
+                      : activeTab === 'audio'
+                      ? 'جاهز للاستماع والتحميل الفوري'
+                      : 'جاهز للتنزيل الفوري'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -434,6 +473,19 @@ export default function LectureContentTabs({
               </span>
             )}
           </div>
+
+          {/* Interactive Custom Video Player with Range seeking & resume memory */}
+          {videoFile && isUnlocked && videoFile.downloadUrl && (
+            <div className={`w-full ${activeTab === 'video' ? 'block' : 'hidden'}`}>
+              <VideoPlayer
+                videoUrl={videoFile.downloadUrl}
+                title={videoFile.title || lectureTitle || 'فيديو شرح المحاضرة'}
+                subjectTitle={subjectTitle}
+                lectureId={lectureId}
+                duration={videoFile.videoDuration}
+              />
+            </div>
+          )}
 
           {/* Interactive Animated Sound Wave Player with continuous background playback */}
           {audioFile && isUnlocked && audioFile.downloadUrl && (
@@ -470,13 +522,20 @@ export default function LectureContentTabs({
           <div className="pt-2 space-y-3">
             {isUnlocked ? (
               <>
-                <button
-                  onClick={() => handleDownloadNow(activeFile)}
-                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
-                >
-                  <ArrowDownCircle className="w-6 h-6 animate-bounce" />
-                  <span>حملها دلوقتي</span>
-                </button>
+                {activeTab === 'video' ? (
+                  <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-center">
+                    <Video className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                    <span>الفيديو متاح للمشاهدة المباشرة التفاعلية عبر المشغل أعلاه مع حفظ نقطة التوقف والتحكم بالسرعة 🎬</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleDownloadNow(activeFile)}
+                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
+                  >
+                    <ArrowDownCircle className="w-6 h-6 animate-bounce" />
+                    <span>حملها دلوقتي</span>
+                  </button>
+                )}
 
                 {downloadSuccess === activeFile.type && (
                   <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">

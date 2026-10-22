@@ -91,6 +91,7 @@ export const DEFAULT_PLATFORM_FEATURES: PlatformFeaturesConfig = {
   subjectQuizzes: true,
   coupons: true,
   audioSummaries: true,
+  videoLectures: true,
   mindmaps: true,
   powerpointPpt: true,
   flashcards: true,

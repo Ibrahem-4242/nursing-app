@@ -148,17 +148,22 @@ export async function PUT(req: NextRequest) {
   let audioUrl: string | undefined;
   let audioFileSize: string | undefined;
   let questionsUrl: string | undefined;
+  let videoUrl: string | undefined;
+  let videoFileSize: string | undefined;
+  let videoDuration: string | undefined;
   let removePdf = false;
   let removePpt = false;
   let removeMindmap = false;
   let removeAudio = false;
   let removeQuestions = false;
+  let removeVideo = false;
   let removeFlashcards = false;
   let pdfFile: File | null = null;
   let pptFile: File | null = null;
   let mindmapFile: File | null = null;
   let audioFile: File | null = null;
   let questionsFile: File | null = null;
+  let videoFile: File | null = null;
   let ankiFile: File | null = null;
   let flashcardsJson: string | null = null;
 
@@ -184,17 +189,22 @@ export async function PUT(req: NextRequest) {
     audioUrl = (formData.get('audioUrl') as string) || undefined;
     audioFileSize = (formData.get('audioFileSize') as string) || undefined;
     questionsUrl = (formData.get('questionsUrl') as string) || undefined;
+    videoUrl = (formData.get('videoUrl') as string) || (formData.get('externalVideoUrl') as string) || undefined;
+    videoFileSize = (formData.get('videoFileSize') as string) || undefined;
+    videoDuration = (formData.get('videoDuration') as string) || undefined;
     removePdf = formData.get('removePdf') === 'true';
     removePpt = formData.get('removePpt') === 'true';
     removeMindmap = formData.get('removeMindmap') === 'true';
     removeAudio = formData.get('removeAudio') === 'true';
     removeQuestions = formData.get('removeQuestions') === 'true';
+    removeVideo = formData.get('removeVideo') === 'true';
     removeFlashcards = formData.get('removeFlashcards') === 'true';
     pdfFile = formData.get('pdfFile') as File | null;
     pptFile = formData.get('pptFile') as File | null;
     mindmapFile = formData.get('mindmapFile') as File | null;
     audioFile = formData.get('audioFile') as File | null;
     questionsFile = formData.get('questionsFile') as File | null;
+    videoFile = formData.get('videoFile') as File | null;
     ankiFile = formData.get('ankiFile') as File | null;
     flashcardsJson = (formData.get('flashcardsJson') as string) || null;
   } else {
@@ -214,11 +224,15 @@ export async function PUT(req: NextRequest) {
     audioUrl = body.audioUrl;
     audioFileSize = body.audioFileSize;
     questionsUrl = body.questionsUrl;
+    videoUrl = body.videoUrl || body.externalVideoUrl;
+    videoFileSize = body.videoFileSize;
+    videoDuration = body.videoDuration;
     removePdf = Boolean(body.removePdf);
     removePpt = Boolean(body.removePpt);
     removeMindmap = Boolean(body.removeMindmap);
     removeAudio = Boolean(body.removeAudio);
     removeQuestions = Boolean(body.removeQuestions);
+    removeVideo = Boolean(body.removeVideo);
     removeFlashcards = Boolean(body.removeFlashcards);
     if (body.flashcardsJson) {
       flashcardsJson = typeof body.flashcardsJson === 'string' ? body.flashcardsJson : JSON.stringify(body.flashcardsJson);
@@ -504,6 +518,59 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  // Update or Remove Video File
+  if (removeVideo || (videoUrl !== undefined && !videoUrl.trim() && !videoFile)) {
+    existing.files = existing.files.filter((f: any) => f.type !== 'video' && f.fileType !== 'video');
+  } else if (videoFile) {
+    const buf = new Uint8Array(await videoFile.arrayBuffer());
+    const saved = await saveUploadedFile(buf, videoFile.name, customToken);
+    const vIdx = existing.files.findIndex((f: any) => f.type === 'video' || f.fileType === 'video');
+    if (vIdx >= 0) {
+      existing.files[vIdx].type = 'video';
+      existing.files[vIdx].title = `فيديو شرح المحاضرة - ${existing.title}`;
+      existing.files[vIdx].downloadUrl = saved.url;
+      existing.files[vIdx].fileUrl = saved.url;
+      existing.files[vIdx].fileSize = saved.sizeFormatted;
+      if (videoDuration) existing.files[vIdx].videoDuration = videoDuration;
+      existing.files[vIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'video',
+        title: `فيديو شرح المحاضرة - ${existing.title}`,
+        downloadUrl: saved.url,
+        fileUrl: saved.url,
+        fileSize: saved.sizeFormatted,
+        pageCount: 'فيديو شرح وتدريب',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'شرح مصور تفاعلي للمحاضرة بجودة عالية مع تحكم بالسرعة وحفظ نقطة التوقف',
+        videoDuration: videoDuration || undefined,
+      });
+    }
+  } else if (videoUrl && videoUrl.trim()) {
+    const vIdx = existing.files.findIndex((f: any) => f.type === 'video' || f.fileType === 'video');
+    if (vIdx >= 0) {
+      existing.files[vIdx].type = 'video';
+      existing.files[vIdx].title = `فيديو شرح المحاضرة - ${existing.title}`;
+      existing.files[vIdx].downloadUrl = videoUrl.trim();
+      existing.files[vIdx].fileUrl = videoUrl.trim();
+      if (videoFileSize) existing.files[vIdx].fileSize = videoFileSize;
+      if (videoDuration) existing.files[vIdx].videoDuration = videoDuration;
+      existing.files[vIdx].updatedAt = getArabicFormattedDate();
+    } else {
+      existing.files.push({
+        type: 'video',
+        title: `فيديو شرح المحاضرة - ${existing.title}`,
+        downloadUrl: videoUrl.trim(),
+        fileUrl: videoUrl.trim(),
+        fileSize: videoFileSize || 'بث تدفقي عالي الجودة 🎥',
+        pageCount: 'فيديو شرح وتدريب',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'شرح مصور تفاعلي للمحاضرة بجودة عالية مع تحكم بالسرعة وحفظ نقطة التوقف',
+        videoDuration: videoDuration || undefined,
+      });
+    }
+  }
+
   // Sync file titles whenever lecture title was edited
   existing.files = existing.files.map((f: any) => {
     if (f.type === 'pdf' || f.fileType === 'summary') {
@@ -520,6 +587,9 @@ export async function PUT(req: NextRequest) {
     }
     if (f.type === 'questions' || f.fileType === 'questions') {
       return { ...f, title: `أسئلة وتمارين المحاضرة - ${existing.title}` };
+    }
+    if (f.type === 'video' || f.fileType === 'video') {
+      return { ...f, title: `فيديو شرح المحاضرة - ${existing.title}` };
     }
     return f;
   });

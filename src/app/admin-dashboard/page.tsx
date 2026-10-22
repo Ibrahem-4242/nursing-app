@@ -38,6 +38,7 @@ import {
   Gift,
   Headphones,
   Plus,
+  Video,
   CreditCard,
   KeyRound,
   ShieldAlert,
@@ -190,6 +191,17 @@ export default function AdminDashboardPage() {
   const [questionsUploadMode, setQuestionsUploadMode] = useState<'file' | 'link'>('file');
   const [questionsFile, setQuestionsFile] = useState<File | null>(null);
   const [externalQuestionsUrl, setExternalQuestionsUrl] = useState('');
+  const [videoUploadMode, setVideoUploadMode] = useState<'file' | 'link'>('file');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [externalVideoUrl, setExternalVideoUrl] = useState('');
+  const [videoDuration, setVideoDuration] = useState('');
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoUploadSpeed, setVideoUploadSpeed] = useState('');
+  const [videoUploadEta, setVideoUploadEta] = useState('');
+  const [videoUploadStatus, setVideoUploadStatus] = useState('');
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [preUploadedVideoUrl, setPreUploadedVideoUrl] = useState<string | null>(null);
+  const [preUploadedVideoSize, setPreUploadedVideoSize] = useState<string | null>(null);
   const [applyWatermark, setApplyWatermark] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [ankiFile, setAnkiFile] = useState<File | null>(null);
@@ -256,17 +268,24 @@ export default function AdminDashboardPage() {
   const [editInitAudioUrl, setEditInitAudioUrl] = useState('');
   const [editQuestionsUrl, setEditQuestionsUrl] = useState('');
   const [editInitQuestionsUrl, setEditInitQuestionsUrl] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
+  const [editInitVideoUrl, setEditInitVideoUrl] = useState('');
+  const [editVideoDuration, setEditVideoDuration] = useState('');
   const [editRemovePdf, setEditRemovePdf] = useState(false);
   const [editRemovePpt, setEditRemovePpt] = useState(false);
   const [editRemoveMindmap, setEditRemoveMindmap] = useState(false);
   const [editRemoveAudio, setEditRemoveAudio] = useState(false);
   const [editRemoveQuestions, setEditRemoveQuestions] = useState(false);
+  const [editRemoveVideo, setEditRemoveVideo] = useState(false);
   const [editRemoveFlashcards, setEditRemoveFlashcards] = useState(false);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPptFile, setEditPptFile] = useState<File | null>(null);
   const [editMindmapFile, setEditMindmapFile] = useState<File | null>(null);
   const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
   const [editQuestionsFile, setEditQuestionsFile] = useState<File | null>(null);
+  const [editVideoFile, setEditVideoFile] = useState<File | null>(null);
+  const [editVideoUploadProgress, setEditVideoUploadProgress] = useState(0);
+  const [editIsUploadingVideo, setEditIsUploadingVideo] = useState(false);
   const [editAnkiFile, setEditAnkiFile] = useState<File | null>(null);
   const [editParsedCardsJson, setEditParsedCardsJson] = useState<string | null>(null);
   const [editParsedCardsCount, setEditParsedCardsCount] = useState<number>(0);
@@ -369,6 +388,7 @@ export default function AdminDashboardPage() {
     subjectQuizzes: true,
     coupons: true,
     audioSummaries: true,
+    videoLectures: true,
     mindmaps: true,
     powerpointPpt: true,
     flashcards: true,
@@ -667,6 +687,7 @@ export default function AdminDashboardPage() {
       subjectQuizzes: enabled,
       coupons: enabled,
       audioSummaries: enabled,
+      videoLectures: enabled,
       mindmaps: enabled,
       powerpointPpt: enabled,
       flashcards: enabled,
@@ -1676,6 +1697,167 @@ export default function AdminDashboardPage() {
     router.push('/');
   };
 
+  // Helper to extract video duration from File via hidden video element
+  const handleSelectVideoFile = (f: File) => {
+    setVideoFile(f);
+    setPreUploadedVideoUrl(null);
+    setPreUploadedVideoSize(null);
+    setVideoUploadProgress(0);
+    setVideoUploadStatus('');
+
+    try {
+      const url = URL.createObjectURL(f);
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'metadata';
+      tempVideo.src = url;
+      tempVideo.onloadedmetadata = () => {
+        const d = tempVideo.duration;
+        if (d && !isNaN(d)) {
+          const hrs = Math.floor(d / 3600);
+          const mins = Math.floor((d % 3600) / 60);
+          const secs = Math.floor(d % 60);
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const formatted = hrs > 0 ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}` : `${pad(mins)}:${pad(secs)}`;
+          setVideoDuration(formatted);
+        }
+        URL.revokeObjectURL(url);
+      };
+      tempVideo.onerror = () => {
+        URL.revokeObjectURL(url);
+      };
+    } catch {}
+  };
+
+  // Resumable & Chunked Video Uploader (2.5MB per slice, 0% to 100% live progress, retries on fail)
+  const uploadVideoInChunks = async (
+    fileToUpload: File,
+    onProgressUpdate?: (p: { percent: number; speed: string; eta: string; status: string }) => void
+  ): Promise<{ fileId: string; url: string; sizeFormatted: string }> => {
+    const CHUNK_SIZE = 2.5 * 1024 * 1024; // 2.5 MB chunks (well within Vercel's 4.5 MB request limit)
+    const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
+
+    const initRes = await fetch('/api/admin/upload-chunk', {
+      method: 'POST',
+      headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        action: 'init',
+        filename: fileToUpload.name,
+        totalChunks,
+        totalSize: fileToUpload.size,
+      }),
+    });
+
+    if (!initRes.ok) {
+      const err = await initRes.json().catch(() => ({}));
+      throw new Error(err.message || 'فشل تهيئة جلسة رفع الفيديو المجزأ');
+    }
+
+    const { uploadId } = await initRes.json();
+    const startTime = Date.now();
+    let bytesUploadedSoFar = 0;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, fileToUpload.size);
+      const chunkBlob = fileToUpload.slice(start, end);
+
+      let chunkSuccess = false;
+      let attempts = 0;
+
+      while (!chunkSuccess && attempts < 3) {
+        attempts++;
+        try {
+          const formData = new FormData();
+          formData.append('uploadId', uploadId);
+          formData.append('chunkIndex', String(i));
+          formData.append('chunk', chunkBlob);
+
+          const chunkRes = await fetch('/api/admin/upload-chunk', {
+            method: 'POST',
+            headers: getAdminHeaders(),
+            body: formData,
+          });
+
+          if (chunkRes.ok) {
+            chunkSuccess = true;
+            bytesUploadedSoFar += chunkBlob.size;
+
+            const elapsedSec = (Date.now() - startTime) / 1000;
+            const speedBytesPerSec = elapsedSec > 0 ? bytesUploadedSoFar / elapsedSec : 0;
+            const speedMb = (speedBytesPerSec / (1024 * 1024)).toFixed(1);
+
+            const remainingBytes = fileToUpload.size - bytesUploadedSoFar;
+            const remainingSec = speedBytesPerSec > 0 ? Math.round(remainingBytes / speedBytesPerSec) : 0;
+            const etaFormatted =
+              remainingSec > 60
+                ? `${Math.floor(remainingSec / 60)} د و ${remainingSec % 60} ث`
+                : `${remainingSec} ثانية`;
+
+            const percent = Math.min(Math.round((bytesUploadedSoFar / fileToUpload.size) * 100), 99);
+            const status = `جاري رفع الجزء ${i + 1} من ${totalChunks}...`;
+
+            if (onProgressUpdate) {
+              onProgressUpdate({
+                percent,
+                speed: `${speedMb} MB/s`,
+                eta: etaFormatted,
+                status,
+              });
+            }
+          } else {
+            console.warn(`[ChunkUpload] Attempt ${attempts} failed for chunk ${i}:`, chunkRes.status);
+            await new Promise((r) => setTimeout(r, 1000 * attempts));
+          }
+        } catch (netErr) {
+          console.warn(`[ChunkUpload] Network error attempt ${attempts} for chunk ${i}:`, netErr);
+          await new Promise((r) => setTimeout(r, 1000 * attempts));
+        }
+      }
+
+      if (!chunkSuccess) {
+        fetch('/api/admin/upload-chunk', {
+          method: 'POST',
+          headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ action: 'abort', uploadId }),
+        }).catch(() => {});
+        throw new Error(`تعذر رفع الجزء ${i + 1} من الفيديو بعد 3 محاولات. يرجى التحقق من اتصال الإنترنت.`);
+      }
+    }
+
+    if (onProgressUpdate) {
+      onProgressUpdate({
+        percent: 100,
+        speed: '',
+        eta: '',
+        status: 'جاري تجميع وحفظ الفيديو على الخادم...',
+      });
+    }
+
+    const completeRes = await fetch('/api/admin/upload-chunk', {
+      method: 'POST',
+      headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        action: 'complete',
+        uploadId,
+        filename: fileToUpload.name,
+        totalChunks,
+        duration: videoDuration,
+      }),
+    });
+
+    if (!completeRes.ok) {
+      const err = await completeRes.json().catch(() => ({}));
+      throw new Error(err.message || 'فشل تجميع أجزاء الفيديو');
+    }
+
+    const completeData = await completeRes.json();
+    return {
+      fileId: completeData.fileId,
+      url: completeData.url,
+      sizeFormatted: completeData.sizeFormatted,
+    };
+  };
+
   // Upload lecture handler
   const handleUploadLecture = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1689,12 +1871,13 @@ export default function AdminDashboardPage() {
     const hasMindmap = (mindmapUploadMode === 'file' && !!mindmapFile) || (mindmapUploadMode === 'link' && !!externalMindmapUrl.trim());
     const hasAudio = (audioUploadMode === 'file' && !!audioFile) || (audioUploadMode === 'link' && !!externalAudioUrl.trim());
     const hasQuestions = (questionsUploadMode === 'file' && !!questionsFile) || (questionsUploadMode === 'link' && !!externalQuestionsUrl.trim());
+    const hasVideo = (videoUploadMode === 'file' && !!videoFile) || (videoUploadMode === 'link' && !!externalVideoUrl.trim());
     const hasAnki = !!ankiFile || !!parsedCardsJson;
 
-    if (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions) {
+    if (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions && !hasVideo) {
       setUploadFeedback({
         type: 'error',
-        message: 'يرجى رفع محتوى واحد على الأقل للمحاضرة (ملف PDF أو صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية أو ملف أسئلة)',
+        message: 'يرجى رفع محتوى واحد على الأقل للمحاضرة (فيديو شرح أو ملف PDF أو صوت أو بوربوينت أو فلاش كاردز أو خريطة ذهنية أو ملف أسئلة)',
       });
       return;
     }
@@ -1817,9 +2000,35 @@ export default function AdminDashboardPage() {
         }
       }
 
+      let resolvedVideoUrl = '';
+      let resolvedVideoSize = '';
+      if (videoUploadMode === 'file' && videoFile) {
+        setIsUploadingVideo(true);
+        try {
+          const chunkRes = await uploadVideoInChunks(videoFile, (p) => {
+            setVideoUploadProgress(p.percent);
+            setVideoUploadSpeed(p.speed);
+            setVideoUploadEta(p.eta);
+            setVideoUploadStatus(p.status);
+          });
+          resolvedVideoUrl = chunkRes.url;
+          resolvedVideoSize = chunkRes.sizeFormatted;
+        } finally {
+          setIsUploadingVideo(false);
+        }
+      } else if (videoUploadMode === 'link' && externalVideoUrl.trim()) {
+        resolvedVideoUrl = externalVideoUrl.trim();
+      }
+
       const formData = new FormData();
       if (pdfFileToSend) formData.append('file', pdfFileToSend);
       else if (resolvedPdfUrl) formData.append('externalPdfUrl', resolvedPdfUrl);
+
+      if (resolvedVideoUrl) {
+        formData.append('externalVideoUrl', resolvedVideoUrl);
+        if (resolvedVideoSize) formData.append('videoFileSize', resolvedVideoSize);
+        if (videoDuration) formData.append('videoDuration', videoDuration);
+      }
 
       if (ankiFile) formData.append('ankiFile', ankiFile);
       if (parsedCardsJson) formData.append('flashcardsJson', parsedCardsJson);
@@ -1910,6 +2119,16 @@ export default function AdminDashboardPage() {
         setQuestionsFile(null);
         setExternalQuestionsUrl('');
         setQuestionsUploadMode('file');
+        setVideoFile(null);
+        setExternalVideoUrl('');
+        setVideoDuration('');
+        setVideoUploadProgress(0);
+        setVideoUploadSpeed('');
+        setVideoUploadEta('');
+        setVideoUploadStatus('');
+        setVideoUploadMode('file');
+        setPreUploadedVideoUrl(null);
+        setPreUploadedVideoSize(null);
         setExternalPdfUrl('');
         loadLectures();
         loadStats();
@@ -2815,36 +3034,45 @@ export default function AdminDashboardPage() {
     const mm = lec.files?.find((f: any) => f.type === 'mindmap' || f.fileType === 'mindmap');
     const aud = lec.files?.find((f: any) => f.type === 'audio' || f.fileType === 'audio');
     const qFile = lec.files?.find((f: any) => f.type === 'questions' || f.fileType === 'questions');
+    const vid = lec.files?.find((f: any) => f.type === 'video' || f.fileType === 'video');
 
     const pUrl = (pdf?.downloadUrl || pdf?.fileUrl || '').trim();
     const pptUrlVal = (ppt?.downloadUrl || ppt?.fileUrl || '').trim();
     const mmUrlVal = (mm?.downloadUrl || mm?.fileUrl || '').trim();
     const audUrlVal = (aud?.downloadUrl || aud?.fileUrl || '').trim();
     const qUrlVal = (qFile?.downloadUrl || qFile?.fileUrl || '').trim();
+    const vidUrlVal = (vid?.downloadUrl || vid?.fileUrl || '').trim();
 
     setEditInitPdfUrl(pUrl);
     setEditInitPptUrl(pptUrlVal);
     setEditInitMindmapUrl(mmUrlVal);
     setEditInitAudioUrl(audUrlVal);
     setEditInitQuestionsUrl(qUrlVal);
+    setEditInitVideoUrl(vidUrlVal);
 
     setEditPdfUrl(pUrl);
     setEditPptUrl(pptUrlVal);
     setEditMindmapUrl(mmUrlVal);
     setEditAudioUrl(audUrlVal);
     setEditQuestionsUrl(qUrlVal);
+    setEditVideoUrl(vidUrlVal);
+    setEditVideoDuration(vid?.videoDuration || '');
 
     setEditRemovePdf(false);
     setEditRemovePpt(false);
     setEditRemoveMindmap(false);
     setEditRemoveAudio(false);
     setEditRemoveQuestions(false);
+    setEditRemoveVideo(false);
     setEditRemoveFlashcards(false);
     setEditPdfFile(null);
     setEditPptFile(null);
     setEditMindmapFile(null);
     setEditAudioFile(null);
     setEditQuestionsFile(null);
+    setEditVideoFile(null);
+    setEditVideoUploadProgress(0);
+    setEditIsUploadingVideo(false);
     setEditAnkiFile(null);
     setEditParsedCardsJson(null);
     setEditParsedCardsCount(0);
@@ -2969,11 +3197,27 @@ export default function AdminDashboardPage() {
         }
       }
 
+      let resolvedVideoUrl = editVideoUrl.trim();
+      let resolvedVideoSize = '';
+      if (editVideoFile) {
+        setEditIsUploadingVideo(true);
+        try {
+          const chunkRes = await uploadVideoInChunks(editVideoFile, (p) => {
+            setEditVideoUploadProgress(p.percent);
+          });
+          resolvedVideoUrl = chunkRes.url;
+          resolvedVideoSize = chunkRes.sizeFormatted;
+        } finally {
+          setEditIsUploadingVideo(false);
+        }
+      }
+
       const willRemovePdf = editRemovePdf || (Boolean(editInitPdfUrl) && !resolvedPdfUrl.trim() && !pdfFileToSend);
       const willRemovePpt = editRemovePpt || (Boolean(editInitPptUrl) && !resolvedPptUrl.trim() && !pptFileToSend);
       const willRemoveMm = editRemoveMindmap || (Boolean(editInitMindmapUrl) && !resolvedMmUrl.trim() && !mmFileToSend);
       const willRemoveAud = editRemoveAudio || (Boolean(editInitAudioUrl) && !resolvedAudioUrl.trim() && !audioFileToSend);
       const willRemoveQ = editRemoveQuestions || (Boolean(editInitQuestionsUrl) && !resolvedQuestionsUrl.trim() && !questionsFileToSend);
+      const willRemoveVid = editRemoveVideo || (Boolean(editInitVideoUrl) && !resolvedVideoUrl.trim() && !editVideoFile);
 
       const hasFilesToSend = pdfFileToSend || pptFileToSend || mmFileToSend || audioFileToSend || questionsFileToSend || editAnkiFile;
 
@@ -2993,6 +3237,9 @@ export default function AdminDashboardPage() {
         formData.append('pptUrl', willRemovePpt ? '' : resolvedPptUrl.trim());
         formData.append('mindmapUrl', willRemoveMm ? '' : resolvedMmUrl.trim());
         formData.append('questionsUrl', willRemoveQ ? '' : resolvedQuestionsUrl.trim());
+        formData.append('videoUrl', willRemoveVid ? '' : resolvedVideoUrl.trim());
+        if (resolvedVideoSize) formData.append('videoFileSize', resolvedVideoSize);
+        if (editVideoDuration) formData.append('videoDuration', editVideoDuration);
         formData.append('audioUrl', willRemoveAud ? '' : resolvedAudioUrl);
         if (resolvedAudioSize) formData.append('audioFileSize', resolvedAudioSize);
         if (willRemovePdf) formData.append('removePdf', 'true');
@@ -3000,6 +3247,7 @@ export default function AdminDashboardPage() {
         if (willRemoveMm) formData.append('removeMindmap', 'true');
         if (willRemoveAud) formData.append('removeAudio', 'true');
         if (willRemoveQ) formData.append('removeQuestions', 'true');
+        if (willRemoveVid) formData.append('removeVideo', 'true');
         if (editRemoveFlashcards) formData.append('removeFlashcards', 'true');
         if (pdfFileToSend) formData.append('pdfFile', pdfFileToSend);
         if (pptFileToSend) formData.append('pptFile', pptFileToSend);
@@ -3032,6 +3280,9 @@ export default function AdminDashboardPage() {
             pptUrl: willRemovePpt ? '' : resolvedPptUrl.trim(),
             mindmapUrl: willRemoveMm ? '' : resolvedMmUrl.trim(),
             questionsUrl: willRemoveQ ? '' : resolvedQuestionsUrl.trim(),
+            videoUrl: willRemoveVid ? '' : resolvedVideoUrl.trim(),
+            videoFileSize: resolvedVideoSize || undefined,
+            videoDuration: editVideoDuration || undefined,
             audioUrl: willRemoveAud ? '' : resolvedAudioUrl,
             audioFileSize: resolvedAudioSize || undefined,
             removePdf: willRemovePdf,
@@ -3039,6 +3290,7 @@ export default function AdminDashboardPage() {
             removeMindmap: willRemoveMm,
             removeAudio: willRemoveAud,
             removeQuestions: willRemoveQ,
+            removeVideo: willRemoveVid,
             removeFlashcards: editRemoveFlashcards,
             flashcardsJson: editParsedCardsJson || undefined,
           }),
@@ -4630,6 +4882,146 @@ export default function AdminDashboardPage() {
                       />
                     )}
                   </div>
+
+                  {/* 6. Video Lecture (.mp4, .mkv, .webm, .mov, Chunked Resumable Upload or Drive Link) */}
+                  <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                        <Video className="w-4 h-4" />
+                        <span>فيديو شرح المحاضرة (Video Lecture)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                        بث تدفقي 🎥
+                      </span>
+                    </div>
+
+                    {/* Mode Selector: Chunked File vs Drive Link */}
+                    <div className="flex rounded-xl bg-indigo-100/70 dark:bg-indigo-950 p-1 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setVideoUploadMode('file')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          videoUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
+                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
+                        }`}
+                      >
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع فيديو (مجزأ - أي حجم)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoUploadMode('link')}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          videoUploadMode === 'link'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
+                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
+                        }`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>رابط درايف</span>
+                      </button>
+                    </div>
+
+                    {videoUploadMode === 'file' ? (
+                      <>
+                        <input
+                          type="file"
+                          id="video-file-input"
+                          accept="video/*,.mp4,.mkv,.webm,.mov,.avi"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleSelectVideoFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('video-file-input')?.click()}
+                          className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            videoFile
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-indigo-500'
+                          }`}
+                        >
+                          {videoFile ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[150px]">{videoFile.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Video className="w-3.5 h-3.5" />
+                              <span>اختر ملف فيديو (يقبل أي حجم حتى عدة GB) 🎬</span>
+                            </>
+                          )}
+                        </button>
+
+                        {videoFile && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-[10px] px-1">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                                {videoFile.size >= 1024 * 1024 * 1024
+                                  ? `${(videoFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                                  : `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB`}
+                                {videoDuration && ` • ⏱️ ${videoDuration}`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVideoFile(null);
+                                  setVideoDuration('');
+                                  setVideoUploadProgress(0);
+                                  setVideoUploadStatus('');
+                                }}
+                                className="text-rose-500 hover:underline"
+                              >
+                                إلغاء الفيديو
+                              </button>
+                            </div>
+
+                            {/* Live Progress Bar during Chunked Upload */}
+                            {isUploadingVideo && (
+                              <div className="space-y-1 bg-indigo-950/20 dark:bg-indigo-900/30 p-2 rounded-xl border border-indigo-500/30">
+                                <div className="flex items-center justify-between text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                                  <span>{videoUploadStatus || 'جاري الرفع التراكمي...'}</span>
+                                  <span>{videoUploadProgress}%</span>
+                                </div>
+                                <div className="w-full h-2 rounded-full bg-indigo-200 dark:bg-indigo-950 overflow-hidden">
+                                  <div
+                                    style={{ width: `${videoUploadProgress}%` }}
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-teal-400 transition-all duration-300 rounded-full"
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400 font-mono">
+                                  {videoUploadSpeed && <span>⚡ {videoUploadSpeed}</span>}
+                                  {videoUploadEta && <span>⏳ {videoUploadEta}</span>}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <input
+                          type="url"
+                          value={externalVideoUrl}
+                          onChange={(e) => setExternalVideoUrl(e.target.value)}
+                          placeholder="ضع رابط Google Drive أو رابط الفيديو المباشر..."
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right dir-rtl"
+                        />
+                        <input
+                          type="text"
+                          value={videoDuration}
+                          onChange={(e) => setVideoDuration(e.target.value)}
+                          placeholder="مدة الفيديو اختيارية (مثال: 45:30)..."
+                          className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[11px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right dir-rtl"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -5481,6 +5873,92 @@ export default function AdminDashboardPage() {
                             </button>
                           )}
                         </div>
+                      </div>
+
+                      {/* Video Lecture replacement / removal */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                            <Video className="w-3.5 h-3.5" />
+                            <span>فيديو شرح المحاضرة (Video Lecture 🎬):</span>
+                          </label>
+                          {(editingLecture?.files?.some((f: any) => f.type === 'video' || f.fileType === 'video') || editVideoUrl || editVideoFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditVideoUrl('');
+                                setEditVideoFile(null);
+                                setEditRemoveVideo(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveVideo ? 'سيتم حذف الفيديو عند الحفظ 🗑️' : 'حذف الفيديو الحالي 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editVideoUrl}
+                            onChange={(e) => {
+                              setEditVideoUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveVideo(false);
+                            }}
+                            placeholder="رابط مباشر / Google Drive للبث التدفقي..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold cursor-pointer transition flex items-center gap-1 border border-indigo-200 dark:border-indigo-800">
+                            <FileUp className="w-3.5 h-3.5" />
+                            <span>{editVideoFile ? editVideoFile.name.slice(0, 10) : 'رفع فيديو'}</span>
+                            <input
+                              type="file"
+                              accept="video/*,.mp4,.mkv,.webm,.mov,.avi"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  const f = e.target.files[0];
+                                  setEditVideoFile(f);
+                                  setEditRemoveVideo(false);
+                                  try {
+                                    const u = URL.createObjectURL(f);
+                                    const tv = document.createElement('video');
+                                    tv.preload = 'metadata';
+                                    tv.src = u;
+                                    tv.onloadedmetadata = () => {
+                                      const d = tv.duration;
+                                      if (d && !isNaN(d)) {
+                                        const hrs = Math.floor(d / 3600);
+                                        const mins = Math.floor((d % 3600) / 60);
+                                        const secs = Math.floor(d % 60);
+                                        const pad = (n: number) => String(n).padStart(2, '0');
+                                        setEditVideoDuration(hrs > 0 ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}` : `${pad(mins)}:${pad(secs)}`);
+                                      }
+                                      URL.revokeObjectURL(u);
+                                    };
+                                  } catch {}
+                                }
+                              }}
+                            />
+                          </label>
+                          {editVideoFile && (
+                            <button
+                              type="button"
+                              onClick={() => setEditVideoFile(null)}
+                              className="px-2 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold border border-rose-200"
+                              title="إلغاء اختيار الملف"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        {editIsUploadingVideo && (
+                          <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              style={{ width: `${editVideoUploadProgress}%` }}
+                              className="bg-indigo-500 h-full transition-all duration-300"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Anki Package replacement / removal */}
@@ -8993,6 +9471,14 @@ export default function AdminDashboardPage() {
                   category: 'المحتوى الأكاديمي',
                   icon: Headphones,
                   color: 'purple',
+                },
+                {
+                  key: 'videoLectures' as const,
+                  title: 'فيديوهات وشروحات المحاضرات 🎥',
+                  desc: 'إظهار مشغل الفيديو الاحترافي التفاعلي وتبويب الفيديو في صفحات المحاضرات.',
+                  category: 'المحتوى الأكاديمي',
+                  icon: Video,
+                  color: 'indigo',
                 },
                 {
                   key: 'mindmaps' as const,

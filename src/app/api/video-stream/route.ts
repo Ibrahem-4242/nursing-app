@@ -1,0 +1,234 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import fs from 'fs';
+import path from 'path';
+import { Readable } from 'stream';
+import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
+import { CmsService } from '@/lib/cms-db';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const ADMIN_COOKIE_NAME = 'nursing_admin_token';
+const ADMIN_SECRET_VALUE = 'secret_session_5143545638_verified';
+const STUDENT_COOKIE_NAME = 'nursing_student_session';
+
+async function verifyLectureAccess(
+  lectureId?: string,
+  isAdmin: boolean = false
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (isAdmin) return { allowed: true };
+  if (!lectureId) return { allowed: true };
+
+  try {
+    const lecture = await CmsService.getLectureById(lectureId);
+    if (!lecture) return { allowed: true };
+    if (lecture.isFree) return { allowed: true };
+
+    // Paid lecture: check student session
+    const cookieStore = cookies();
+    const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    if (!rawVal) {
+      return { allowed: false, reason: 'هذه المحاضرة مخصصة للمشتركين فقط 🔒' };
+    }
+
+    const [studentId] = rawVal.split(':::');
+    if (!studentId) {
+      return { allowed: false, reason: 'جلسة الطالب غير صالحة' };
+    }
+
+    const student = await CmsService.getStudentById(studentId);
+    if (!student || student.isSuspended) {
+      return { allowed: false, reason: 'الحساب غير مصرح له أو معلق' };
+    }
+
+    // Check Shakib Rakib subscription
+    if (student.shakibRakibSubscription?.isActive) {
+      const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+      if (expires > Date.now()) {
+        const subYear = student.shakibRakibSubscription.yearId;
+        if (!lecture.yearId || !subYear || subYear === 'all' || subYear === lecture.yearId) {
+          return { allowed: true };
+        }
+      }
+    }
+
+    // Check individual purchase
+    if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId)) {
+      return { allowed: true };
+    }
+
+    return { allowed: false, reason: 'المحاضرة غير مفعلة في حسابك بعد 🔒' };
+  } catch (err) {
+    console.warn('[VideoStreamAuth] Auth check error:', err);
+    return { allowed: true };
+  }
+}
+
+function extractDriveId(url: string): string | null {
+  const match = url.match(/(?:file\/d\/|id=|\/d\/)([a-zA-Z0-9_-]{15,})/);
+  return match ? match[1] : null;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const cookieStore = cookies();
+    const isAdmin = cookieStore.get(ADMIN_COOKIE_NAME)?.value === ADMIN_SECRET_VALUE;
+
+    // 1. Panic / Camouflage Mode check
+    const panicMode = await CmsService.getPanicMode();
+    if (panicMode.isEnabled && !isAdmin) {
+      return new NextResponse('File Not Found', { status: 404 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const fileId = searchParams.get('fileId');
+    const externalUrl = searchParams.get('url');
+    const lectureId = searchParams.get('lectureId') || undefined;
+
+    // 2. Permissions check
+    const access = await verifyLectureAccess(lectureId, isAdmin);
+    if (!access.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: access.reason || 'المحتوى مخصص للمشتركين فقط' }),
+        { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+      );
+    }
+
+    // 3. Option A: Serve locally assembled or stored video file with byte-range streaming
+    if (fileId) {
+      const safeId = decodeURIComponent(fileId);
+      const filePath = findLocalFilePath(safeId);
+
+      if (!filePath || !fs.existsSync(filePath)) {
+        return new NextResponse('Video File Not Found', { status: 404 });
+      }
+
+      const stats = fs.statSync(filePath);
+      const totalLength = stats.size;
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = getContentTypeForExt(ext) || 'video/mp4';
+
+      const rangeHeader = req.headers.get('range');
+
+      const headers = new Headers();
+      headers.set('Content-Type', contentType);
+      headers.set('Accept-Ranges', 'bytes');
+      headers.set('Cache-Control', 'public, max-age=3600');
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Headers', 'Range, Accept-Ranges, Content-Range');
+
+      if (rangeHeader) {
+        const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+        if (match) {
+          const rawStart = match[1];
+          const rawEnd = match[2];
+          let start = rawStart ? parseInt(rawStart, 10) : 0;
+          let end = rawEnd ? parseInt(rawEnd, 10) : totalLength - 1;
+
+          if (isNaN(start)) start = 0;
+          if (isNaN(end) || end >= totalLength) end = totalLength - 1;
+
+          if (start <= end && start < totalLength) {
+            const chunkSize = end - start + 1;
+            headers.set('Content-Range', `bytes ${start}-${end}/${totalLength}`);
+            headers.set('Content-Length', String(chunkSize));
+
+            const nodeStream = fs.createReadStream(filePath, { start, end });
+            const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
+
+            return new Response(webStream, {
+              status: 206,
+              headers,
+            });
+          }
+        }
+      }
+
+      // No range header: serve full stream
+      headers.set('Content-Length', String(totalLength));
+      const nodeStream = fs.createReadStream(filePath);
+      const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
+
+      return new Response(webStream, {
+        status: 200,
+        headers,
+      });
+    }
+
+    // 4. Option B: Stream / Proxy external video or Google Drive link
+    if (externalUrl) {
+      let targetUrl = externalUrl.trim();
+      const driveId = extractDriveId(targetUrl);
+
+      if (driveId) {
+        targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+      }
+
+      const upstreamHeaders: Record<string, string> = {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      };
+
+      const rangeHeader = req.headers.get('range');
+      if (rangeHeader) {
+        upstreamHeaders['Range'] = rangeHeader;
+      }
+
+      const upstreamRes = await fetch(targetUrl, {
+        headers: upstreamHeaders,
+        redirect: 'follow',
+      });
+
+      // If upstream failed or returned html on drive confirmation
+      if (!upstreamRes.ok && upstreamRes.status !== 206) {
+        // Fallback direct stream attempt for Google Drive
+        if (driveId) {
+          const altUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download&authuser=0`;
+          const altRes = await fetch(altUrl, {
+            headers: upstreamHeaders,
+            redirect: 'follow',
+          });
+          if (altRes.ok || altRes.status === 206) {
+            const resHeaders = new Headers();
+            resHeaders.set('Content-Type', 'video/mp4');
+            resHeaders.set('Accept-Ranges', 'bytes');
+            resHeaders.set('Access-Control-Allow-Origin', '*');
+            const cl = altRes.headers.get('content-length');
+            const cr = altRes.headers.get('content-range');
+            if (cl) resHeaders.set('Content-Length', cl);
+            if (cr) resHeaders.set('Content-Range', cr);
+
+            return new Response(altRes.body, {
+              status: altRes.status,
+              headers: resHeaders,
+            });
+          }
+        }
+      }
+
+      const resHeaders = new Headers();
+      resHeaders.set(
+        'Content-Type',
+        upstreamRes.headers.get('content-type') || 'video/mp4'
+      );
+      resHeaders.set('Accept-Ranges', 'bytes');
+      resHeaders.set('Access-Control-Allow-Origin', '*');
+
+      const cl = upstreamRes.headers.get('content-length');
+      const cr = upstreamRes.headers.get('content-range');
+      if (cl) resHeaders.set('Content-Length', cl);
+      if (cr) resHeaders.set('Content-Range', cr);
+
+      return new Response(upstreamRes.body, {
+        status: upstreamRes.status === 206 ? 206 : 200,
+        headers: resHeaders,
+      });
+    }
+
+    return new NextResponse('Missing fileId or url parameter', { status: 400 });
+  } catch (err: any) {
+    console.error('[VideoStream API Error]:', err);
+    return new NextResponse('Internal Video Streaming Error', { status: 500 });
+  }
+}

@@ -104,7 +104,7 @@ export interface QuizQuestion {
 }
 
 export interface LectureFile {
-  type: 'pdf' | 'ppt' | 'mindmap' | 'cards' | 'audio' | 'questions';
+  type: 'pdf' | 'ppt' | 'mindmap' | 'cards' | 'audio' | 'questions' | 'video';
   title: string;
   fileSize: string;
   downloadUrl: string;
@@ -113,6 +113,8 @@ export interface LectureFile {
   pageCount?: string;
   updatedAt: string;
   customNote?: string;
+  videoDuration?: string;
+  resolution?: string;
 }
 
 export interface Lecture {
@@ -343,6 +345,7 @@ export interface PlatformFeaturesConfig {
   subjectQuizzes: boolean;    // قسم كويزات وبنك أسئلة المواد
   coupons: boolean;           // نظام كوبونات وأكواد الخصم
   audioSummaries: boolean;    // الملخصات الصوتية Audio
+  videoLectures: boolean;     // فيديوهات وشروحات المحاضرات Video
   mindmaps: boolean;          // الخرائط الذهنية Mind Maps
   powerpointPpt: boolean;     // عروض البوربوينت PPT
   flashcards: boolean;        // كروت الاستذكار Flashcards

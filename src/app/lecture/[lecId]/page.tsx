@@ -282,6 +282,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           {(() => {
             const avail: string[] = [];
             const isValid = (f: any) => Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#');
+            if (lecture.files?.some((f: any) => (f.type === 'video' || f.fileType === 'video') && isValid(f))) avail.push('فيديو شرح 🎬');
             if (lecture.files?.some((f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValid(f))) avail.push('ملف PDF');
             if (lecture.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValid(f))) avail.push('ريكورد صوتي 🎧');
             if (lecture.files?.some((f: any) => (f.type === 'questions' || f.fileType === 'questions') && isValid(f))) avail.push('أسئلة وتمارين ❓');
@@ -330,7 +331,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
           yearId={lecture.yearId}
           isFree={lecture.isFree}
           price={lecture.price || 50}
-          isAdmin={false}
+          isAdmin={isAdmin}
           platformFeatures={platformFeatures}
         />
       </section>

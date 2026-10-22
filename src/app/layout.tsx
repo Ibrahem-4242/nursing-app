@@ -155,6 +155,7 @@ export default async function RootLayout({
     subjectQuizzes: true,
     coupons: true,
     audioSummaries: true,
+    videoLectures: true,
     mindmaps: true,
     powerpointPpt: true,
     flashcards: true,

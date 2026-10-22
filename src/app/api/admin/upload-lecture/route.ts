@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     const mindmapFile = formData.get('mindmapFile') as File | null;
     const audioFile = formData.get('audioFile') as File | null;
     const questionsFile = formData.get('questionsFile') as File | null;
+    const videoFile = formData.get('videoFile') as File | null;
 
     const customToken =
       req.headers.get('x-github-token') ||
@@ -48,6 +49,9 @@ export async function POST(req: NextRequest) {
     const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
     const audioFileSize = ((formData.get('audioFileSize') as string) || '').trim();
     const externalQuestionsUrl = ((formData.get('externalQuestionsUrl') as string) || '').trim();
+    const externalVideoUrl = ((formData.get('externalVideoUrl') as string) || (formData.get('videoUrl') as string) || '').trim();
+    const videoFileSize = ((formData.get('videoFileSize') as string) || '').trim();
+    const videoDuration = ((formData.get('videoDuration') as string) || '').trim();
 
     const subjectId = (formData.get('subjectId') as string) || 'anatomy';
     const yearId = (formData.get('yearId') as string) || '1';
@@ -67,15 +71,16 @@ export async function POST(req: NextRequest) {
     const hasMindmap = Boolean(mindmapFile || externalMindmapUrl);
     const hasAudio = Boolean(audioFile || externalAudioUrl);
     const hasQuestions = Boolean(questionsFile || externalQuestionsUrl);
+    const hasVideo = Boolean(videoFile || externalVideoUrl);
     const flashcardsJsonRaw = (formData.get('flashcardsJson') as string | null) || '';
     const hasAnki = Boolean(ankiFile || (flashcardsJsonRaw && flashcardsJsonRaw !== '[]'));
 
-    if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions)) {
+    if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions && !hasVideo)) {
       return NextResponse.json(
         {
           success: false,
           message:
-            'يرجى كتابة اسم المحاضرة ورفع محتوى واحد على الأقل (ملف PDF أو ريكورد صوتي أو بوربوينت أو خريطة ذهنية أو كروت Anki أو ملف أسئلة)',
+            'يرجى كتابة اسم المحاضرة ورفع محتوى واحد على الأقل (فيديو شرح أو ملف PDF أو ريكورد صوتي أو بوربوينت أو خريطة ذهنية أو كروت Anki أو ملف أسئلة)',
         },
         { status: 400 }
       );
@@ -259,6 +264,32 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (externalVideoUrl) {
+      filesList.push({
+        type: 'video',
+        title: `فيديو شرح المحاضرة - ${lectureTitle.trim()}`,
+        fileSize: videoFileSize || 'بث تدفقي عالي الجودة 🎥',
+        downloadUrl: externalVideoUrl,
+        pageCount: 'فيديو شرح وتدريب',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'شرح مصور تفاعلي للمحاضرة بجودة عالية مع تحكم بالسرعة وحفظ نقطة التوقف',
+        videoDuration: videoDuration || undefined,
+      });
+    } else if (videoFile) {
+      const vidBuffer = new Uint8Array(await videoFile.arrayBuffer());
+      const savedVid = await saveUploadedFile(vidBuffer, videoFile.name, customToken);
+      filesList.push({
+        type: 'video',
+        title: `فيديو شرح المحاضرة - ${lectureTitle.trim()}`,
+        fileSize: savedVid.sizeFormatted,
+        downloadUrl: savedVid.url,
+        pageCount: 'فيديو شرح وتدريب',
+        updatedAt: getArabicFormattedDate(),
+        customNote: 'شرح مصور تفاعلي للمحاضرة بجودة عالية مع تحكم بالسرعة وحفظ نقطة التوقف',
+        videoDuration: videoDuration || undefined,
+      });
+    }
+
     // 5. Construct New Lecture Record
     const lectureId = `lec-${Date.now()}`;
     const newLecture: Lecture = {
@@ -316,6 +347,7 @@ export async function POST(req: NextRequest) {
 📚 <b>المادة:</b> ${subjectObj.title}
 📅 <b>الفصل الدراسي:</b> سمستر ${semester} (${semester === '2' ? 'الترم الثاني' : 'الترم الأول'})
 🔢 <b>رقم المحاضرة:</b> ${lectureNumber}
+🎥 <b>فيديو الشرح:</b> ${videoFile || externalVideoUrl ? 'مرفوع وجاهز للبث المباشر 🎬✅' : 'غير مرفق'}
 📄 <b>ملف الـ PDF:</b> (${savedPdf.sizeFormatted}) ${shouldWatermark ? '🛡️ مع العلامة المائية' : ''}
 🖥️ <b>ملف البوربوينت:</b> ${pptFile || externalPptUrl ? 'مرفوع جاهز ✅' : 'غير مرفق'}
 🗺️ <b>الخريطة الذهنية:</b> ${mindmapFile || externalMindmapUrl ? 'مرفوعة جاهزة ✅' : 'غير مرفقة'}

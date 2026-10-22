@@ -35,7 +35,7 @@ function getUploadsDirectory(): string {
   }
 }
 
-function getContentTypeForExt(ext: string): string {
+export function getContentTypeForExt(ext: string): string {
   if (ext === '.pdf') return 'application/pdf';
   if (ext === '.pptx') return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
   if (ext === '.ppt') return 'application/vnd.ms-powerpoint';
@@ -43,12 +43,17 @@ function getContentTypeForExt(ext: string): string {
   if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
   if (ext === '.webp') return 'image/webp';
   if (ext === '.svg') return 'image/svg+xml';
+  if (ext === '.mp4') return 'video/mp4';
+  if (ext === '.m4v') return 'video/x-m4v';
+  if (ext === '.webm') return 'video/webm';
+  if (ext === '.mkv') return 'video/x-matroska';
+  if (ext === '.mov') return 'video/quicktime';
+  if (ext === '.avi') return 'video/x-msvideo';
   if (ext === '.mp3') return 'audio/mpeg';
-  if (ext === '.m4a' || ext === '.mp4') return 'audio/mp4';
+  if (ext === '.m4a') return 'audio/mp4';
   if (ext === '.wav') return 'audio/wav';
   if (ext === '.ogg' || ext === '.oga' || ext === '.opus') return 'audio/ogg';
   if (ext === '.aac') return 'audio/aac';
-  if (ext === '.webm') return 'audio/webm';
   if (ext === '.flac') return 'audio/flac';
   return 'application/octet-stream';
 }
@@ -282,4 +287,203 @@ export async function getUploadedFileAsync(
 }
 
 export const getUploadedPdfAsync = getUploadedFileAsync;
+
+// ==========================================
+// CHUNKED & RESUMABLE UPLOAD HELPERS (Zero-OOM, Any Size)
+// ==========================================
+
+export function getChunksDirectory(): string {
+  const base = getUploadsDirectory();
+  const chunksDir = path.join(base, 'chunks');
+  try {
+    if (!fs.existsSync(chunksDir)) {
+      fs.mkdirSync(chunksDir, { recursive: true });
+    }
+  } catch {}
+  return chunksDir;
+}
+
+export function initChunkedUpload(
+  uploadId: string,
+  filename: string,
+  totalChunks: number,
+  totalSize: number
+): { success: boolean; uploadDir: string } {
+  const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const dir = path.join(getChunksDirectory(), safeId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const meta = {
+    uploadId: safeId,
+    filename,
+    totalChunks,
+    totalSize,
+    createdAt: Date.now(),
+  };
+  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify(meta), 'utf8');
+  return { success: true, uploadDir: dir };
+}
+
+export async function saveUploadChunk(
+  uploadId: string,
+  chunkIndex: number,
+  bytes: Uint8Array
+): Promise<{ success: boolean; chunkIndex: number }> {
+  const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const dir = path.join(getChunksDirectory(), safeId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const chunkPath = path.join(dir, `chunk_${chunkIndex}`);
+  fs.writeFileSync(chunkPath, Buffer.from(bytes));
+  return { success: true, chunkIndex };
+}
+
+export async function assembleChunkedUpload(
+  uploadId: string,
+  filename: string,
+  totalChunks: number,
+  customToken?: string
+): Promise<{ fileId: string; url: string; sizeFormatted: string; filePath: string }> {
+  const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const chunkDir = path.join(getChunksDirectory(), safeId);
+  const targetDir = getUploadsDirectory();
+
+  const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  const cleanFilename = filename.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+  const safeName = `${fileId}_${cleanFilename}`;
+  const targetPath = path.join(targetDir, safeName);
+
+  // Validate all chunks exist
+  for (let i = 0; i < totalChunks; i++) {
+    const chunkPath = path.join(chunkDir, `chunk_${i}`);
+    if (!fs.existsSync(chunkPath)) {
+      throw new Error(`الجزء رقم ${i + 1} من الفيديو مفقود أو لم يكتمل رفعه.`);
+    }
+  }
+
+  // Sequentially assemble chunks via write stream to prevent OOM
+  const writeStream = fs.createWriteStream(targetPath, { flags: 'w' });
+  let totalBytes = 0;
+
+  for (let i = 0; i < totalChunks; i++) {
+    const chunkPath = path.join(chunkDir, `chunk_${i}`);
+    const chunkBuffer = fs.readFileSync(chunkPath);
+    totalBytes += chunkBuffer.length;
+    await new Promise<void>((resolve, reject) => {
+      writeStream.write(chunkBuffer, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    writeStream.end((err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  const sizeMb = totalBytes / (1024 * 1024);
+  const sizeFormatted =
+    sizeMb >= 1024
+      ? `${(sizeMb / 1024).toFixed(2)} GB`
+      : `${sizeMb.toFixed(1)} MB`;
+
+  // Clean up chunks
+  try {
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkPath = path.join(chunkDir, `chunk_${i}`);
+      if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    }
+    const metaPath = path.join(chunkDir, 'meta.json');
+    if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+    if (fs.existsSync(chunkDir)) fs.rmdirSync(chunkDir);
+  } catch (cleanErr) {
+    console.warn('[AssembleChunked] Non-blocking cleanup notice:', cleanErr);
+  }
+
+  // Also mirror to /tmp/nursing-uploads if target was different
+  try {
+    const tmpPath = path.join('/tmp', 'nursing-uploads', safeName);
+    if (targetPath !== tmpPath && fs.existsSync(targetPath)) {
+      const tmpDir = path.dirname(tmpPath);
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      if (!fs.existsSync(tmpPath)) {
+        fs.copyFileSync(targetPath, tmpPath);
+      }
+    }
+  } catch {}
+
+  // If Supabase is configured and file is under 50MB, upload to Supabase bucket
+  if (isSupabaseConfigured && totalBytes < 50 * 1024 * 1024) {
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const fileBuf = fs.readFileSync(targetPath);
+        const ext = path.extname(cleanFilename).toLowerCase();
+        const contentType = getContentTypeForExt(ext);
+        const { error } = await supabase.storage
+          .from('lecture-pdfs')
+          .upload(safeName, fileBuf, { contentType, upsert: true });
+
+        if (!error) {
+          const { data } = supabase.storage
+            .from('lecture-pdfs')
+            .getPublicUrl(safeName);
+
+          if (data?.publicUrl) {
+            return {
+              fileId: safeName,
+              url: `/api/video-stream?fileId=${encodeURIComponent(safeName)}`,
+              sizeFormatted,
+              filePath: targetPath,
+            };
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[AssembleChunked] Supabase notice:', sbErr);
+      }
+    }
+  }
+
+  return {
+    fileId: safeName,
+    url: `/api/video-stream?fileId=${encodeURIComponent(safeName)}`,
+    sizeFormatted,
+    filePath: targetPath,
+  };
+}
+
+export function cleanupChunks(uploadId: string): void {
+  try {
+    const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const chunkDir = path.join(getChunksDirectory(), safeId);
+    if (fs.existsSync(chunkDir)) {
+      const files = fs.readdirSync(chunkDir);
+      for (const f of files) {
+        try { fs.unlinkSync(path.join(chunkDir, f)); } catch {}
+      }
+      try { fs.rmdirSync(chunkDir); } catch {}
+    }
+  } catch {}
+}
+
+export function findLocalFilePath(fileId: string): string | null {
+  const safeName = path.basename(fileId);
+  const primaryDir = getUploadsDirectory();
+  const p1 = path.join(primaryDir, safeName);
+  if (fs.existsSync(p1)) return p1;
+
+  const p2 = path.join(process.cwd(), 'public', 'uploads', safeName);
+  if (fs.existsSync(p2)) return p2;
+
+  const p3 = path.join('/tmp', 'nursing-uploads', safeName);
+  if (fs.existsSync(p3)) return p3;
+
+  return null;
+}
+
 
