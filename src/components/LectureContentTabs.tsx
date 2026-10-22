@@ -27,6 +27,8 @@ import {
   EyeOff,
   HelpCircle,
   BookOpen,
+  KeyRound,
+  Sparkles,
 } from 'lucide-react';
 
 interface LectureContentTabsProps {
@@ -174,6 +176,10 @@ export default function LectureContentTabs({
   const { student, isLecturePurchased, openAuthModal } = useStudentAuth();
   const isPurchasedByStudent = Boolean(lectureId && isLecturePurchased(lectureId, yearId));
   const isUnlocked = isFree || isPurchasedByStudent || isAdmin;
+
+  // 🛡️ Strict Video Rule: Must have an authenticated student or admin account on the platform
+  const isStudentOrAdmin = Boolean(student || isAdmin);
+  const canWatchVideo = isStudentOrAdmin && isUnlocked;
 
   const getActiveFile = () => {
     switch (activeTab) {
@@ -500,7 +506,24 @@ export default function LectureContentTabs({
               </div>
             </div>
 
-            {isUnlocked ? (
+            {activeTab === 'video' ? (
+              canWatchVideo ? (
+                <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>مشاهدة فورية مفعلة بحسابك 🎬</span>
+                </span>
+              ) : !isStudentOrAdmin ? (
+                <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>يتطلب حساب طالب 🔒</span>
+                </span>
+              ) : (
+                <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>محاضرة مدفوعة ({price} ج.م) 🔒</span>
+                </span>
+              )
+            ) : isUnlocked ? (
               <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{isFree ? 'متاح للتحميل المجاني' : 'تم تفعيل المحاضرة بحسابك 🎓'}</span>
@@ -514,15 +537,73 @@ export default function LectureContentTabs({
           </div>
 
           {/* Interactive Custom Video Player with Range seeking & resume memory */}
-          {videoFile && isUnlocked && videoFile.downloadUrl && (
+          {videoFile && videoFile.downloadUrl && (
             <div className={`w-full ${activeTab === 'video' ? 'block' : 'hidden'}`}>
-              <VideoPlayer
-                videoUrl={videoFile.downloadUrl}
-                title={videoFile.title || lectureTitle || 'فيديو شرح المحاضرة'}
-                subjectTitle={subjectTitle}
-                lectureId={lectureId}
-                duration={videoFile.videoDuration}
-              />
+              {canWatchVideo ? (
+                <VideoPlayer
+                  videoUrl={videoFile.downloadUrl}
+                  title={videoFile.title || lectureTitle || 'فيديو شرح المحاضرة'}
+                  subjectTitle={subjectTitle}
+                  lectureId={lectureId}
+                  duration={videoFile.videoDuration}
+                />
+              ) : !isStudentOrAdmin ? (
+                <div className="w-full my-4 p-6 sm:p-10 rounded-3xl bg-gradient-to-br from-indigo-950/90 via-slate-900 to-slate-950 border-2 border-indigo-500/40 text-center space-y-5 shadow-2xl animate-in fade-in" dir="rtl">
+                  <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/10">
+                    <Video className="w-8 h-8" />
+                  </div>
+
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-black">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>تسجيل الدخول مطلوب لمشاهدة الفيديو 🔒</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white">
+                      فيديوهات الشروحات متاحة فقط لطلاب المنصة المسجلين
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
+                      لمشاهدة فيديو هذه المحاضرة، يرجى تسجيل الدخول بحسابك على المنصة أو إنشاء حساب طالب جديد مجاناً في ثوانٍ.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('login')}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/40 transition flex items-center justify-center gap-2"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                      <span>تسجيل الدخول بحسابك 🔑</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('register')}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm border border-slate-700 transition flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>إنشاء حساب جديد (مجاناً 100%) 🎓</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full my-4 p-6 sm:p-10 rounded-3xl bg-amber-500/10 border-2 border-amber-500/40 text-center space-y-4">
+                  <Lock className="w-10 h-10 text-amber-500 mx-auto" />
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    هذا الفيديو مخصص للمشتركين في المحاضرة 🔒
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
+                    يمكنك تفعيل المحاضرة أو الاشتراك في باقة شاكب راكب الشهرية لمشاهدة كامل الفيديوهات وتحميل كافة الملخصات.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsPurchaseModalOpen(true)}
+                    className="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-600/30 transition"
+                  >
+                    <span>طلب تفعيل المحاضرة الآن 🚀</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -559,22 +640,40 @@ export default function LectureContentTabs({
 
           {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON OR PURCHASE PROMPT */}
           <div className="pt-2 space-y-3">
-            {isUnlocked ? (
+            {activeTab === 'video' ? (
+              canWatchVideo ? (
+                <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-center">
+                  <Video className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                  <span>الفيديو متاح للمشاهدة المباشرة التفاعلية عبر المشغل أعلاه مع حفظ نقطة التوقف والتحكم بالسرعة 🎬</span>
+                </div>
+              ) : !isStudentOrAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('login')}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-500 hover:to-indigo-700 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30 active:scale-98 transition-all duration-200"
+                >
+                  <KeyRound className="w-5 h-5" />
+                  <span>سجل دخولك بحسابك لمشاهدة الفيديو الآن 🎬</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsPurchaseModalOpen(true)}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-amber-600/30 active:scale-98 transition-all duration-200"
+                >
+                  <Lock className="w-5 h-5" />
+                  <span>طلب تفعيل المحاضرة لمشاهدة الفيديو ({price} ج.م) 🔒</span>
+                </button>
+              )
+            ) : isUnlocked ? (
               <>
-                {activeTab === 'video' ? (
-                  <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-center">
-                    <Video className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-                    <span>الفيديو متاح للمشاهدة المباشرة التفاعلية عبر المشغل أعلاه مع حفظ نقطة التوقف والتحكم بالسرعة 🎬</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleDownloadNow(activeFile)}
-                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
-                  >
-                    <ArrowDownCircle className="w-6 h-6 animate-bounce" />
-                    <span>حملها دلوقتي</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => handleDownloadNow(activeFile)}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-3 shadow-xl shadow-teal-600/25 active:scale-98 transition-all duration-200"
+                >
+                  <ArrowDownCircle className="w-6 h-6 animate-bounce" />
+                  <span>حملها دلوقتي</span>
+                </button>
 
                 {downloadSuccess === activeFile.type && (
                   <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in duration-300">

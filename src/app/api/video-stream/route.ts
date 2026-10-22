@@ -18,51 +18,61 @@ async function verifyLectureAccess(
   isAdmin: boolean = false
 ): Promise<{ allowed: boolean; reason?: string }> {
   if (isAdmin) return { allowed: true };
-  if (!lectureId) return { allowed: true };
 
-  try {
-    const lecture = await CmsService.getLectureById(lectureId);
-    if (!lecture) return { allowed: true };
-    if (lecture.isFree) return { allowed: true };
+  // 🛡️ STRICT SECURITY RULE: Video streaming requires an authenticated student account on the platform
+  const cookieStore = cookies();
+  const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+  if (!rawVal) {
+    return {
+      allowed: false,
+      reason: 'مشاهدة الفيديوهات مخصصة فقط للطلاب المسجلين بالمنصة. يرجى تسجيل الدخول بحسابك أو إنشاء حساب مجاني 🔒',
+    };
+  }
 
-    // Paid lecture: check student session
-    const cookieStore = cookies();
-    const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
-    if (!rawVal) {
-      return { allowed: false, reason: 'هذه المحاضرة مخصصة للمشتركين فقط 🔒' };
-    }
+  const [studentId] = rawVal.split(':::');
+  if (!studentId) {
+    return { allowed: false, reason: 'جلسة الطالب غير صالحة، يرجى إعادة تسجيل الدخول' };
+  }
 
-    const [studentId] = rawVal.split(':::');
-    if (!studentId) {
-      return { allowed: false, reason: 'جلسة الطالب غير صالحة' };
-    }
+  const student = await CmsService.getStudentById(studentId);
+  if (!student) {
+    return { allowed: false, reason: 'حساب الطالب غير موجود بالمنصة' };
+  }
 
-    const student = await CmsService.getStudentById(studentId);
-    if (!student || student.isSuspended) {
-      return { allowed: false, reason: 'الحساب غير مصرح له أو معلق' };
-    }
+  if (student.isSuspended) {
+    return { allowed: false, reason: 'تم تعليق وتجميد الحساب من قبل الإدارة ⛔' };
+  }
 
-    // Check Shakib Rakib subscription
-    if (student.shakibRakibSubscription?.isActive) {
-      const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-      if (expires > Date.now()) {
-        const subYear = student.shakibRakibSubscription.yearId;
-        if (!lecture.yearId || !subYear || subYear === 'all' || subYear === lecture.yearId) {
+  // If lecture is provided and it is a PAID lecture:
+  if (lectureId) {
+    try {
+      const lecture = await CmsService.getLectureById(lectureId);
+      if (lecture && !lecture.isFree) {
+        // Check Shakib Rakib subscription
+        if (student.shakibRakibSubscription?.isActive) {
+          const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+          if (expires > Date.now()) {
+            const subYear = student.shakibRakibSubscription.yearId;
+            if (!lecture.yearId || !subYear || subYear === 'all' || subYear === lecture.yearId) {
+              return { allowed: true };
+            }
+          }
+        }
+
+        // Check individual purchase
+        if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId)) {
           return { allowed: true };
         }
+
+        return { allowed: false, reason: 'المحاضرة مدفوعة وغير مفعلة في حسابك بعد 🔒' };
       }
+    } catch (err) {
+      console.warn('[VideoStreamAuth] Lecture lookup error:', err);
     }
-
-    // Check individual purchase
-    if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId)) {
-      return { allowed: true };
-    }
-
-    return { allowed: false, reason: 'المحاضرة غير مفعلة في حسابك بعد 🔒' };
-  } catch (err) {
-    console.warn('[VideoStreamAuth] Auth check error:', err);
-    return { allowed: true };
   }
+
+  // Student is authenticated & verified!
+  return { allowed: true };
 }
 
 function extractDriveId(url: string): string | null {
