@@ -288,6 +288,57 @@ export interface StudentUser {
   failedLoginAttempts?: FailedLoginRecord;
   yearId?: string;
   readNotificationIds?: string[];
+  totalStudySeconds?: number;
+  lastActiveAt?: string;
+  lastActiveTarget?: string;
+}
+
+export interface StudentActivityLog {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentPhone: string;
+  university?: string;
+  yearId?: string;
+  sessionToken?: string;
+  deviceId?: string;
+  targetType: 'lecture' | 'video' | 'audio' | 'pdf' | 'ppt' | 'mindmap' | 'quiz' | 'flashcards' | 'subject' | 'general';
+  targetId: string;
+  targetTitle: string;
+  subjectTitle?: string;
+  resourceTitle?: string;
+  startedAt: string;
+  lastHeartbeatAt: string;
+  durationSeconds: number;
+  details?: {
+    videoProgressPercent?: number;
+    videoCurrentTime?: number;
+    videoDuration?: number;
+    cardsFlipped?: number;
+    quizScore?: number;
+    quizTotal?: number;
+    score?: number;
+    questionsCount?: number;
+    percentage?: number;
+    speed?: number;
+    isPreview?: boolean;
+    completed?: boolean;
+    tab?: string;
+  };
+}
+
+export interface StudentActivitySummary {
+  studentId: string;
+  studentName: string;
+  studentPhone: string;
+  university?: string;
+  yearId?: string;
+  totalStudySeconds: number;
+  totalSessions: number;
+  lastActiveAt?: string;
+  lastActiveTarget?: string;
+  byTypeBreakdown: Record<string, { durationSeconds: number; count: number }>;
+  recentLogs: StudentActivityLog[];
 }
 
 export interface PromoCoupon {

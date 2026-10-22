@@ -9,6 +9,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
 import PurchaseLectureModal from '@/components/PurchaseLectureModal';
+import StudentActivityTracker from '@/components/StudentActivityTracker';
 import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
   FileText,
@@ -358,8 +359,46 @@ export default function LectureContentTabs({
     },
   ].filter((t) => t.hasContent);
 
+  const mapTabToTargetType = (tab: TabType): 'video' | 'pdf' | 'ppt' | 'mindmap' | 'audio' | 'quiz' | 'flashcards' => {
+    switch (tab) {
+      case 'video': return 'video';
+      case 'pdf': return 'pdf';
+      case 'ppt': return 'ppt';
+      case 'mindmap': return 'mindmap';
+      case 'audio': return 'audio';
+      case 'questions': return 'quiz';
+      case 'flashcards': return 'flashcards';
+      default: return 'pdf';
+    }
+  };
+
+  const mapTabToResourceTitle = (tab: TabType): string => {
+    switch (tab) {
+      case 'video': return 'فيديو الشرح 🎬';
+      case 'pdf': return 'ملف التلخيص PDF 📄';
+      case 'ppt': return 'سلايدات البوربوينت PPT 📊';
+      case 'mindmap': return 'الخريطة الذهنية 🧠';
+      case 'audio': return 'التسجيل الصوتي للمحاضرة 🎧';
+      case 'questions': return 'بنك الأسئلة والتمارين ❓';
+      case 'flashcards': return 'كروت الاستذكار الذكية 🎴';
+      default: return 'المحتوى التعليمي';
+    }
+  };
+
   return (
     <div className="w-full my-8 space-y-6" dir="rtl">
+      {/* ⏱️ Dynamic Resource-Level Dwell Time Tracker (PDF, Audio, Cards, Quiz, PPT, Mindmap) */}
+      {isUnlocked && activeTab !== 'video' && (
+        <StudentActivityTracker
+          key={`content-tab-${activeTab}-${lectureId}`}
+          targetType={mapTabToTargetType(activeTab)}
+          targetId={lectureId || 'lec'}
+          targetTitle={lectureTitle || subjectTitle}
+          subjectTitle={subjectTitle}
+          resourceTitle={mapTabToResourceTitle(activeTab)}
+          active={isUnlocked}
+        />
+      )}
       {/* 1. The Interactive Tabs Selector (Only shown if at least 1 resource is available) */}
       {visibleTabs.length > 0 && (
         <div className="bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">

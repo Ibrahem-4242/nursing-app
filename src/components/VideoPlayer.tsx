@@ -19,6 +19,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useStudentAuth } from '@/context/StudentAuthContext';
+import StudentActivityTracker from '@/components/StudentActivityTracker';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -327,6 +328,22 @@ export default function VideoPlayer({
       className={`relative w-full aspect-video rounded-3xl overflow-hidden bg-slate-950 select-none shadow-2xl border border-slate-800 group focus:outline-none ${className}`}
       dir="ltr"
     >
+      {/* ⏱️ Video Playback Dwell Time & Progress Tracker */}
+      <StudentActivityTracker
+        key={`video-tracker-${lectureId || videoUrl.slice(-15)}`}
+        targetType="video"
+        targetId={lectureId || videoUrl.slice(-20)}
+        targetTitle={title}
+        subjectTitle={subjectTitle}
+        resourceTitle={`فيديو: ${title}`}
+        active={isPlaying}
+        details={{
+          videoCurrentTime: Math.floor(currentTime),
+          videoDuration: Math.floor(totalDuration),
+          videoProgressPercent: Math.round(progressPercent),
+          speed: playbackSpeed,
+        }}
+      />
       {/* 1. Main HTML5 Video Element */}
       <video
         ref={videoRef}

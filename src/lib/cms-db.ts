@@ -20,6 +20,8 @@ import {
   AppNotification,
   PanicModeConfig,
   PlatformFeaturesConfig,
+  StudentActivityLog,
+  StudentActivitySummary,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -49,6 +51,7 @@ interface CmsStore {
   failedLoginAttempts?: Record<string, FailedLoginRecord>;
   notifications?: AppNotification[];
   deletedNotificationIds?: string[];
+  studentActivityLogs?: StudentActivityLog[];
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -363,10 +366,41 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
       });
       (store.students || []).forEach((s) => {
         if (s && s.id && !allDeletedStudents.has(s.id)) {
-          studentMap.set(s.id, s);
+          const ex = studentMap.get(s.id);
+          if (ex) {
+            const totalStudy = Math.max(s.totalStudySeconds || 0, ex.totalStudySeconds || 0);
+            const lastActiveAt = (!ex.lastActiveAt || (s.lastActiveAt && s.lastActiveAt > ex.lastActiveAt))
+              ? s.lastActiveAt
+              : ex.lastActiveAt;
+            const lastActiveTarget = s.lastActiveTarget || ex.lastActiveTarget;
+            studentMap.set(s.id, { ...ex, ...s, totalStudySeconds: totalStudy, lastActiveAt, lastActiveTarget });
+          } else {
+            studentMap.set(s.id, s);
+          }
         }
       });
       store.students = Array.from(studentMap.values());
+
+      // Safely merge studentActivityLogs
+      const activityMap = new Map<string, StudentActivityLog>();
+      (existing.studentActivityLogs || []).forEach((log) => {
+        if (log && log.id) activityMap.set(log.id, log);
+      });
+      (store.studentActivityLogs || []).forEach((log) => {
+        if (log && log.id) {
+          const prev = activityMap.get(log.id);
+          if (!prev || (log.durationSeconds || 0) >= (prev.durationSeconds || 0)) {
+            activityMap.set(log.id, log);
+          }
+        }
+      });
+      store.studentActivityLogs = Array.from(activityMap.values())
+        .sort(
+          (a, b) =>
+            new Date(b.lastHeartbeatAt || b.startedAt).getTime() -
+            new Date(a.lastHeartbeatAt || a.startedAt).getTime()
+        )
+        .slice(0, 2000);
 
       // Safely merge deletedOrderIds
       const allDeletedOrders = new Set<string>();
@@ -2925,6 +2959,215 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return true;
+  },
+
+  // --- STUDENT ACTIVITY & STUDY ENGAGEMENT TRACKING (سجل نشاط ومذاكرة الطلاب) ---
+  async recordStudentActivityHeartbeat(
+    payload: {
+      sessionActivityId: string;
+      studentId: string;
+      studentPhone?: string;
+      targetType: 'lecture' | 'video' | 'audio' | 'pdf' | 'ppt' | 'mindmap' | 'quiz' | 'flashcards' | 'subject' | 'general';
+      targetId: string;
+      targetTitle: string;
+      subjectTitle?: string;
+      resourceTitle?: string;
+      incrementSeconds: number;
+      details?: Record<string, any>;
+      deviceId?: string;
+    },
+    customToken?: string
+  ): Promise<{ success: boolean; totalStudySeconds?: number; isSuspended?: boolean }> {
+    // 1. Camouflage / Panic Mode check
+    const panicMode = await PanicEngine.getPanicMode();
+    if (panicMode.isEnabled) {
+      return { success: true };
+    }
+
+    const store = await getFreshStore();
+    if (!store.students) store.students = [];
+    if (!store.studentActivityLogs) store.studentActivityLogs = [];
+
+    // Find student
+    const student = store.students.find(
+      (s) => s.id === payload.studentId || (payload.studentPhone && s.phone === payload.studentPhone)
+    );
+
+    if (student && student.isSuspended) {
+      return { success: false, isSuspended: true };
+    }
+
+    // Safely clamp increment between 1 and 60 seconds (default 15)
+    const clampedIncrement = Math.max(1, Math.min(60, Math.round(payload.incrementSeconds || 15)));
+    const nowIso = new Date().toISOString();
+
+    // Find existing activity log for this session/resource
+    const existingLog = store.studentActivityLogs.find((l) => l.id === payload.sessionActivityId);
+
+    if (existingLog) {
+      existingLog.lastHeartbeatAt = nowIso;
+      existingLog.durationSeconds = (existingLog.durationSeconds || 0) + clampedIncrement;
+      if (payload.details) {
+        existingLog.details = { ...existingLog.details, ...payload.details };
+      }
+    } else {
+      // Create new activity log entry
+      const newLog: StudentActivityLog = {
+        id: payload.sessionActivityId || `act_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+        studentId: student ? student.id : payload.studentId,
+        studentName: student ? student.name : 'طالب مسجل',
+        studentPhone: student ? student.phone : payload.studentPhone || '',
+        university: student?.university || '',
+        yearId: student?.yearId || '',
+        deviceId: payload.deviceId,
+        targetType: payload.targetType,
+        targetId: payload.targetId,
+        targetTitle: payload.targetTitle,
+        subjectTitle: payload.subjectTitle,
+        resourceTitle: payload.resourceTitle,
+        startedAt: nowIso,
+        lastHeartbeatAt: nowIso,
+        durationSeconds: clampedIncrement,
+        details: payload.details,
+      };
+      store.studentActivityLogs.unshift(newLog);
+    }
+
+    // Update Student User record with total study time and last active status
+    if (student) {
+      student.totalStudySeconds = (student.totalStudySeconds || 0) + clampedIncrement;
+      student.lastActiveAt = nowIso;
+      student.lastActiveTarget = payload.targetTitle + (payload.resourceTitle ? ` (${payload.resourceTitle})` : '');
+    }
+
+    // Prune logs beyond 2,000 to keep store responsive and clean
+    if (store.studentActivityLogs.length > 2000) {
+      store.studentActivityLogs = store.studentActivityLogs.slice(0, 2000);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+
+    return {
+      success: true,
+      totalStudySeconds: student?.totalStudySeconds || 0,
+    };
+  },
+
+  async getStudentActivityLogs(studentId?: string, limit: number = 100): Promise<StudentActivityLog[]> {
+    const store = await getFreshStore();
+    const logs = store.studentActivityLogs || [];
+    if (!studentId) {
+      return logs.slice(0, limit);
+    }
+    return logs
+      .filter((l) => l.studentId === studentId || l.studentPhone === studentId)
+      .slice(0, limit);
+  },
+
+  async getStudentStudySummary(studentId: string): Promise<StudentActivitySummary | null> {
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return null;
+
+    const studentLogs = (store.studentActivityLogs || []).filter(
+      (l) => l.studentId === student.id || l.studentPhone === student.phone
+    );
+
+    const breakdown: Record<string, { durationSeconds: number; count: number }> = {
+      lecture: { durationSeconds: 0, count: 0 },
+      video: { durationSeconds: 0, count: 0 },
+      pdf: { durationSeconds: 0, count: 0 },
+      audio: { durationSeconds: 0, count: 0 },
+      flashcards: { durationSeconds: 0, count: 0 },
+      quiz: { durationSeconds: 0, count: 0 },
+      ppt: { durationSeconds: 0, count: 0 },
+      mindmap: { durationSeconds: 0, count: 0 },
+      subject: { durationSeconds: 0, count: 0 },
+    };
+
+    let calculatedTotal = 0;
+    studentLogs.forEach((log) => {
+      const type = log.targetType || 'general';
+      if (!breakdown[type]) {
+        breakdown[type] = { durationSeconds: 0, count: 0 };
+      }
+      breakdown[type].durationSeconds += log.durationSeconds || 0;
+      breakdown[type].count += 1;
+      calculatedTotal += log.durationSeconds || 0;
+    });
+
+    const totalSeconds = Math.max(student.totalStudySeconds || 0, calculatedTotal);
+
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      studentPhone: student.phone,
+      university: student.university,
+      yearId: student.yearId,
+      totalStudySeconds: totalSeconds,
+      totalSessions: studentLogs.length,
+      lastActiveAt: student.lastActiveAt || (studentLogs[0]?.lastHeartbeatAt),
+      lastActiveTarget: student.lastActiveTarget || (studentLogs[0]?.targetTitle),
+      byTypeBreakdown: breakdown,
+      recentLogs: studentLogs.slice(0, 50),
+    };
+  },
+
+  async getLiveActiveStudents(withinMinutes: number = 15): Promise<StudentUser[]> {
+    const store = await getFreshStore();
+    const students = store.students || [];
+    const threshold = Date.now() - withinMinutes * 60 * 1000;
+
+    return students
+      .filter((s) => s.lastActiveAt && new Date(s.lastActiveAt).getTime() >= threshold)
+      .sort((a, b) => new Date(b.lastActiveAt!).getTime() - new Date(a.lastActiveAt!).getTime());
+  },
+
+  async getPlatformStudyStats(): Promise<{
+    totalStudySeconds: number;
+    activeTodayCount: number;
+    totalTrackedSessions: number;
+    topStudiedLectures: { title: string; seconds: number; studentsCount: number }[];
+  }> {
+    const store = await getFreshStore();
+    const students = store.students || [];
+    const logs = store.studentActivityLogs || [];
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const activeTodayCount = students.filter((s) => s.lastActiveAt && s.lastActiveAt.startsWith(todayStr)).length;
+
+    let totalStudySeconds = 0;
+    students.forEach((s) => {
+      totalStudySeconds += s.totalStudySeconds || 0;
+    });
+
+    // Top studied lectures
+    const lectureMap = new Map<string, { title: string; seconds: number; students: Set<string> }>();
+    logs.forEach((l) => {
+      if (l.targetId && l.targetTitle) {
+        const cur = lectureMap.get(l.targetId) || { title: l.targetTitle, seconds: 0, students: new Set() };
+        cur.seconds += l.durationSeconds || 0;
+        if (l.studentId) cur.students.add(l.studentId);
+        lectureMap.set(l.targetId, cur);
+      }
+    });
+
+    const topStudiedLectures = Array.from(lectureMap.values())
+      .map((item) => ({
+        title: item.title,
+        seconds: item.seconds,
+        studentsCount: item.students.size,
+      }))
+      .sort((a, b) => b.seconds - a.seconds)
+      .slice(0, 5);
+
+    return {
+      totalStudySeconds,
+      activeTodayCount,
+      totalTrackedSessions: logs.length,
+      topStudiedLectures,
+    };
   },
 };
 

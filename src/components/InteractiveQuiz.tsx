@@ -5,6 +5,7 @@ import { QuizQuestion } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
 import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb } from 'lucide-react';
 import QuestionBookmarkButton from '@/components/QuestionBookmarkButton';
+import StudentActivityTracker from '@/components/StudentActivityTracker';
 
 interface InteractiveQuizProps {
   questions: QuizQuestion[];
@@ -46,6 +47,21 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
 
   return (
     <div className="w-full my-12 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 border border-slate-200/90 dark:border-slate-800 shadow-xl transition-colors duration-200" dir="rtl">
+      {/* ⏱️ Quiz Active Solving & Duration Tracker */}
+      <StudentActivityTracker
+        key={`quiz-tracker-${lectureId}`}
+        targetType="quiz"
+        targetId={lectureId || 'general-quiz'}
+        targetTitle={lectureTitle || 'كويز تفاعلي'}
+        resourceTitle="الكويز التجريبي التفاعلي ❓"
+        details={{
+          questionsCount: questions.length,
+          answeredCount: Object.keys(selectedAnswers).length,
+          score: showResults ? score : undefined,
+          percentage: showResults ? percentage : undefined,
+          completed: showResults,
+        }}
+      />
       {/* Quiz Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div>

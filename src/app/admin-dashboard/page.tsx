@@ -47,6 +47,7 @@ import {
   UserCheck,
   Presentation,
   Network,
+  GitFork,
   Crown,
   Zap,
   Tag,
@@ -65,7 +66,7 @@ import {
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
-import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon, PlatformFeaturesConfig } from '@/lib/types';
+import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon, PlatformFeaturesConfig, StudentActivitySummary, StudentActivityLog } from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -352,6 +353,20 @@ export default function AdminDashboardPage() {
   const [selectedStudentForLectures, setSelectedStudentForLectures] = useState<StudentUser | null>(null);
   const [lectureGrantSearch, setLectureGrantSearch] = useState('');
 
+  // Student Activity & Engagement State (سجل نشاط ومذاكرة الطلاب)
+  const [selectedStudentForActivity, setSelectedStudentForActivity] = useState<StudentUser | null>(null);
+  const [studentActivitySummary, setStudentActivitySummary] = useState<StudentActivitySummary | null>(null);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all');
+  const [platformStudyStats, setPlatformStudyStats] = useState<{
+    totalStudySeconds: number;
+    activeTodayCount: number;
+    totalTrackedSessions: number;
+    topStudiedLectures: { title: string; seconds: number; studentsCount: number }[];
+  } | null>(null);
+  const [liveStudentsList, setLiveStudentsList] = useState<StudentUser[]>([]);
+  const [showLiveStudents, setShowLiveStudents] = useState(false);
+
   // Shakib Rakib Bundle & Financial Management State
   const [shakibPrice, setShakibPrice] = useState<number>(10);
   const [shakibIsEnabled, setShakibIsEnabled] = useState<boolean>(true);
@@ -572,10 +587,83 @@ export default function AdminDashboardPage() {
       if (data.success && data.students) {
         setStudents(data.students);
       }
+      loadPlatformStudyStats().catch(() => {});
     } catch (e) {
       console.warn('Failed to load students:', e);
     } finally {
       setIsLoadingStudents(false);
+    }
+  };
+
+  const loadPlatformStudyStats = async () => {
+    try {
+      const [statsRes, liveRes] = await Promise.all([
+        fetch(`/api/student/activity?stats=true&t=${Date.now()}`, { cache: 'no-store' }),
+        fetch(`/api/student/activity?live=true&t=${Date.now()}`, { cache: 'no-store' }),
+      ]);
+      const statsData = await statsRes.json();
+      const liveData = await liveRes.json();
+      if (statsData?.success && statsData?.stats) {
+        setPlatformStudyStats(statsData.stats);
+      }
+      if (liveData?.success && liveData?.students) {
+        setLiveStudentsList(liveData.students);
+      }
+    } catch (e) {
+      console.warn('Failed to load study stats:', e);
+    }
+  };
+
+  const handleOpenStudentActivity = async (student: StudentUser) => {
+    setSelectedStudentForActivity(student);
+    setStudentActivitySummary(null);
+    setIsLoadingActivity(true);
+    setActivityTypeFilter('all');
+    try {
+      const res = await fetch(
+        `/api/student/activity?summary=true&studentId=${encodeURIComponent(student.id)}&t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      const data = await res.json();
+      if (data?.success && data?.summary) {
+        setStudentActivitySummary(data.summary);
+      }
+    } catch (e) {
+      console.warn('Failed to load student activity summary:', e);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+
+  const formatStudyDurationArabic = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0 دقيقة';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hrs > 0 && mins > 0) return `${hrs} س و ${mins} د`;
+    if (hrs > 0) return `${hrs} ساعة`;
+    if (mins > 0 && secs > 0) return `${mins} د و ${secs} ث`;
+    if (mins > 0) return `${mins} دقيقة`;
+    return `${secs} ثانية`;
+  };
+
+  const formatRelativeTimeArabic = (isoString?: string) => {
+    if (!isoString) return 'غير محدد';
+    try {
+      const diffMs = Date.now() - new Date(isoString).getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+
+      if (diffMin < 2) return 'متواجد الآن 🟢';
+      if (diffMin < 60) return `منذ ${diffMin} دقيقة`;
+      if (diffHour < 24) return `منذ ${diffHour} ساعة`;
+      if (diffDay === 1) return 'أمس';
+      if (diffDay < 7) return `منذ ${diffDay} أيام`;
+      return new Date(isoString).toLocaleDateString('ar-EG');
+    } catch {
+      return isoString;
     }
   };
 
@@ -8122,6 +8210,97 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Study Activity Platform Metrics Banner */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-50/70 via-slate-50 to-teal-50/70 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-teal-950/20 border border-indigo-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-600/30">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">إجمالي وقت مذاكرة الطلاب</span>
+                  <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    {formatStudyDurationArabic(platformStudyStats?.totalStudySeconds || 0)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-600/30">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">النشطون اليوم على المنصة</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                      {platformStudyStats?.activeTodayCount || 0} طالب
+                    </span>
+                    {liveStudentsList.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowLiveStudents(!showLiveStudents)}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 animate-pulse"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>{liveStudentsList.length} متواجد الآن 🔴</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-teal-600/30">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">جلسات الاستذكار المسجلة</span>
+                  <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    {platformStudyStats?.totalTrackedSessions || 0} جلسة مذاكرة
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Students Drawer (if toggled) */}
+            {showLiveStudents && liveStudentsList.length > 0 && (
+              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span>الطلاب المتواجدون حالياً بالمنصة ({liveStudentsList.length} طالب):</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowLiveStudents(false)}
+                    className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
+                  >
+                    إغلاق ✕
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {liveStudentsList.map((stu) => (
+                    <div
+                      key={stu.id}
+                      onClick={() => handleOpenStudentActivity(stu)}
+                      className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs cursor-pointer hover:border-emerald-400 transition"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white">{stu.name}</span>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">نشط الآن 🟢</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                        {stu.lastActiveTarget || 'يتصفح المنصة'}
+                      </div>
+                      <div className="text-[9px] text-slate-400 mt-1 flex items-center justify-between">
+                        <span>{stu.university}</span>
+                        <span>⏱️ {formatStudyDurationArabic(stu.totalStudySeconds || 0)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Search and Stats */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <input
@@ -8239,6 +8418,7 @@ export default function AdminDashboardPage() {
                         <th className="py-3 px-3">الجامعة</th>
                         <th className="py-3 px-3">رقم الهاتف</th>
                         <th className="py-3 px-3">المحاضرات المفعلة</th>
+                        <th className="py-3 px-3 text-center">وقت المذاكرة والنشاط ⏱️</th>
                         <th className="py-3 px-3 text-center">الأجهزة والجلسات</th>
                         <th className="py-3 px-3">تاريخ التسجيل</th>
                         <th className="py-3 px-3 text-center">التحكم والصلاحيات</th>
@@ -8319,6 +8499,35 @@ export default function AdminDashboardPage() {
                                 <BookOpen className="w-3.5 h-3.5" />
                                 <span>{purchasedCount} محاضرة</span>
                               </span>
+                            </td>
+
+                            {/* Student Study Time & Activity */}
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-1">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border ${
+                                    (student.totalStudySeconds || 0) > 0
+                                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                  }`}
+                                  title={`إجمالي وقت المذاكرة: ${Math.floor((student.totalStudySeconds || 0) / 60)} دقيقة`}
+                                >
+                                  <Clock className="w-3 h-3 text-indigo-500" />
+                                  <span>{formatStudyDurationArabic(student.totalStudySeconds || 0)}</span>
+                                </span>
+
+                                {student.lastActiveAt ? (
+                                  <span
+                                    className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1 cursor-help"
+                                    title={student.lastActiveTarget ? `آخر محتوى: ${student.lastActiveTarget}` : undefined}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                                    <span>{formatRelativeTimeArabic(student.lastActiveAt)}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">لم يسجل بعد</span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Devices & Sessions */}
@@ -8443,6 +8652,16 @@ export default function AdminDashboardPage() {
                                 >
                                   <BookOpen className="w-3 h-3" />
                                   <span>المحاضرات المفتوحة</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenStudentActivity(student)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition shadow-xs"
+                                  title="عرض سجل نشاط ومذاكرة الطالب بالتفصيل (ماذا فتح والوقت المستغرق)"
+                                >
+                                  <Clock className="w-3 h-3 text-indigo-600" />
+                                  <span>سجل النشاط ⏱️</span>
                                 </button>
 
                                 <button
@@ -8822,6 +9041,353 @@ export default function AdminDashboardPage() {
                   className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
                 >
                   إغلاق
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Student Full Activity & Engagement Modal (سجل نشاط ومذاكرة الطالب) */}
+        {selectedStudentForActivity && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-md animate-in fade-in" dir="rtl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 max-w-4xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-bold text-base flex items-center justify-center shadow-md shadow-indigo-600/30">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>سجل نشاط ومذاكرة الطالب ⏱️</span>
+                      {selectedStudentForActivity.isSuspended && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white">مجمد ⛔</span>
+                      )}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{selectedStudentForActivity.name}</span>
+                      <span>•</span>
+                      <span className="font-mono">{selectedStudentForActivity.phone}</span>
+                      <span>•</span>
+                      <span>{selectedStudentForActivity.university}</span>
+                      <span>•</span>
+                      <span className="text-teal-600 font-bold">
+                        الفرقة {selectedStudentForActivity.yearId === '2' ? 'الثانية' : selectedStudentForActivity.yearId === '3' ? 'الثالثة' : selectedStudentForActivity.yearId === '4' ? 'الرابعة' : 'الأولى'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenStudentActivity(selectedStudentForActivity)}
+                    disabled={isLoadingActivity}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                    title="تحديث سجل النشاط"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingActivity ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudentForActivity(null);
+                      setStudentActivitySummary(null);
+                    }}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto space-y-5 pr-1 pl-1">
+                {isLoadingActivity ? (
+                  <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                    <span className="text-xs font-bold">جاري تحليل وحساب سجل نشاط الطالب...</span>
+                  </div>
+                ) : studentActivitySummary ? (
+                  <>
+                    {/* Top Summary Card */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-teal-700 text-white shadow-lg space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <span className="text-xs text-indigo-100 font-bold block mb-1">إجمالي وقت المذاكرة الفعلي</span>
+                          <div className="text-2xl sm:text-3xl font-black font-mono">
+                            {formatStudyDurationArabic(studentActivitySummary.totalStudySeconds)}
+                          </div>
+                        </div>
+
+                        <div className="text-xs sm:text-right text-indigo-100 space-y-1">
+                          <div>
+                            إجمالي الجلسات والمحتويات المفتوحة: <span className="font-black text-white">{studentActivitySummary.totalSessions}</span> مرة
+                          </div>
+                          {studentActivitySummary.lastActiveAt && (
+                            <div>
+                              آخر تواجد: <span className="font-black text-emerald-300">{formatRelativeTimeArabic(studentActivitySummary.lastActiveAt)}</span>
+                            </div>
+                          )}
+                          {studentActivitySummary.lastActiveTarget && (
+                            <div className="text-[11px] text-indigo-200 max-w-sm truncate">
+                              ({studentActivitySummary.lastActiveTarget})
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Breakdown by Content Type Cards */}
+                    <div>
+                      <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2.5 flex items-center gap-1.5">
+                        <BarChart3 className="w-4 h-4 text-indigo-600" />
+                        <span>توزيع وقت المذاكرة حسب نوع المحتوى التعليمي:</span>
+                      </h4>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                        {/* Video */}
+                        <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 text-center space-y-1">
+                          <Video className="w-5 h-5 mx-auto text-indigo-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">فيديوهات الشرح</span>
+                          <span className="text-xs font-black text-indigo-700 dark:text-indigo-300 block">
+                            {formatStudyDurationArabic(studentActivitySummary.byTypeBreakdown?.video?.durationSeconds || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({studentActivitySummary.byTypeBreakdown?.video?.count || 0} مرات)
+                          </span>
+                        </div>
+
+                        {/* PDF */}
+                        <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 text-center space-y-1">
+                          <FileText className="w-5 h-5 mx-auto text-rose-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">ملفات PDF</span>
+                          <span className="text-xs font-black text-rose-700 dark:text-rose-300 block">
+                            {formatStudyDurationArabic(studentActivitySummary.byTypeBreakdown?.pdf?.durationSeconds || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({studentActivitySummary.byTypeBreakdown?.pdf?.count || 0} مرات)
+                          </span>
+                        </div>
+
+                        {/* Audio */}
+                        <div className="p-3 rounded-2xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-800/60 text-center space-y-1">
+                          <Headphones className="w-5 h-5 mx-auto text-violet-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">الشروحات الصوتية</span>
+                          <span className="text-xs font-black text-violet-700 dark:text-violet-300 block">
+                            {formatStudyDurationArabic(studentActivitySummary.byTypeBreakdown?.audio?.durationSeconds || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({studentActivitySummary.byTypeBreakdown?.audio?.count || 0} مرات)
+                          </span>
+                        </div>
+
+                        {/* Flashcards */}
+                        <div className="p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 text-center space-y-1">
+                          <Layers className="w-5 h-5 mx-auto text-teal-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">كروت الاستذكار</span>
+                          <span className="text-xs font-black text-teal-700 dark:text-teal-300 block">
+                            {formatStudyDurationArabic(studentActivitySummary.byTypeBreakdown?.flashcards?.durationSeconds || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({studentActivitySummary.byTypeBreakdown?.flashcards?.count || 0} مرات)
+                          </span>
+                        </div>
+
+                        {/* Quiz */}
+                        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-center space-y-1">
+                          <HelpCircle className="w-5 h-5 mx-auto text-emerald-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">الكويزات والأسئلة</span>
+                          <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 block">
+                            {formatStudyDurationArabic(studentActivitySummary.byTypeBreakdown?.quiz?.durationSeconds || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({studentActivitySummary.byTypeBreakdown?.quiz?.count || 0} مرات)
+                          </span>
+                        </div>
+
+                        {/* Mindmaps & PPT */}
+                        <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/80 dark:border-sky-800/60 text-center space-y-1">
+                          <GitFork className="w-5 h-5 mx-auto text-sky-600" />
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">الخرائط والبوربوينت</span>
+                          <span className="text-xs font-black text-sky-700 dark:text-sky-300 block">
+                            {formatStudyDurationArabic(
+                              (studentActivitySummary.byTypeBreakdown?.mindmap?.durationSeconds || 0) +
+                              (studentActivitySummary.byTypeBreakdown?.ppt?.durationSeconds || 0)
+                            )}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            ({(studentActivitySummary.byTypeBreakdown?.mindmap?.count || 0) + (studentActivitySummary.byTypeBreakdown?.ppt?.count || 0)} مرات)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-bold text-slate-500 ml-1">تصفية السجل:</span>
+                      {[
+                        { id: 'all', label: 'الكل' },
+                        { id: 'video', label: 'فيديوهات 🎬' },
+                        { id: 'pdf', label: 'ملفات PDF 📄' },
+                        { id: 'audio', label: 'صوتيات 🎧' },
+                        { id: 'flashcards', label: 'كروت 🎴' },
+                        { id: 'quiz', label: 'كويزات ❓' },
+                        { id: 'lecture', label: 'المحاضرات 📖' },
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setActivityTypeFilter(f.id)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                            activityTypeFilter === f.id
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Chronological Detailed Logs */}
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-indigo-600" />
+                        <span>تفاصيل ما قام الطالب بفتحه والوقت الذي قضاه:</span>
+                      </h4>
+
+                      {(() => {
+                        const filteredLogs = (studentActivitySummary.recentLogs || []).filter((log) => {
+                          if (activityTypeFilter === 'all') return true;
+                          return log.targetType === activityTypeFilter;
+                        });
+
+                        if (filteredLogs.length === 0) {
+                          return (
+                            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 space-y-1">
+                              <BookOpen className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+                              <p className="text-xs font-bold text-slate-600 dark:text-slate-300">لا توجد سجلات تطابق الفلتر المحدد</p>
+                              <p className="text-[11px] text-slate-400">أي محتوى يقوم الطالب بفتحه سيتم تسجيل مدة مكوثه فيه وحفظه هنا مباشرة.</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-2">
+                            {filteredLogs.map((log) => {
+                              const isVideo = log.targetType === 'video';
+                              const isAudio = log.targetType === 'audio';
+                              const isPdf = log.targetType === 'pdf';
+                              const isQuiz = log.targetType === 'quiz';
+                              const isCards = log.targetType === 'flashcards';
+
+                              return (
+                                <div
+                                  key={log.id}
+                                  className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-300 dark:hover:border-indigo-700 transition"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div
+                                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                        isVideo
+                                          ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600'
+                                          : isPdf
+                                          ? 'bg-rose-100 dark:bg-rose-950 text-rose-600'
+                                          : isAudio
+                                          ? 'bg-violet-100 dark:bg-violet-950 text-violet-600'
+                                          : isCards
+                                          ? 'bg-teal-100 dark:bg-teal-950 text-teal-600'
+                                          : isQuiz
+                                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
+                                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600'
+                                      }`}
+                                    >
+                                      {isVideo && <Video className="w-5 h-5" />}
+                                      {isPdf && <FileText className="w-5 h-5" />}
+                                      {isAudio && <Headphones className="w-5 h-5" />}
+                                      {isCards && <Layers className="w-5 h-5" />}
+                                      {isQuiz && <HelpCircle className="w-5 h-5" />}
+                                      {!isVideo && !isPdf && !isAudio && !isCards && !isQuiz && <BookOpen className="w-5 h-5" />}
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                          {log.targetTitle}
+                                        </span>
+                                        {log.resourceTitle && (
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                            {log.resourceTitle}
+                                          </span>
+                                        )}
+                                        {log.subjectTitle && (
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
+                                            {log.subjectTitle}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Specific details */}
+                                      {isVideo && log.details?.videoProgressPercent !== undefined && (
+                                        <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                          <span>شاهد {log.details.videoProgressPercent}% من الفيديو</span>
+                                          {log.details.videoCurrentTime && (
+                                            <span>(توقف عند {Math.floor(log.details.videoCurrentTime / 60)} دقيقة)</span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {isQuiz && log.details?.score !== undefined && (
+                                        <div className="text-[11px] text-emerald-600 font-bold">
+                                          النتيجة في الكويز: {log.details.score} / {log.details.questionsCount} ({log.details.percentage}%)
+                                        </div>
+                                      )}
+
+                                      <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                        <span>بدأ: {new Date(log.startedAt).toLocaleString('ar-EG')}</span>
+                                        <span>•</span>
+                                        <span>آخر استجابة: {formatRelativeTimeArabic(log.lastHeartbeatAt)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Dwell time pill */}
+                                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 flex-shrink-0 self-end sm:self-auto">
+                                    <span className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 font-black text-xs border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      <span>قضى: {formatStudyDurationArabic(log.durationSeconds)}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-12 text-center text-slate-400">
+                    لا تتوفر بيانات نشاط لهذا الطالب حالياً.
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+                <span className="text-[11px] text-slate-400">
+                  يتم قياس وقت المذاكرة الفعلي تلقائياً وبدقة تامة كل 15 ثانية مع حفظ الإغلاق الفوري.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStudentForActivity(null);
+                    setStudentActivitySummary(null);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:bg-slate-800 transition"
+                >
+                  إغلاق النافذة
                 </button>
               </div>
             </div>

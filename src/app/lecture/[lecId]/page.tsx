@@ -13,6 +13,7 @@ import LectureAutoScroll from '@/components/LectureAutoScroll';
 import LectureBookmarkButton from '@/components/LectureBookmarkButton';
 import ConceptBookmarkButton from '@/components/ConceptBookmarkButton';
 import InteractiveQuiz from '@/components/InteractiveQuiz';
+import StudentActivityTracker from '@/components/StudentActivityTracker';
 import {
   Clock,
   Eye,
@@ -119,6 +120,13 @@ export default async function LecturePage({ params }: LecturePageProps) {
     return (
       <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
         <LectureAutoScroll />
+        <StudentActivityTracker
+          targetType="lecture"
+          targetId={lecture.id}
+          targetTitle={lecture.title}
+          subjectTitle={lecture.subjectTitle}
+          details={{ isPreview: true }}
+        />
         {/* 1. Breadcrumb Navigation */}
         <Breadcrumb
           items={[
@@ -219,6 +227,12 @@ export default async function LecturePage({ params }: LecturePageProps) {
   return (
     <article className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative" dir="rtl">
       <LectureAutoScroll />
+      <StudentActivityTracker
+        targetType="lecture"
+        targetId={lecture.id}
+        targetTitle={lecture.title}
+        subjectTitle={lecture.subjectTitle}
+      />
       {/* 🛡️ Dynamic Anti-Leak Watermark (Paid Lectures for Authenticated Students) */}
       <StudentWatermark isFree={lecture.isFree} lectureId={lecture.id} yearId={lecture.yearId} />
 
