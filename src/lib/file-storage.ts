@@ -371,12 +371,10 @@ export async function assembleChunkedUpload(
     const chunkPath = path.join(chunkDir, `chunk_${i}`);
     const chunkBuffer = fs.readFileSync(chunkPath);
     totalBytes += chunkBuffer.length;
-    await new Promise<void>((resolve, reject) => {
-      writeStream.write(chunkBuffer, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    const canContinue = writeStream.write(chunkBuffer);
+    if (!canContinue) {
+      await new Promise<void>((resolve) => writeStream.once('drain', resolve));
+    }
   }
 
   await new Promise<void>((resolve, reject) => {

@@ -61,6 +61,9 @@ export async function GET(
             status: 206,
             headers,
           });
+        } else {
+          headers.set('Content-Range', `bytes */${totalLength}`);
+          return new NextResponse(null, { status: 416, headers });
         }
       }
     }

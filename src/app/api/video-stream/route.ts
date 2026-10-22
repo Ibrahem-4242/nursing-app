@@ -151,6 +151,13 @@ export async function GET(req: NextRequest) {
               status: 206,
               headers,
             });
+          } else {
+            // Requested range cannot be satisfied (RFC 7233)
+            headers.set('Content-Range', `bytes */${totalLength}`);
+            return new Response(null, {
+              status: 416,
+              headers,
+            });
           }
         }
       }

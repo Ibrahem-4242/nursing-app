@@ -7,13 +7,13 @@
   "slug": "lec-1791657104297",
   "lectureNumber": 1,
   "title": "Inflammation 1",
-  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (با��ولوجي)",
+  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (با����ولوجي)",
   "isFree": true,
   "price": 0,
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. ب��ختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -126,7 +126,7 @@
     },
     {
       "id": 16,
-      "front": "Which systemic and humoral Factors help enhance Phagocytosis (ال��وامل المساعدة على البلعمة)?",
+      "front": "Which systemic and humoral Factors help enhance Phagocytosis (العوامل المساعدة على البلعمة)?",
       "back": "Phagocytosis is enhanced by opsonins, complement proteins, fibrin, and mild fever.",
       "category": "كروت استذكار",
       "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
@@ -282,7 +282,7 @@
       "id": 38,
       "front": "What mechanism produces systemic Fever (الحمى) during inflammation?",
       "back": "Fever (الحمى) is produced by the systemic release of pyrogenic Chemical Mediators.",
-      "category": "كروت استذكار",
+      "category": "كروت استذك��ر",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -332,7 +332,7 @@
       "front": "What are the two primary origins of Chemical Mediators (مصادر الوسائط الكيميائية) of inflammation?",
       "back": "Chemical mediators are derived either directly from cells or generated from plasma proteins.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الوسائط الكيمي��ئية (Chemical Mediators)"
+      "clinicalPearl": "الوسائط الكيميائية (Chemical Mediators)"
     },
     {
       "id": 46,

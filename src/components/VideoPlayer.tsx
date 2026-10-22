@@ -114,6 +114,35 @@ export default function VideoPlayer({
     }
   }, [isPlaying]);
 
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Listen to fullscreen changes across the document (handles ESC key and system fullscreen exits)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   // 1. Check for Resume Timestamp in localStorage
   useEffect(() => {
     try {
@@ -293,6 +322,20 @@ export default function VideoPlayer({
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      // Don't intercept typing if user is in an input field or slider
+      if (target.getAttribute('type') !== 'range') {
+        return;
+      }
+    }
+
     if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyF', 'KeyM'].includes(e.code)) {
       e.preventDefault();
     }

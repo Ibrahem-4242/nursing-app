@@ -52,7 +52,7 @@
       "front": "What mechanism causes tissue destruction during abscess (خراج) formation?",
       "back": "Bacterial enzymes and toxins induce liquefactive necrosis of the surrounding tissue.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي ��القح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 6,
@@ -185,7 +185,7 @@
       "front": "What is a fistula (ناصور)?",
       "back": "A fistula is an abnormal track lined by infected granulation tissue connecting an abscess cavity to another hollow organ cavity or the exterior.",
       "category": "كروت استذكار",
-      "clinicalPearl": "مضاعفات ا��التهاب (Ulcer, Sinus & Fistula Complications)"
+      "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
     },
     {
       "id": 25,
@@ -311,7 +311,7 @@
       "front": "What characterizes necrotizing or hemorrhagic inflammation (التهاب تنخري / نزفي)?",
       "back": "It is a severe inflammatory response marked by extensive tissue necrosis and widespread vascular destruction causing hemorrhage.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب 2 - الأنواع وال��ضاعفات (Inflammation 2)"
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
     },
     {
       "id": 43,
@@ -397,7 +397,7 @@
       "downloadUrl": "/api/files/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
-      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وس��عة الاستذكار"
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
   "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."
