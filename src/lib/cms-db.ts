@@ -1795,6 +1795,17 @@ export const CmsService = {
     }
 
     if (
+      (updates as any).removeVideo ||
+      updates.videoUrl === '' ||
+      (updates.videoUrl === undefined && 'videoUrl' in updates)
+    ) {
+      delete (updated as any).videoUrl;
+      delete (updated as any).videoTitle;
+      delete (updated as any).videoFileSize;
+      delete (updated as any).videoDuration;
+    }
+
+    if (
       (updates as any).removeMindmap ||
       updates.mindmapUrl === '' ||
       (updates.mindmapUrl === undefined && 'mindmapUrl' in updates)

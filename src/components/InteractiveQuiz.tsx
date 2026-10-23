@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { QuizQuestion } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
-import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb } from 'lucide-react';
+import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb, Video } from 'lucide-react';
 import QuestionBookmarkButton from '@/components/QuestionBookmarkButton';
 import StudentActivityTracker from '@/components/StudentActivityTracker';
+import VideoPlayer from '@/components/VideoPlayer';
 
 interface InteractiveQuizProps {
   questions: QuizQuestion[];
@@ -16,6 +17,7 @@ interface InteractiveQuizProps {
 export default function InteractiveQuiz({ questions, lectureTitle = 'المحاضرة', lectureId = 'general' }: InteractiveQuizProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<{ [questionId: number]: number }>({});
   const [showResults, setShowResults] = useState(false);
+  const [activeVideoQuestionId, setActiveVideoQuestionId] = useState<number | null>(null);
 
   if (!questions || questions.length === 0) return null;
 
@@ -226,6 +228,29 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                         <span className="font-bold block mb-0.5">نصيحة ونقطة هامة للامتحان:</span>
                         <p className="leading-relaxed whitespace-pre-line">{cleanLatexMath(q.pearl)}</p>
                       </div>
+                    </div>
+                  )}
+
+                  {q.videoUrl && (
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveVideoQuestionId(activeVideoQuestionId === q.id ? null : q.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold transition"
+                      >
+                        <Video className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>{activeVideoQuestionId === q.id ? 'إخفاء فيديو الشرح ✕' : 'فيديو شرح وتوضيح السؤال 🎬'}</span>
+                      </button>
+                      {activeVideoQuestionId === q.id && (
+                        <div className="mt-2 overflow-hidden rounded-2xl border border-indigo-500/30">
+                          <VideoPlayer
+                            videoUrl={q.videoUrl}
+                            title={`شرح السؤال ${qIndex + 1}: ${q.question.slice(0, 45)}`}
+                            lectureId={lectureId}
+                            duration={q.videoDuration}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

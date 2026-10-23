@@ -104,6 +104,15 @@ export default function AdminDashboardPage() {
   const [quizMindmapDriveUrl, setQuizMindmapDriveUrl] = useState('');
   const [quizMindmapTitle, setQuizMindmapTitle] = useState('');
 
+  const [quizVideoUploadMode, setQuizVideoUploadMode] = useState<'file' | 'link'>('file');
+  const [quizVideoFile, setQuizVideoFile] = useState<File | null>(null);
+  const [quizVideoDriveUrl, setQuizVideoDriveUrl] = useState('');
+  const [quizVideoTitle, setQuizVideoTitle] = useState('');
+  const [quizVideoDuration, setQuizVideoDuration] = useState('');
+  const [quizVideoProgress, setQuizVideoProgress] = useState<number>(0);
+  const [quizIsUploadingVideo, setQuizIsUploadingVideo] = useState(false);
+  const [quizVideoUploadStatus, setQuizVideoUploadStatus] = useState('');
+
   const [quizAnkiFile, setQuizAnkiFile] = useState<File | null>(null);
   const [quizParsedCardsJson, setQuizParsedCardsJson] = useState<string | null>(null);
   const [quizParsedCardsCount, setQuizParsedCardsCount] = useState<number>(0);
@@ -150,6 +159,16 @@ export default function AdminDashboardPage() {
   const [editQuizInitialMindmapUrl, setEditQuizInitialMindmapUrl] = useState('');
   const [editQuizMindmapTitle, setEditQuizMindmapTitle] = useState('');
   const [editRemoveQuizMindmap, setEditRemoveQuizMindmap] = useState(false);
+
+  const [editQuizVideoFile, setEditQuizVideoFile] = useState<File | null>(null);
+  const [editQuizVideoDriveUrl, setEditQuizVideoDriveUrl] = useState('');
+  const [editQuizInitialVideoUrl, setEditQuizInitialVideoUrl] = useState('');
+  const [editQuizVideoTitle, setEditQuizVideoTitle] = useState('');
+  const [editQuizVideoDuration, setEditQuizVideoDuration] = useState('');
+  const [editRemoveQuizVideo, setEditRemoveQuizVideo] = useState(false);
+  const [editQuizVideoProgress, setEditQuizVideoProgress] = useState<number>(0);
+  const [editIsUploadingQuizVideo, setEditIsUploadingQuizVideo] = useState(false);
+  const [editQuizVideoUploadStatus, setEditQuizVideoUploadStatus] = useState('');
 
   const [editQuizAnkiFile, setEditQuizAnkiFile] = useState<File | null>(null);
   const [editQuizParsedCardsJson, setEditQuizParsedCardsJson] = useState<string | null>(null);
@@ -2352,6 +2371,31 @@ export default function AdminDashboardPage() {
       let resolvedMindmapUrl = quizMindmapUploadMode === 'link' ? quizMindmapDriveUrl.trim() : '';
       let mindmapFileToSend: File | null = quizMindmapUploadMode === 'file' ? quizMindmapFile : null;
 
+      let resolvedVideoUrl = quizVideoUploadMode === 'link' ? quizVideoDriveUrl.trim() : '';
+      let videoFileToSend: File | null = quizVideoUploadMode === 'file' ? quizVideoFile : null;
+
+      // Handle video upload: If file is provided, upload in chunks using uploadVideoInChunks
+      if (videoFileToSend) {
+        setQuizIsUploadingVideo(true);
+        setQuizVideoProgress(0);
+        setQuizVideoUploadStatus('جاري بدء رفع الفيديو المقسم...');
+        try {
+          const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
+            setQuizVideoProgress(p.percent);
+            setQuizVideoUploadStatus(p.status);
+          });
+          if (chunkedRes && chunkedRes.url) {
+            resolvedVideoUrl = chunkedRes.url;
+            videoFileToSend = null; // Successfully assembled on server!
+          }
+        } catch (vidErr: any) {
+          setQuizIsUploadingVideo(false);
+          throw new Error(`فشل رفع فيديو الكويز: ${vidErr.message || 'خطأ في رفع الفيديو'}`);
+        } finally {
+          setQuizIsUploadingVideo(false);
+        }
+      }
+
       // Direct cloud offload for files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
         const directUploaded = await uploadFileDirectlyToCloud(quizFileToSend);
@@ -2460,6 +2504,19 @@ export default function AdminDashboardPage() {
         formData.append('mindmapTitle', quizMindmapTitle.trim());
       }
 
+      // Video
+      if (videoFileToSend) {
+        formData.append('videoFile', videoFileToSend);
+      } else if (resolvedVideoUrl) {
+        formData.append('externalVideoUrl', resolvedVideoUrl);
+      }
+      if (quizVideoTitle.trim()) {
+        formData.append('videoTitle', quizVideoTitle.trim());
+      }
+      if (quizVideoDuration.trim()) {
+        formData.append('videoDuration', quizVideoDuration.trim());
+      }
+
       // Flashcards
       if (quizParsedCardsJson) {
         formData.append('flashcardsJson', quizParsedCardsJson);
@@ -2518,6 +2575,12 @@ export default function AdminDashboardPage() {
         setQuizMindmapFile(null);
         setQuizMindmapDriveUrl('');
         setQuizMindmapTitle('');
+        setQuizVideoFile(null);
+        setQuizVideoDriveUrl('');
+        setQuizVideoTitle('');
+        setQuizVideoDuration('');
+        setQuizVideoProgress(0);
+        setQuizVideoUploadStatus('');
         setQuizAnkiFile(null);
         setQuizParsedCardsJson(null);
         setQuizParsedCardsCount(0);
@@ -2578,6 +2641,18 @@ export default function AdminDashboardPage() {
     setEditQuizMindmapFile(null);
     setEditRemoveQuizMindmap(false);
 
+    // Video
+    const vUrl = (quiz.videoUrl || '').trim();
+    setEditQuizVideoDriveUrl(vUrl);
+    setEditQuizInitialVideoUrl(vUrl);
+    setEditQuizVideoTitle(quiz.videoTitle || '');
+    setEditQuizVideoDuration(quiz.videoDuration || '');
+    setEditQuizVideoFile(null);
+    setEditRemoveQuizVideo(false);
+    setEditQuizVideoProgress(0);
+    setEditIsUploadingQuizVideo(false);
+    setEditQuizVideoUploadStatus('');
+
     // Flashcards
     setEditQuizAnkiFile(null);
     setEditQuizParsedCardsJson(null);
@@ -2637,6 +2712,10 @@ export default function AdminDashboardPage() {
         editRemoveQuizMindmap ||
         (Boolean(editQuizInitialMindmapUrl) && !editQuizMindmapDriveUrl.trim() && !editQuizMindmapFile);
 
+      const willRemoveVideo =
+        editRemoveQuizVideo ||
+        (Boolean(editQuizInitialVideoUrl) && !editQuizVideoDriveUrl.trim() && !editQuizVideoFile);
+
       let resolvedQuizDriveUrl = editQuizDriveUrl.trim();
       let quizFileToSend: File | null = editQuizFile;
 
@@ -2651,6 +2730,30 @@ export default function AdminDashboardPage() {
 
       let resolvedMindmapUrl = editQuizMindmapDriveUrl.trim();
       let mindmapFileToSend: File | null = editQuizMindmapFile;
+
+      let resolvedVideoUrl = editQuizVideoDriveUrl.trim();
+      let videoFileToSend: File | null = editQuizVideoFile;
+
+      if (videoFileToSend) {
+        setEditIsUploadingQuizVideo(true);
+        setEditQuizVideoProgress(0);
+        setEditQuizVideoUploadStatus('جاري رفع الفيديو المقسم...');
+        try {
+          const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
+            setEditQuizVideoProgress(p.percent);
+            setEditQuizVideoUploadStatus(p.status);
+          });
+          if (chunkedRes && chunkedRes.url) {
+            resolvedVideoUrl = chunkedRes.url;
+            videoFileToSend = null;
+          }
+        } catch (vidErr: any) {
+          setEditIsUploadingQuizVideo(false);
+          throw new Error(`فشل رفع فيديو الكويز الجديد: ${vidErr.message || 'خطأ في الرفع'}`);
+        } finally {
+          setEditIsUploadingQuizVideo(false);
+        }
+      }
 
       // Direct cloud offload for large files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
@@ -2704,7 +2807,7 @@ export default function AdminDashboardPage() {
       }
 
       const hasFilesToUpload =
-        quizFileToSend || expFileToSend || pptFileToSend || audioFileToSend || mindmapFileToSend || editQuizAnkiFile;
+        quizFileToSend || expFileToSend || pptFileToSend || audioFileToSend || mindmapFileToSend || videoFileToSend || editQuizAnkiFile;
 
       let res: Response;
       if (hasFilesToUpload) {
@@ -2768,6 +2871,19 @@ export default function AdminDashboardPage() {
           if (editQuizMindmapTitle.trim()) formData.append('mindmapTitle', editQuizMindmapTitle.trim());
         }
 
+        // Video
+        if (willRemoveVideo) {
+          formData.append('removeVideo', 'true');
+        } else if (videoFileToSend) {
+          formData.append('videoFile', videoFileToSend);
+          if (editQuizVideoTitle.trim()) formData.append('videoTitle', editQuizVideoTitle.trim());
+          if (editQuizVideoDuration.trim()) formData.append('videoDuration', editQuizVideoDuration.trim());
+        } else if (resolvedVideoUrl) {
+          formData.append('externalVideoUrl', resolvedVideoUrl);
+          if (editQuizVideoTitle.trim()) formData.append('videoTitle', editQuizVideoTitle.trim());
+          if (editQuizVideoDuration.trim()) formData.append('videoDuration', editQuizVideoDuration.trim());
+        }
+
         // Flashcards
         if (editRemoveQuizFlashcards) {
           formData.append('removeFlashcards', 'true');
@@ -2824,6 +2940,15 @@ export default function AdminDashboardPage() {
         } else {
           if (resolvedMindmapUrl) bodyPayload.externalMindmapUrl = resolvedMindmapUrl;
           if (editQuizMindmapTitle.trim()) bodyPayload.mindmapTitle = editQuizMindmapTitle.trim();
+        }
+
+        if (willRemoveVideo) {
+          bodyPayload.removeVideo = true;
+          bodyPayload.externalVideoUrl = '';
+        } else {
+          if (resolvedVideoUrl) bodyPayload.externalVideoUrl = resolvedVideoUrl;
+          if (editQuizVideoTitle.trim()) bodyPayload.videoTitle = editQuizVideoTitle.trim();
+          if (editQuizVideoDuration.trim()) bodyPayload.videoDuration = editQuizVideoDuration.trim();
         }
 
         if (editRemoveQuizFlashcards) {
@@ -7080,6 +7205,126 @@ export default function AdminDashboardPage() {
                       )}
                     </div>
 
+                    {/* Video (فيديو شرح وحل أسئلة الكويز) */}
+                    <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                          <Video className="w-4 h-4 text-indigo-400" />
+                          <span>فيديو شرح وحل أسئلة الكويز (Video Walkthrough 🎬):</span>
+                        </label>
+                        <div className="flex rounded-lg bg-slate-900 p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setQuizVideoUploadMode('file')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizVideoUploadMode === 'file' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            رفع ملف فيديو
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuizVideoUploadMode('link')}
+                            className={`px-2 py-0.5 rounded-md font-bold ${
+                              quizVideoUploadMode === 'link' ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            رابط Drive / خارجي
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={quizVideoTitle}
+                          onChange={(e) => setQuizVideoTitle(e.target.value)}
+                          placeholder="عنوان فيديو الشرح (مثال: شرح وحل أسئلة كويز الميدتيرم)..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                        />
+                        <input
+                          type="text"
+                          value={quizVideoDuration}
+                          onChange={(e) => setQuizVideoDuration(e.target.value)}
+                          placeholder="المدة التقريبية (مثال: 45 دقيقة)..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+
+                      {quizVideoUploadMode === 'file' ? (
+                        <div>
+                          <input
+                            type="file"
+                            id="quiz-video-file-input"
+                            accept="video/*,.mp4,.mkv,.webm,.mov"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                const f = e.target.files[0];
+                                setQuizVideoFile(f);
+                                if (!quizVideoTitle.trim()) {
+                                  setQuizVideoTitle(`فيديو حل أسئلة: ${f.name.replace(/\.[^/.]+$/, '')}`);
+                                }
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('quiz-video-file-input')?.click()}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              quizVideoFile
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-indigo-500'
+                            }`}
+                          >
+                            <Video className="w-4 h-4" />
+                            <span>
+                              {quizVideoFile
+                                ? `تم اختيار: ${quizVideoFile.name} (${(quizVideoFile.size / (1024 * 1024)).toFixed(1)} MB)`
+                                : 'اختر ملف فيديو (MP4, MKV, WebM - يدعم الرفع المجزأ لأي حجم ضخم)'}
+                            </span>
+                          </button>
+
+                          {quizVideoFile && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuizVideoFile(null);
+                                setQuizVideoProgress(0);
+                                setQuizVideoUploadStatus('');
+                              }}
+                              className="text-[10px] text-rose-400 hover:underline block text-center w-full mt-1"
+                            >
+                              إلغاء ملف الفيديو
+                            </button>
+                          )}
+
+                          {quizIsUploadingVideo && (
+                            <div className="mt-2 p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-300 space-y-1.5">
+                              <div className="flex justify-between font-bold text-[11px]">
+                                <span>{quizVideoUploadStatus || 'جاري رفع الفيديو بالأجزاء...'}</span>
+                                <span className="font-mono">{quizVideoProgress}%</span>
+                              </div>
+                              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                                <div
+                                  style={{ width: `${quizVideoProgress}%` }}
+                                  className="bg-indigo-500 h-full transition-all duration-300"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="url"
+                          value={quizVideoDriveUrl}
+                          onChange={(e) => setQuizVideoDriveUrl(e.target.value)}
+                          placeholder="رابط Google Drive أو رابط مباشر للفيديو..."
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-mono"
+                        />
+                      )}
+                    </div>
+
                     {/* Anki Flashcards */}
                     <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2.5">
                       <label className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
@@ -7315,6 +7560,21 @@ export default function AdminDashboardPage() {
                                     >
                                       <BookOpen className="w-3 h-3" />
                                       <span>{quiz.explanationTitle || 'ملف الشرح 📖'}</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                  </div>
+                                )}
+                                {quiz.videoUrl && (
+                                  <div className="flex items-center gap-1.5">
+                                    <a
+                                      href={quiz.videoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded-full hover:underline"
+                                    >
+                                      <Video className="w-3 h-3" />
+                                      <span>{quiz.videoTitle || 'فيديو الشرح 🎬'}</span>
+                                      {quiz.videoDuration && <span className="opacity-75">({quiz.videoDuration})</span>}
                                       <ExternalLink className="w-2.5 h-2.5" />
                                     </a>
                                   </div>
@@ -7796,6 +8056,86 @@ export default function AdminDashboardPage() {
                             }}
                           />
                         </label>
+                      </div>
+
+                      {/* Video in Edit Modal */}
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
+                            <Video className="w-4 h-4" />
+                            <span>فيديو شرح الكويز (MP4 / WebM أو رابط مباشر / Drive):</span>
+                          </label>
+                          {(editingQuiz?.videoUrl || editQuizVideoDriveUrl || editQuizVideoFile) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditQuizVideoDriveUrl('');
+                                setEditQuizVideoFile(null);
+                                setEditRemoveQuizVideo(true);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline"
+                            >
+                              {editRemoveQuizVideo ? 'سيتم حذف الفيديو 🗑️' : 'حذف الفيديو 🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={editQuizVideoTitle}
+                            onChange={(e) => setEditQuizVideoTitle(e.target.value)}
+                            placeholder="عنوان فيديو الشرح (مثال: فيديو حل وتفسير الأسئلة)..."
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                          />
+                          <input
+                            type="text"
+                            value={editQuizVideoDuration}
+                            onChange={(e) => setEditQuizVideoDuration(e.target.value)}
+                            placeholder="مدة الفيديو (مثال: 45 دقيقة)..."
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editQuizVideoDriveUrl}
+                            onChange={(e) => {
+                              setEditQuizVideoDriveUrl(e.target.value);
+                              if (e.target.value.trim()) setEditRemoveQuizVideo(false);
+                            }}
+                            placeholder="رابط خارجي / Google Drive للفيديو..."
+                            className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-mono"
+                          />
+                          <label className="px-3 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+                            <Video className="w-3.5 h-3.5" />
+                            <span>{editQuizVideoFile ? editQuizVideoFile.name.slice(0, 10) : 'رفع فيديو'}</span>
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/quicktime,video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setEditQuizVideoFile(e.target.files[0]);
+                                  setEditRemoveQuizVideo(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                        {editIsUploadingQuizVideo && (
+                          <div className="p-3 bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-200 dark:border-teal-800 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-black text-teal-700 dark:text-teal-300">
+                              <span>{editQuizVideoUploadStatus || 'جارِ رفع ومعالجة الفيديو بأجزاء سريعة...'}</span>
+                              <span>{editQuizVideoProgress}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-300"
+                                style={{ width: `${editQuizVideoProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Controls for Free/Locked and Live/Hidden in Edit Modal */}

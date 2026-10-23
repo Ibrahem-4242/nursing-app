@@ -5,6 +5,8 @@ import { SubjectQuizFile } from '@/lib/types';
 import WhatsAppJoinModal from '@/components/WhatsAppJoinModal';
 import ReportBrokenLinkModal from '@/components/ReportBrokenLinkModal';
 import AudioWavePlayer from '@/components/AudioWavePlayer';
+import VideoPlayer from '@/components/VideoPlayer';
+import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
   FileText,
   ArrowDownCircle,
@@ -18,6 +20,7 @@ import {
   MessageCircle,
   Presentation,
   Headphones,
+  Video,
   Network,
   Layers,
 } from 'lucide-react';
@@ -28,6 +31,10 @@ interface SubjectQuizFileBoxProps {
 
 export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps) {
   if (quizFile.isLive === false) return null;
+
+  const { student, openAuthModal } = useStudentAuth();
+  const isUnlocked = quizFile.isFree !== false || Boolean(student?.shakibRakibSubscription?.isActive);
+  const canWatchVideo = Boolean(student) && isUnlocked;
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -309,6 +316,95 @@ export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Video Walkthrough Box (فيديو شرح وحل أسئلة الكويز 🎬) */}
+          {quizFile.videoUrl && (
+            <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-950 border-2 border-indigo-500/40 shadow-2xl flex flex-col gap-4 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-600/30">
+                    <Video className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                        <span>فيديو شرح وحل أسئلة الكويز 🎬</span>
+                      </span>
+                      {quizFile.videoDuration && (
+                        <span className="text-xs text-slate-300 font-mono">
+                          {quizFile.videoDuration}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-sm sm:text-base font-black text-white">
+                      {quizFile.videoTitle || 'فيديو حل وشرح بنك أسئلة الكويز بالتفصيل'}
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {canWatchVideo ? (
+                    <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-950 text-emerald-300 text-xs font-bold border border-emerald-800 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>مشاهدة فورية مفعلة بحسابك 🎬</span>
+                    </span>
+                  ) : !student ? (
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('login')}
+                      className="self-start sm:self-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md transition flex items-center gap-1.5"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>تسجيل الدخول للمشاهدة 🔒</span>
+                    </button>
+                  ) : (
+                    <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-amber-950 text-amber-300 text-xs font-bold border border-amber-800 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>محتوى باشتراك 🔒</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* The Video Player */}
+              <div className="w-full">
+                {canWatchVideo ? (
+                  <VideoPlayer
+                    videoUrl={quizFile.videoUrl}
+                    title={quizFile.videoTitle || 'فيديو شرح وحل أسئلة الكويز'}
+                    subjectTitle={quizFile.subjectTitle}
+                    lectureId={`quiz-${quizFile.id || quizFile.subjectId}`}
+                    duration={quizFile.videoDuration}
+                  />
+                ) : !student ? (
+                  <div className="p-6 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 text-center space-y-3">
+                    <Lock className="w-8 h-8 text-indigo-400 mx-auto" />
+                    <h5 className="text-sm font-bold text-white">
+                      مشاهدة فيديو حل أسئلة الكويز مخصصة لطلاب المنصة
+                    </h5>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto">
+                      يرجى تسجيل الدخول بحسابك أو إنشاء حساب مجاني في ثوانٍ لمشاهدة شرح وحل الأسئلة بالفيديو.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('login')}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition shadow-lg shadow-indigo-600/30"
+                    >
+                      تسجيل الدخول الآن 🔑
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-2xl bg-amber-950/60 border border-amber-500/40 text-center space-y-3">
+                    <Lock className="w-8 h-8 text-amber-400 mx-auto" />
+                    <h5 className="text-sm font-bold text-amber-200">
+                      هذا الفيديو مخصص للمشتركين في باقة المادة أو باقة شاكب راكب 🔒
+                    </h5>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

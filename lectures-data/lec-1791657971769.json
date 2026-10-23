@@ -22,7 +22,7 @@
     {
       "id": 1,
       "front": "مما يتكون الدم بشكل رئيسي؟",
-      "back": "يتكون الدم من جزأين رئيسيين:\n1. البلازما (Plasma): الجزء السائل من الدم.\n2. المكونات الخلوية (Cellular components / Formed elements): وتشمل خلايا الدم الحمراء، خلايا الدم البيضاء، والصفائح الدموية.",
+      "back": "يتكون الدم من جزأين رئيسيين:\n1. البلازما (Plasma): الجزء السائل من الدم.\n2. المكونات الخلوية (Cellular components / Formed elements): وتشمل خلايا الدم الحمراء، خلايا الدم البيضاء، والصفائح ��لدموية.",
       "category": "كروت استذكار",
       "clinicalPearl": "فسيول��جيا الدم (Blood Physiology)"
     },
@@ -85,7 +85,7 @@
     {
       "id": 10,
       "front": "ما هو تعريف قيمة الهيماتوكريت (Hematocrit value / PCV)؟",
-      "back": "هي ال��سبة المئوية لحجم خلايا الدم الحمراء المكدسة بالنسبة لحجم الدم الكلي (Percentage ratio of RBCs to total blood volume).",
+      "back": "هي النسبة المئوية لحجم خلايا الدم الحمراء المكدسة بالنسبة لحجم الدم الكلي (Percentage ratio of RBCs to total blood volume).",
       "category": "كروت استذكار",
       "clinicalPearl": "الهيماتوكريت وقيم الدم (Hematocrit & PCV)"
     },
@@ -136,7 +136,7 @@
       "front": "ما هو الضغط الأسموزي للبلازما وم�� الفرق بين الضغط البلوراني (Crystalloid) والغطرواني (Colloids)؟",
       "back": "- الضغط الأسموزي الكلي: $290 \\text{ mOsmol}$.\n- ضغط الكريستالاويد (Crystalloid os.pr): $5000 \\text{ mmHg}$ (ناتج عن الأملاح الذائبة).\n- الضغط الغرواني/الغطرواني (Colloid os.pr): $25 \\text{ mmHg}$ (ناتج عن بروتينات البلازما).",
       "category": "كروت استذكار",
-      "clinicalPearl": "بروتينات ��لبلازما (Plasma Proteins)"
+      "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
     },
     {
       "id": 18,
@@ -147,7 +147,7 @@
     },
     {
       "id": 19,
-      "front": "ما هي الوظيفة الرئيسية لبروتين الألبومين (Albumin) في الدم؟",
+      "front": "ما هي الوظيفة الرئيسية لبروتين الألبومين (Albumin) في ال��م؟",
       "back": "1. مسؤول عن $80 - 90\\%$ من الضغط الأسموزي الغرواني (Colloid Osmotic Pressure) الذي يحافظ على الماء داخل الأوعية الدموية.\n2. مهم في تكوين واحتباس السائل النسيجي.\n3. نقل الكالسيوم وسلفوناميد والبليروبين.",
       "category": "كروت استذكار",
       "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -210,7 +210,7 @@
     },
     {
       "id": 28,
-      "front": "ما هي النسبة التي تقدمها بروتينات البلازما في السعة التدرجية/المقاومة للتغير في حموضة الدم (Buffering capacity)؟",
+      "front": "ما هي النسبة التي تقدمها بروتينات البلازما في السعة التدرجية/المقاومة للتغ��ر في حموضة الدم (Buffering capacity)؟",
       "back": "توفر بروتينات البلازما حوالي $15\\%$ من السعة المنظمة (Buffering capacity) للدم، مثل تنظيم حمض اللاكتيك الناتج عن التمارين العضلية.",
       "category": "كروت استذكار",
       "clinicalPearl": "بروتينات البلازما (Plasma Proteins)"
@@ -225,14 +225,14 @@
     {
       "id": 30,
       "front": "اذكر المراحل التطورية لتكون خلايا الدم الحمراء بدءًا من الخلية الجذعية.",
-      "back": "الخلية الجذعية (Stem cell) $\\rightarrow$ الخلية الأرومية الحمراء المبكرة (Proerythroblast) $\\rightarrow$ خلية سوية التصبغ مبكرة ومتوسطة ومتأخرة (Early, Intermediate, Late Normoblast) $\\rightarrow$ الخلايا الشبكية (Reticulocytes) $\\rightarrow$ خلايا الدم الحمراء الناضجة (Erythrocytes).",
+      "back": "الخلية الجذعية (Stem cell) $\\rightarrow$ الخلية الأرومية الحمراء ��لمبكرة (Proerythroblast) $\\rightarrow$ خلية سوية التصبغ مبكرة ومتوسطة ومتأخرة (Early, Intermediate, Late Normoblast) $\\rightarrow$ الخلايا الشبكية (Reticulocytes) $\\rightarrow$ خلايا الدم الحمراء الناضجة (Erythrocytes).",
       "category": "كروت استذكار",
       "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
     },
     {
       "id": 31,
       "front": "على ماذا يدل ارتفاع نسبة الخلايا الشبكية (Reticulocytes) في الدورة الدموية؟",
-      "back": "يدل على زيادة وسر��ة إنتاج خلايا الدم الحمراء (Rapid RBC production) في نخاع العظام.",
+      "back": "يدل على زيادة وسرعة إنتاج خلايا الدم الحمراء (Rapid RBC production) في نخاع العظام.",
       "category": "كروت استذكار",
       "clinicalPearl": "تكوين خلايا الدم (Erythropoiesis)"
     },
@@ -267,7 +267,7 @@
     {
       "id": 36,
       "front": "ما هي آلية عمل هرمون الإريثروبويتين (EPO) في تحفيز تصنيع كرات الدم الحمراء؟",
-      "back": "1. تحفي�� تحويل الخلايا الجذعية إلى أورمات حمراء (Proerythroblasts).\n2. تحفيز تصنيع الـ RNA و��لبروتين في أسلاف الخلايا الحمراء.\n3. تسريع تسلسل تصنيع الهيموجلوبين (Hb).",
+      "back": "1. تحفي�� تحويل الخلايا الجذعية إلى أورمات حمراء (Proerythroblasts).\n2. تحفيز تصنيع الـ RNA والبروتين في أسلاف الخلايا الحمراء.\n3. تسريع تسلسل تصنيع الهيموجلوبين (Hb).",
       "category": "كروت استذكار",
       "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
     },
@@ -329,7 +329,7 @@
     },
     {
       "id": 45,
-      "front": "ما هي المصادر الغذائية لفيتامين B12 وما هي أهميته الأخرى للجهاز العصبي؟",
+      "front": "ما هي المصادر الغذائية لفيتامين B12 وما هي أهميته الأخرى للج��از العصبي؟",
       "back": "- المصادر: المنتجات الحيوانية فقط (Animal products only).\n- الأهمية العصبية: ضروري لتكوين المايلين (Myelin formation)، لذا فإن نقصه يسبب أعراضًا عصبية.",
       "category": "ك��وت استذكار",
       "clinicalPearl": "أنواع الأنيميا والعوامل (Anemia & Factors)"
@@ -337,7 +337,7 @@
     {
       "id": 46,
       "front": "ما هو العامل الداخلي (Intrinsic factor) وأين يفرز وما وظيفته؟",
-      "back": "- التعريف: بروتين يفرز من الخلاي�� الجدارية/الحمضية للمعدة (Oxyntic cells of stomach).\n- الوظيفة: ضروري لمساعدة وتسهيل امتصاص فيتامين B12.",
+      "back": "- التعريف: بروتين يفرز من الخلايا الجدارية/الحمضية للمعدة (Oxyntic cells of stomach).\n- الوظيفة: ضروري لمساعدة وتسهيل امتصاص فيتامين B12.",
       "category": "كروت استذكار",
       "clinicalPearl": "فسيولوجيا الدم (Blood Physiology)"
     },
@@ -378,7 +378,7 @@
       "fileSize": "رابط خارجي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/12dGfllYXU5Gha1IRSyJ2PHP1DxH6qsFX/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
-      "updatedAt": "الخميس، ١٥ أكت��بر ٢٠٢٦ في ٢:٢٢ م",
+      "updatedAt": "الخميس، ١٥ أكتوبر ٢٠٢٦ في ٢:٢٢ م",
       "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة",
       "fileUrl": "https://drive.google.com/file/d/12dGfllYXU5Gha1IRSyJ2PHP1DxH6qsFX/view?usp=sharing"
     },
@@ -397,7 +397,7 @@
       "title": "الخريطة الذهنية - المحاضرة الاولي",
       "fileSize": "رابط خارجي 🌐",
       "downloadUrl": "/api/files/1791657970574-gzt7e7_��لمحاضرة_الاولي_Physiology_Blood_Mind_map_.pdf",
-      "pageCount": "خريطة ذهنية عالية ا��دقة",
+      "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "الخميس، ١٥ أكتوبر ٢٠٢٦ في ٢:٢٢ م",
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار",
       "fileUrl": "/api/files/1791657970574-gzt7e7_المحاضرة_الاولي_Physiology_Blood_Mind_map_.pdf"

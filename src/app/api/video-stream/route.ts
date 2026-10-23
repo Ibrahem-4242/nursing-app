@@ -15,6 +15,7 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
 async function verifyLectureAccess(
   lectureId?: string,
+  quizId?: string,
   isAdmin: boolean = false
 ): Promise<{ allowed: boolean; reason?: string }> {
   if (isAdmin) return { allowed: true };
@@ -43,10 +44,14 @@ async function verifyLectureAccess(
     return { allowed: false, reason: 'تم تعليق وتجميد الحساب من قبل الإدارة ⛔' };
   }
 
+  // Normalize quizId vs lectureId (e.g. if passed as lectureId="quiz-anatomy" or "quiz-123")
+  const resolvedQuizId = quizId || (lectureId && lectureId.startsWith('quiz-') ? lectureId.replace(/^quiz-/, '') : undefined);
+  const resolvedLectureId = lectureId && !lectureId.startsWith('quiz-') ? lectureId : undefined;
+
   // If lecture is provided and it is a PAID lecture:
-  if (lectureId) {
+  if (resolvedLectureId) {
     try {
-      const lecture = await CmsService.getLectureById(lectureId);
+      const lecture = await CmsService.getLectureById(resolvedLectureId);
       if (lecture && !lecture.isFree) {
         // Check Shakib Rakib subscription
         if (student.shakibRakibSubscription?.isActive) {
@@ -60,7 +65,7 @@ async function verifyLectureAccess(
         }
 
         // Check individual purchase
-        if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId)) {
+        if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(resolvedLectureId)) {
           return { allowed: true };
         }
 
@@ -68,6 +73,25 @@ async function verifyLectureAccess(
       }
     } catch (err) {
       console.warn('[VideoStreamAuth] Lecture lookup error:', err);
+    }
+  }
+
+  // If quiz is provided and it is a PAID quiz:
+  if (resolvedQuizId) {
+    try {
+      const allQuizzes = await CmsService.getAllSubjectQuizFilesList();
+      const quiz = allQuizzes.find((q) => q.id === resolvedQuizId || q.subjectId === resolvedQuizId);
+      if (quiz && quiz.isFree === false) {
+        if (student.shakibRakibSubscription?.isActive) {
+          const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+          if (expires > Date.now()) {
+            return { allowed: true };
+          }
+        }
+        return { allowed: false, reason: 'ملف أسئلة الكويز مخصص للمشتركين فقط 🔒' };
+      }
+    } catch (err) {
+      console.warn('[VideoStreamAuth] Quiz lookup error:', err);
     }
   }
 
@@ -95,9 +119,10 @@ export async function GET(req: NextRequest) {
     const fileId = searchParams.get('fileId');
     const externalUrl = searchParams.get('url');
     const lectureId = searchParams.get('lectureId') || undefined;
+    const quizId = searchParams.get('quizId') || undefined;
 
     // 2. Permissions check
-    const access = await verifyLectureAccess(lectureId, isAdmin);
+    const access = await verifyLectureAccess(lectureId, quizId, isAdmin);
     if (!access.allowed) {
       return new NextResponse(
         JSON.stringify({ error: access.reason || 'المحتوى مخصص للمشتركين فقط' }),

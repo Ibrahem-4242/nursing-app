@@ -55,6 +55,10 @@ export interface SubjectQuizFile {
   audioTitle?: string;
   audioFileSize?: string;
   audioDuration?: string;
+  videoUrl?: string;
+  videoTitle?: string;
+  videoFileSize?: string;
+  videoDuration?: string;
   mindmapUrl?: string;
   mindmapTitle?: string;
   mindmapFileSize?: string;
@@ -101,6 +105,8 @@ export interface QuizQuestion {
   explanation: string;
   pearl?: string;
   clinicalPearl?: string;
+  videoUrl?: string;
+  videoDuration?: string;
 }
 
 export interface LectureFile {

@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
     const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
     const audioTitle = ((formData.get('audioTitle') as string) || '').trim();
 
+    const videoFile = formData.get('videoFile') as File | null;
+    const externalVideoUrl = ((formData.get('externalVideoUrl') as string) || '').trim();
+    const videoTitle = ((formData.get('videoTitle') as string) || '').trim();
+    const videoDuration = ((formData.get('videoDuration') as string) || '').trim();
+
     const mindmapFile = formData.get('mindmapFile') as File | null;
     const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
     const mindmapTitle = ((formData.get('mindmapTitle') as string) || '').trim();
@@ -139,6 +144,16 @@ export async function POST(req: NextRequest) {
       savedAudio = { url: externalAudioUrl, sizeFormatted: 'تسجيل صوتي 🎧' };
     }
 
+    // Process Video File / URL (فيديو شرح وحل أسئلة الكويز)
+    let savedVideo: { url: string; sizeFormatted: string } | null = null;
+    if (videoFile) {
+      const videoBuffer = await videoFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(videoBuffer), videoFile.name, customToken);
+      savedVideo = { url: saved.url, sizeFormatted: saved.sizeFormatted };
+    } else if (externalVideoUrl) {
+      savedVideo = { url: externalVideoUrl, sizeFormatted: 'فيديو شرح 🎬' };
+    }
+
     // Process Mindmap File / URL (خريطة ذهنية)
     let savedMindmap: { url: string; sizeFormatted: string } | null = null;
     if (mindmapFile) {
@@ -203,6 +218,10 @@ export async function POST(req: NextRequest) {
         audioUrl: savedAudio?.url || undefined,
         audioTitle: audioTitle || (savedAudio ? 'شرح وتسجيل صوتي للكويز' : undefined),
         audioFileSize: savedAudio?.sizeFormatted || undefined,
+        videoUrl: savedVideo?.url || undefined,
+        videoTitle: videoTitle || (savedVideo ? 'فيديو شرح وحل أسئلة الكويز' : undefined),
+        videoFileSize: savedVideo?.sizeFormatted || undefined,
+        videoDuration: videoDuration || undefined,
         mindmapUrl: savedMindmap?.url || undefined,
         mindmapTitle: mindmapTitle || (savedMindmap ? 'خريطة ذهنية للأسئلة والمراجعة' : undefined),
         mindmapFileSize: savedMindmap?.sizeFormatted || undefined,
@@ -227,12 +246,13 @@ export async function POST(req: NextRequest) {
     const explanationDisplay = savedExplanation?.url ? 'مرفق ملف شرح 📖' : 'بدون ملف شرح';
     const pptDisplay = savedPpt?.url ? 'مرفق باوربوينت 📊' : '';
     const audioDisplay = savedAudio?.url ? 'مرفق ريكورد صوتي 🎧' : '';
+    const videoDisplay = savedVideo?.url ? 'مرفق فيديو شرح وحل 🎬' : '';
     const cardsDisplay = parsedFlashcards?.length ? `مرفق بطاقات استذكار 🎴 (+${parsedFlashcards.length} كارت)` : '';
     const mindmapDisplay = savedMindmap?.url ? 'مرفق خريطة ذهنية 🧠' : '';
     const freeDisplay = isFree ? 'متاح مجاناً للجميع 🎁' : 'مقفول باشتراك 🔒';
     const liveDisplay = isLive ? 'منشور وظاهر للطلاب 👁️' : 'مسودة مخفية 🙈';
 
-    const extraMedia = [explanationDisplay, pptDisplay, audioDisplay, cardsDisplay, mindmapDisplay].filter(Boolean).join(' | ');
+    const extraMedia = [explanationDisplay, pptDisplay, audioDisplay, videoDisplay, cardsDisplay, mindmapDisplay].filter(Boolean).join(' | ');
 
     const telegramMsg = `📝 <b>تم إضافة ملف أسئلة كويزات جديد مع مرفقات شاملة!</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -325,6 +345,12 @@ export async function PATCH(req: NextRequest) {
     let audioTitle: string | undefined;
     let removeAudio = false;
 
+    let videoFile: File | null = null;
+    let externalVideoUrl: string | undefined;
+    let videoTitle: string | undefined;
+    let videoDuration: string | undefined;
+    let removeVideo = false;
+
     let mindmapFile: File | null = null;
     let externalMindmapUrl: string | undefined;
     let mindmapTitle: string | undefined;
@@ -388,6 +414,18 @@ export async function PATCH(req: NextRequest) {
       }
       removeAudio = formData.get('removeAudio') === 'true';
 
+      videoFile = formData.get('videoFile') as File | null;
+      if (formData.get('externalVideoUrl') !== null) {
+        externalVideoUrl = ((formData.get('externalVideoUrl') as string) || '').trim();
+      }
+      if (formData.get('videoTitle') !== null) {
+        videoTitle = ((formData.get('videoTitle') as string) || '').trim();
+      }
+      if (formData.get('videoDuration') !== null) {
+        videoDuration = ((formData.get('videoDuration') as string) || '').trim();
+      }
+      removeVideo = formData.get('removeVideo') === 'true';
+
       mindmapFile = formData.get('mindmapFile') as File | null;
       if (formData.get('externalMindmapUrl') !== null) {
         externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
@@ -427,6 +465,11 @@ export async function PATCH(req: NextRequest) {
       if (body.externalAudioUrl !== undefined) externalAudioUrl = String(body.externalAudioUrl).trim();
       if (body.audioTitle !== undefined) audioTitle = String(body.audioTitle).trim();
       removeAudio = Boolean(body.removeAudio);
+
+      if (body.externalVideoUrl !== undefined) externalVideoUrl = String(body.externalVideoUrl).trim();
+      if (body.videoTitle !== undefined) videoTitle = String(body.videoTitle).trim();
+      if (body.videoDuration !== undefined) videoDuration = String(body.videoDuration).trim();
+      removeVideo = Boolean(body.removeVideo);
 
       if (body.externalMindmapUrl !== undefined) externalMindmapUrl = String(body.externalMindmapUrl).trim();
       if (body.mindmapTitle !== undefined) mindmapTitle = String(body.mindmapTitle).trim();
@@ -551,6 +594,39 @@ export async function PATCH(req: NextRequest) {
       updatedAudioTitle = audioTitle;
     }
 
+    // Process Video updates
+    let updatedVideoUrl: string | undefined = undefined;
+    let updatedVideoSize: string | undefined = undefined;
+    let updatedVideoTitle: string | undefined = undefined;
+    let updatedVideoDuration: string | undefined = undefined;
+    if (removeVideo) {
+      updatedVideoUrl = '';
+      updatedVideoSize = '';
+      updatedVideoTitle = '';
+      updatedVideoDuration = '';
+    } else if (videoFile) {
+      const vidBuf = await videoFile.arrayBuffer();
+      const saved = await saveUploadedFile(new Uint8Array(vidBuf), videoFile.name, customToken);
+      updatedVideoUrl = saved.url;
+      updatedVideoSize = saved.sizeFormatted;
+      updatedVideoTitle = videoTitle || 'فيديو شرح وحل أسئلة الكويز';
+      updatedVideoDuration = videoDuration || undefined;
+    } else if (externalVideoUrl !== undefined) {
+      if (externalVideoUrl) {
+        updatedVideoUrl = externalVideoUrl;
+        updatedVideoSize = 'فيديو شرح 🎬';
+        updatedVideoTitle = videoTitle || 'فيديو شرح وحل أسئلة الكويز';
+        updatedVideoDuration = videoDuration || undefined;
+      } else {
+        updatedVideoUrl = '';
+        updatedVideoSize = '';
+        updatedVideoTitle = '';
+        updatedVideoDuration = '';
+      }
+    } else if (videoTitle !== undefined) {
+      updatedVideoTitle = videoTitle;
+    }
+
     // Process Mindmap updates
     let updatedMindmapUrl: string | undefined = undefined;
     let updatedMindmapSize: string | undefined = undefined;
@@ -621,6 +697,7 @@ export async function PATCH(req: NextRequest) {
 
     const isRemovingPpt = removePpt || (externalPptUrl !== undefined && !externalPptUrl.trim() && !pptFile);
     const isRemovingAudio = removeAudio || (externalAudioUrl !== undefined && !externalAudioUrl.trim() && !audioFile);
+    const isRemovingVideo = removeVideo || (externalVideoUrl !== undefined && !externalVideoUrl.trim() && !videoFile);
     const isRemovingMindmap = removeMindmap || (externalMindmapUrl !== undefined && !externalMindmapUrl.trim() && !mindmapFile);
 
     const updated = await CmsService.updateSubjectQuizFile(
@@ -655,6 +732,14 @@ export async function PATCH(req: NextRequest) {
               ...(updatedAudioUrl !== undefined ? { audioUrl: updatedAudioUrl || undefined } : {}),
               ...(updatedAudioSize !== undefined ? { audioFileSize: updatedAudioSize || undefined } : {}),
               ...(updatedAudioTitle !== undefined ? { audioTitle: updatedAudioTitle || undefined } : {}),
+            }),
+        ...(isRemovingVideo
+          ? { removeVideo: true, videoUrl: '' }
+          : {
+              ...(updatedVideoUrl !== undefined ? { videoUrl: updatedVideoUrl || undefined } : {}),
+              ...(updatedVideoSize !== undefined ? { videoFileSize: updatedVideoSize || undefined } : {}),
+              ...(updatedVideoTitle !== undefined ? { videoTitle: updatedVideoTitle || undefined } : {}),
+              ...(updatedVideoDuration !== undefined ? { videoDuration: updatedVideoDuration || undefined } : {}),
             }),
         ...(isRemovingMindmap
           ? { removeMindmap: true, mindmapUrl: '' }
