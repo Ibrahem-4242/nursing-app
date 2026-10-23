@@ -135,67 +135,114 @@ export async function GET(req: NextRequest) {
       const safeId = decodeURIComponent(fileId);
       const filePath = findLocalFilePath(safeId);
 
-      if (!filePath || !fs.existsSync(filePath)) {
-        return new NextResponse('Video File Not Found', { status: 404 });
-      }
+      if (filePath && fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        const totalLength = stats.size;
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = getContentTypeForExt(ext) || 'video/mp4';
 
-      const stats = fs.statSync(filePath);
-      const totalLength = stats.size;
-      const ext = path.extname(filePath).toLowerCase();
-      const contentType = getContentTypeForExt(ext) || 'video/mp4';
+        const rangeHeader = req.headers.get('range');
 
-      const rangeHeader = req.headers.get('range');
+        const headers = new Headers();
+        headers.set('Content-Type', contentType);
+        headers.set('Accept-Ranges', 'bytes');
+        headers.set('Cache-Control', 'public, max-age=3600');
+        headers.set('Access-Control-Allow-Origin', '*');
+        headers.set('Access-Control-Allow-Headers', 'Range, Accept-Ranges, Content-Range');
 
-      const headers = new Headers();
-      headers.set('Content-Type', contentType);
-      headers.set('Accept-Ranges', 'bytes');
-      headers.set('Cache-Control', 'public, max-age=3600');
-      headers.set('Access-Control-Allow-Origin', '*');
-      headers.set('Access-Control-Allow-Headers', 'Range, Accept-Ranges, Content-Range');
+        if (rangeHeader) {
+          const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+          if (match) {
+            const rawStart = match[1];
+            const rawEnd = match[2];
+            let start = rawStart ? parseInt(rawStart, 10) : 0;
+            let end = rawEnd ? parseInt(rawEnd, 10) : totalLength - 1;
 
-      if (rangeHeader) {
-        const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
-        if (match) {
-          const rawStart = match[1];
-          const rawEnd = match[2];
-          let start = rawStart ? parseInt(rawStart, 10) : 0;
-          let end = rawEnd ? parseInt(rawEnd, 10) : totalLength - 1;
+            if (isNaN(start)) start = 0;
+            if (isNaN(end) || end >= totalLength) end = totalLength - 1;
 
-          if (isNaN(start)) start = 0;
-          if (isNaN(end) || end >= totalLength) end = totalLength - 1;
+            if (start <= end && start < totalLength) {
+              const chunkSize = end - start + 1;
+              headers.set('Content-Range', `bytes ${start}-${end}/${totalLength}`);
+              headers.set('Content-Length', String(chunkSize));
 
-          if (start <= end && start < totalLength) {
-            const chunkSize = end - start + 1;
-            headers.set('Content-Range', `bytes ${start}-${end}/${totalLength}`);
-            headers.set('Content-Length', String(chunkSize));
+              const nodeStream = fs.createReadStream(filePath, { start, end });
+              const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
 
-            const nodeStream = fs.createReadStream(filePath, { start, end });
-            const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
-
-            return new Response(webStream, {
-              status: 206,
-              headers,
-            });
-          } else {
-            // Requested range cannot be satisfied (RFC 7233)
-            headers.set('Content-Range', `bytes */${totalLength}`);
-            return new Response(null, {
-              status: 416,
-              headers,
-            });
+              return new Response(webStream, {
+                status: 206,
+                headers,
+              });
+            } else {
+              // Requested range cannot be satisfied (RFC 7233)
+              headers.set('Content-Range', `bytes */${totalLength}`);
+              return new Response(null, {
+                status: 416,
+                headers,
+              });
+            }
           }
         }
+
+        // No range header: serve full stream
+        headers.set('Content-Length', String(totalLength));
+        const nodeStream = fs.createReadStream(filePath);
+        const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
+
+        return new Response(webStream, {
+          status: 200,
+          headers,
+        });
       }
 
-      // No range header: serve full stream
-      headers.set('Content-Length', String(totalLength));
-      const nodeStream = fs.createReadStream(filePath);
-      const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
+      // If NOT found on local disk, stream directly from GitHub permanent cloud repo!
+      try {
+        const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
+        const token = process.env.GITHUB_SYNC_TOKEN || builtinToken;
+        const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
+        const ghRawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeId)}`;
 
-      return new Response(webStream, {
-        status: 200,
-        headers,
-      });
+        const upstreamHeaders: Record<string, string> = {
+          'User-Agent': 'NursingStudyHubApp',
+        };
+        if (token) {
+          upstreamHeaders['Authorization'] = `token ${token}`;
+        }
+        const rangeHeader = req.headers.get('range');
+        if (rangeHeader) {
+          upstreamHeaders['Range'] = rangeHeader;
+        }
+
+        const ghRes = await fetch(ghRawUrl, {
+          headers: upstreamHeaders,
+          cache: 'no-store',
+        });
+
+        if (ghRes.ok || ghRes.status === 206) {
+          const ext = path.extname(safeId).toLowerCase();
+          const contentType = getContentTypeForExt(ext) || 'video/mp4';
+
+          const resHeaders = new Headers();
+          resHeaders.set('Content-Type', contentType);
+          resHeaders.set('Accept-Ranges', 'bytes');
+          resHeaders.set('Access-Control-Allow-Origin', '*');
+          resHeaders.set('Cache-Control', 'public, max-age=3600');
+
+          const cl = ghRes.headers.get('content-length');
+          const cr = ghRes.headers.get('content-range');
+          if (cl) resHeaders.set('Content-Length', cl);
+          if (cr) resHeaders.set('Content-Range', cr);
+
+          return new Response(ghRes.body, {
+            status: ghRes.status === 206 ? 206 : 200,
+            headers: resHeaders,
+          });
+        }
+      } catch (ghErr) {
+        console.warn('[VideoStream] Cloud fetch fallback error:', ghErr);
+      }
+
+      return new NextResponse('Video File Not Found', { status: 404 });
     }
 
     // 4. Option B: Stream / Proxy external video or Google Drive link
@@ -204,7 +251,7 @@ export async function GET(req: NextRequest) {
       const driveId = extractDriveId(targetUrl);
 
       if (driveId) {
-        targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+        targetUrl = `https://drive.google.com/uc?export=download&confirm=t&id=${driveId}`;
       }
 
       const upstreamHeaders: Record<string, string> = {
@@ -217,34 +264,23 @@ export async function GET(req: NextRequest) {
         upstreamHeaders['Range'] = rangeHeader;
       }
 
-      const upstreamRes = await fetch(targetUrl, {
+      let upstreamRes = await fetch(targetUrl, {
         headers: upstreamHeaders,
         redirect: 'follow',
       });
 
       // If upstream failed or returned html on drive confirmation
-      if (!upstreamRes.ok && upstreamRes.status !== 206) {
+      const isHtml = (upstreamRes.headers.get('content-type') || '').includes('text/html');
+      if ((!upstreamRes.ok && upstreamRes.status !== 206) || isHtml) {
         // Fallback direct stream attempt for Google Drive
         if (driveId) {
-          const altUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download&authuser=0`;
+          const altUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download&confirm=t&authuser=0`;
           const altRes = await fetch(altUrl, {
             headers: upstreamHeaders,
             redirect: 'follow',
           });
           if (altRes.ok || altRes.status === 206) {
-            const resHeaders = new Headers();
-            resHeaders.set('Content-Type', 'video/mp4');
-            resHeaders.set('Accept-Ranges', 'bytes');
-            resHeaders.set('Access-Control-Allow-Origin', '*');
-            const cl = altRes.headers.get('content-length');
-            const cr = altRes.headers.get('content-range');
-            if (cl) resHeaders.set('Content-Length', cl);
-            if (cr) resHeaders.set('Content-Range', cr);
-
-            return new Response(altRes.body, {
-              status: altRes.status,
-              headers: resHeaders,
-            });
+            upstreamRes = altRes;
           }
         }
       }

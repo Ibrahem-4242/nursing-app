@@ -24,6 +24,7 @@ import {
   Sparkles,
   LayoutGrid,
   HelpCircle,
+  Video,
 } from 'lucide-react';
 
 interface SubjectContentViewProps {
@@ -381,6 +382,10 @@ export default function SubjectContentView({
               {curLectures.map((lec) => {
                 const isValidFile = (f: any) => Boolean((f?.downloadUrl || f?.fileUrl) && (f?.downloadUrl || f?.fileUrl) !== '#');
                 const hasPdf = lec.files?.some((f: any) => (f.type === 'pdf' || f.fileType === 'summary') && isValidFile(f));
+                const hasVideo = Boolean(
+                  (lec.videoUrl && lec.videoUrl.trim() && lec.videoUrl !== '#') ||
+                  lec.files?.some((f: any) => (f.type === 'video' || f.fileType === 'video') && isValidFile(f))
+                );
                 const hasPpt = lec.files?.some((f: any) => (f.type === 'ppt' || f.fileType === 'powerpoint') && isValidFile(f));
                 const hasMindmap = lec.files?.some((f: any) => (f.type === 'mindmap' || f.fileType === 'mindmap') && isValidFile(f));
                 const hasAudio = lec.files?.some((f: any) => (f.type === 'audio' || f.fileType === 'audio') && isValidFile(f));
@@ -439,6 +444,12 @@ export default function SubjectContentView({
                         <span className="flex items-center gap-1.5 font-medium">
                           <FileText className="w-3.5 h-3.5 text-rose-500" />
                           <span>ملف PDF</span>
+                        </span>
+                      )}
+                      {hasVideo && (
+                        <span className="flex items-center gap-1.5 font-bold text-sky-600 dark:text-sky-400">
+                          <Video className="w-3.5 h-3.5" />
+                          <span>فيديو شرح 🎬</span>
                         </span>
                       )}
                       {hasAudio && (

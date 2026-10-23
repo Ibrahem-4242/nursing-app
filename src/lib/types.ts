@@ -147,6 +147,8 @@ export interface Lecture {
   flashcards: Flashcard[];
   quiz: QuizQuestion[];
   files: LectureFile[];
+  videoUrl?: string;
+  videoDuration?: string;
   adminNote?: string;
   lastModified?: number;
 }
