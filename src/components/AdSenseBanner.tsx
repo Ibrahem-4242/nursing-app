@@ -21,10 +21,11 @@ export default function AdSenseBanner({
   const [adLoaded, setAdLoaded] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
   const isRealAdSense = Boolean(clientId && !clientId.includes('00000000') && clientId.startsWith('ca-pub-'));
+  const isDummySlot = !slotId || slotId === '1234567890' || slotId === '9876543210' || slotId === '5432109876';
 
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && isRealAdSense) {
+      if (typeof window !== 'undefined' && isRealAdSense && !isDummySlot) {
         // @ts-expect-error adsbygoogle is added by Google script
         (window.adsbygoogle = window.adsbygoogle || []).push({});
         setAdLoaded(true);
@@ -32,10 +33,11 @@ export default function AdSenseBanner({
     } catch (e) {
       console.warn('AdSense script push error:', e);
     }
-  }, [isRealAdSense]);
+  }, [isRealAdSense, isDummySlot]);
 
-  // If no real AdSense client ID is active, do not display dummy dashed developer boxes to students
-  if (!isRealAdSense) {
+  // If no real AdSense client ID or using placeholder slot IDs during site review,
+  // rely purely on Google Auto Ads in <head> to prevent 400 "Invalid Slot" rejection errors.
+  if (!isRealAdSense || isDummySlot) {
     return null;
   }
 
