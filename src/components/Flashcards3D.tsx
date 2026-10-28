@@ -26,6 +26,8 @@ import {
   Brain,
   AlertTriangle,
   Lightbulb,
+  Stethoscope,
+  CheckCheck,
 } from 'lucide-react';
 
 export function getFlashcardEncouragingMessage(percent: number): { title: string; subtitle: string; emoji: string } {
@@ -139,6 +141,12 @@ export default function Flashcards3D({
   // Card evaluations: card.id -> FlashcardReviewState
   const [evaluations, setEvaluations] = useState<Record<number, FlashcardReviewState>>({});
   const [needsEvaluationWarning, setNeedsEvaluationWarning] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<{
+    cardId: number | string;
+    rating: FlashcardReviewState;
+    text: string;
+  } | null>(null);
+  const [isSlidingNext, setIsSlidingNext] = useState(false);
 
   // Summary screen tab: 'forgot' | 'knew'
   const [summaryTab, setSummaryTab] = useState<'forgot' | 'knew'>('forgot');
@@ -234,16 +242,40 @@ export default function Flashcards3D({
     setIsFlipped((prev) => !prev);
   };
 
-  // Evaluate card: any of the 4 states
+  // Evaluate card: any of the 4 states with haptic feedback & micro-animation
   const handleEvaluate = useCallback(
     (rating: FlashcardReviewState) => {
-      if (!currentCard) return;
+      if (!currentCard || feedbackState) return;
+
+      // Haptic vibration feedback for mobile & supported browsers
+      if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(45);
+        } catch {}
+      }
 
       setNeedsEvaluationWarning(false);
       const updatedEvals = { ...evaluations, [currentCard.id]: rating };
       setEvaluations(updatedEvals);
 
-      // Async single card sync to API
+      let feedbackText = '✅ تم تسجيل الإجابة بنجاح';
+      if (rating === 'knew') {
+        feedbackText = '✨ متقنها وفاكرها كويس! أداء بطولي 🌟';
+      } else if (rating === 'remembered_then_forgot') {
+        feedbackText = '💡 تم حفظ الكارت للتذكير والتثبيت السريع';
+      } else if (rating === 'misunderstood') {
+        feedbackText = '🩺 تم التسجيل لإعادة تصحيح المفهوم الطبي';
+      } else if (rating === 'forgot') {
+        feedbackText = '🔄 تم التسجيل للتكرار والمراجعة المركزة';
+      }
+
+      setFeedbackState({
+        cardId: currentCard.id,
+        rating,
+        text: feedbackText,
+      });
+
+      // Async single card sync to API immediately
       try {
         fetch('/api/student/flashcards', {
           method: 'POST',
@@ -260,25 +292,32 @@ export default function Flashcards3D({
         }).catch(() => {});
       } catch {}
 
-      // Check if this was the last card in the session
-      if (currentIndex >= activeDeck.length - 1) {
-        setIsFlipped(false);
-        saveSessionProgress(updatedEvals);
-        // Default summary tab to 'forgot' if any non-mastered cards exist, otherwise 'knew'
-        const hasNeedsPractice = Object.values(updatedEvals).some((v) => v !== 'knew');
-        setSummaryTab(hasNeedsPractice ? 'forgot' : 'knew');
+      // Micro-animation sequence:
+      // 1. Show feedback badge & button glow for 260ms
+      // 2. Smoothly transition card for 120ms
+      // 3. Move to next card or complete session
+      setTimeout(() => {
+        setIsSlidingNext(true);
+
         setTimeout(() => {
-          setIsSessionFinished(true);
-        }, 220);
-      } else {
-        // Smoothly transition to next card
-        setIsFlipped(false);
-        setTimeout(() => {
-          setCurrentIndex((prev) => prev + 1);
-        }, 180);
-      }
+          if (currentIndex >= activeDeck.length - 1) {
+            setIsFlipped(false);
+            saveSessionProgress(updatedEvals);
+            const hasNeedsPractice = Object.values(updatedEvals).some((v) => v !== 'knew');
+            setSummaryTab(hasNeedsPractice ? 'forgot' : 'knew');
+            setIsSessionFinished(true);
+            setFeedbackState(null);
+            setIsSlidingNext(false);
+          } else {
+            setIsFlipped(false);
+            setCurrentIndex((prev) => prev + 1);
+            setFeedbackState(null);
+            setIsSlidingNext(false);
+          }
+        }, 120);
+      }, 260);
     },
-    [currentCard, evaluations, currentIndex, activeDeck.length, saveSessionProgress, lectureId, lectureTitle, subjectTitle]
+    [currentCard, evaluations, currentIndex, activeDeck.length, saveSessionProgress, lectureId, lectureTitle, subjectTitle, feedbackState]
   );
 
   // Next and Previous manual navigation (with strict evaluation requirement on Next)
@@ -323,6 +362,8 @@ export default function Flashcards3D({
     setIsSessionFinished(false);
     setEvaluations({});
     setNeedsEvaluationWarning(false);
+    setFeedbackState(null);
+    setIsSlidingNext(false);
   };
 
   // Launch review session directly from previously saved history
@@ -339,6 +380,8 @@ export default function Flashcards3D({
     setIsSessionFinished(false);
     setEvaluations({});
     setNeedsEvaluationWarning(false);
+    setFeedbackState(null);
+    setIsSlidingNext(false);
   };
 
   // Full Reset to all cards
@@ -350,6 +393,8 @@ export default function Flashcards3D({
     setIsSessionFinished(false);
     setEvaluations({});
     setNeedsEvaluationWarning(false);
+    setFeedbackState(null);
+    setIsSlidingNext(false);
   };
 
   // Shuffle deck
@@ -360,6 +405,8 @@ export default function Flashcards3D({
     setCurrentIndex(0);
     setEvaluations({});
     setNeedsEvaluationWarning(false);
+    setFeedbackState(null);
+    setIsSlidingNext(false);
   };
 
   // Keyboard navigation
@@ -377,7 +424,7 @@ export default function Flashcards3D({
         handlePrev();
       } else if (e.key === '1') {
         e.preventDefault();
-        handleEvaluate('forgot');
+        handleEvaluate('knew');
       } else if (e.key === '2') {
         e.preventDefault();
         handleEvaluate('remembered_then_forgot');
@@ -386,7 +433,7 @@ export default function Flashcards3D({
         handleEvaluate('misunderstood');
       } else if (e.key === '4') {
         e.preventDefault();
-        handleEvaluate('knew');
+        handleEvaluate('forgot');
       }
     };
 
@@ -772,8 +819,30 @@ export default function Flashcards3D({
           {/* 3D Flip Card Interactive Area */}
           <div
             onClick={handleFlip}
-            className="w-full h-[320px] sm:h-[360px] md:h-[390px] perspective-1000 cursor-pointer select-none group"
+            className={`relative w-full h-[320px] sm:h-[360px] md:h-[390px] perspective-1000 cursor-pointer select-none group transition-all duration-300 ${
+              isSlidingNext ? 'opacity-30 scale-95 -translate-y-2' : 'opacity-100 scale-100 translate-y-0'
+            }`}
           >
+            {/* Feedback Floating Banner Overlay (Haptic / Micro-animation) */}
+            {feedbackState && (
+              <div className="absolute inset-x-4 top-4 z-40 pointer-events-none flex justify-center animate-in fade-in zoom-in-95 duration-150">
+                <div
+                  className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2 backdrop-blur-md border ${
+                    feedbackState.rating === 'knew'
+                      ? 'bg-emerald-600/95 text-white border-emerald-400 shadow-emerald-600/35'
+                      : feedbackState.rating === 'remembered_then_forgot'
+                      ? 'bg-amber-500/95 text-white border-amber-300 shadow-amber-500/35'
+                      : feedbackState.rating === 'misunderstood'
+                      ? 'bg-indigo-600/95 text-white border-indigo-400 shadow-indigo-600/35'
+                      : 'bg-rose-600/95 text-white border-rose-400 shadow-rose-600/35'
+                  }`}
+                >
+                  <CheckCheck className="w-4 h-4 animate-bounce" />
+                  <span>{feedbackState.text}</span>
+                </div>
+              </div>
+            )}
+
             <div
               className={`relative w-full h-full duration-500 transform-style-preserve-3d transition-transform rounded-3xl ${
                 isFlipped ? 'rotate-y-180' : ''
@@ -839,15 +908,27 @@ export default function Flashcards3D({
             </div>
           </div>
 
-          {/* 4. Self-Evaluation Rating Buttons (أسفل الكارت - 4 خيارات لتقييم الذاكرة) */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
-              <span className="flex items-center gap-1.5">
+          {/* 4. Self-Evaluation Rating Buttons (أسفل الكارت - 4 خيارات تفاعلية واضحة بألوان متناسقة) */}
+          <div
+            className={`p-4 sm:p-5 rounded-3xl border transition-all duration-300 shadow-sm space-y-3.5 ${
+              isFlipped
+                ? 'bg-gradient-to-br from-teal-50/50 via-white to-teal-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-teal-950/20 border-teal-300 dark:border-teal-700 shadow-md ring-2 ring-teal-500/25'
+                : 'bg-slate-100/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold gap-1 px-1">
+              <span className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
                 <Target className="w-4 h-4 text-teal-600" />
                 <span>تقييم مستوى حفظك واستيعابك لهذا الكارت:</span>
               </span>
-              <span className="text-[11px] text-slate-400">
-                {isFlipped ? 'اختر حالة الكارت للانتقال للتالي' : 'اقرأ الإجابة أولاً ثم حدد مستواك بدقة'}
+              <span
+                className={`text-[11px] font-semibold transition ${
+                  isFlipped ? 'text-teal-700 dark:text-teal-300' : 'text-slate-400'
+                }`}
+              >
+                {isFlipped
+                  ? '✨ الإجابة معروضة — اختر تقييمك لنقل الكارت فورياً ⚡'
+                  : 'اقرأ الإجابة أولاً ثم حدد مستواك بدقة'}
               </span>
             </div>
 
@@ -860,96 +941,140 @@ export default function Flashcards3D({
             )}
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-              {/* Option 1: نسيتها تماماً */}
+              {/* الزر 1: متقنها وفاكرها كويس (أخضر زمردي مع أيقونة تفوق) */}
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEvaluate('forgot');
-                }}
-                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
-                  evaluations[currentCard?.id] === 'forgot'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <XCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                  <div className="truncate">
-                    <span className="block leading-tight font-black">❌ نسيتها تماماً</span>
-                    <span className="text-[10px] font-normal opacity-80 block truncate">تحتاج إعادة حفظ</span>
-                  </div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">1</span>
-              </button>
-
-              {/* Option 2: كنت فاكرها بس نسيتها */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEvaluate('remembered_then_forgot');
-                }}
-                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
-                  evaluations[currentCard?.id] === 'remembered_then_forgot'
-                    ? 'bg-sky-600 text-white border-sky-600 shadow-sky-600/25 ring-2 ring-sky-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Clock className="w-4 h-4 text-sky-500 flex-shrink-0" />
-                  <div className="truncate">
-                    <span className="block leading-tight font-black">🤔 كنت فاكرها بس نسيتها</span>
-                    <span className="text-[10px] font-normal opacity-80 block truncate">تردد ونسيان مؤقت</span>
-                  </div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">2</span>
-              </button>
-
-              {/* Option 3: المعلومة وصلتني غلط */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEvaluate('misunderstood');
-                }}
-                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
-                  evaluations[currentCard?.id] === 'misunderstood'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-amber-600/25 ring-2 ring-amber-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  <div className="truncate">
-                    <span className="block leading-tight font-black">⚠️ فهمتها غلط</span>
-                    <span className="text-[10px] font-normal opacity-80 block truncate">تصحيح فهم المفهوم</span>
-                  </div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">3</span>
-              </button>
-
-              {/* Option 4: كنت عارفها ومتقنها */}
-              <button
-                type="button"
+                disabled={!!feedbackState}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleEvaluate('knew');
                 }}
-                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
-                  evaluations[currentCard?.id] === 'knew'
+                className={`py-3.5 px-3.5 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-2 transition-all duration-200 shadow-sm text-right active:scale-95 ${
+                  feedbackState?.rating === 'knew'
+                    ? 'scale-105 bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/40 ring-4 ring-emerald-400/50'
+                    : evaluations[currentCard?.id] === 'knew'
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/25 ring-2 ring-emerald-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80'
+                    : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800/80 hover:border-emerald-500'
                 }`}
               >
-                <div className="flex items-center gap-2 truncate">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <div className="flex items-center gap-2.5 truncate">
+                  <div
+                    className={`p-1.5 rounded-xl flex-shrink-0 transition ${
+                      evaluations[currentCard?.id] === 'knew' || feedbackState?.rating === 'knew'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300'
+                    }`}
+                  >
+                    <Award className="w-4 h-4" />
+                  </div>
                   <div className="truncate">
-                    <span className="block leading-tight font-black">✅ كنت عارفها</span>
-                    <span className="text-[10px] font-normal opacity-80 block truncate">متقنة وجاهزة للامتحان</span>
+                    <span className="block leading-tight font-black">متقنها وفاكرها كويس</span>
+                    <span className="text-[10px] font-normal opacity-85 block truncate">ممتاز وجاهزة للامتحان</span>
                   </div>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">4</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono font-bold flex-shrink-0">1</span>
+              </button>
+
+              {/* الزر 2: كنت فاكرها بس نسيتها (برتقالي / أصفر هادئ مع أيقونة تذكير) */}
+              <button
+                type="button"
+                disabled={!!feedbackState}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEvaluate('remembered_then_forgot');
+                }}
+                className={`py-3.5 px-3.5 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-2 transition-all duration-200 shadow-sm text-right active:scale-95 ${
+                  feedbackState?.rating === 'remembered_then_forgot'
+                    ? 'scale-105 bg-amber-500 text-white border-amber-400 shadow-lg shadow-amber-500/40 ring-4 ring-amber-300/50'
+                    : evaluations[currentCard?.id] === 'remembered_then_forgot'
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-amber-500/25 ring-2 ring-amber-400'
+                    : 'bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800/80 hover:border-amber-500'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <div
+                    className={`p-1.5 rounded-xl flex-shrink-0 transition ${
+                      evaluations[currentCard?.id] === 'remembered_then_forgot' || feedbackState?.rating === 'remembered_then_forgot'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300'
+                    }`}
+                  >
+                    <Lightbulb className="w-4 h-4" />
+                  </div>
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">كنت فاكرها بس نسيتها</span>
+                    <span className="text-[10px] font-normal opacity-85 block truncate">تردد ونسيان مؤقت</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono font-bold flex-shrink-0">2</span>
+              </button>
+
+              {/* الزر 3: المعلومة وصلتني غلط (أزرق / بنفسجي مع أيقونة تصحيح المفهوم الطبي) */}
+              <button
+                type="button"
+                disabled={!!feedbackState}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEvaluate('misunderstood');
+                }}
+                className={`py-3.5 px-3.5 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-2 transition-all duration-200 shadow-sm text-right active:scale-95 ${
+                  feedbackState?.rating === 'misunderstood'
+                    ? 'scale-105 bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/40 ring-4 ring-indigo-400/50'
+                    : evaluations[currentCard?.id] === 'misunderstood'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-600/25 ring-2 ring-indigo-400'
+                    : 'bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800/80 hover:border-indigo-500'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <div
+                    className={`p-1.5 rounded-xl flex-shrink-0 transition ${
+                      evaluations[currentCard?.id] === 'misunderstood' || feedbackState?.rating === 'misunderstood'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300'
+                    }`}
+                  >
+                    <Stethoscope className="w-4 h-4" />
+                  </div>
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">المعلومة وصلتني غلط</span>
+                    <span className="text-[10px] font-normal opacity-85 block truncate">تصحيح المفهوم الطبي</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono font-bold flex-shrink-0">3</span>
+              </button>
+
+              {/* الزر 4: مش فاكرها خالص / صعبة (أحمر / وردي هادئ مع أيقونة إعادة المحاولة) */}
+              <button
+                type="button"
+                disabled={!!feedbackState}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEvaluate('forgot');
+                }}
+                className={`py-3.5 px-3.5 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-2 transition-all duration-200 shadow-sm text-right active:scale-95 ${
+                  feedbackState?.rating === 'forgot'
+                    ? 'scale-105 bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/40 ring-4 ring-rose-400/50'
+                    : evaluations[currentCard?.id] === 'forgot'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-400'
+                    : 'bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800/80 hover:border-rose-500'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <div
+                    className={`p-1.5 rounded-xl flex-shrink-0 transition ${
+                      evaluations[currentCard?.id] === 'forgot' || feedbackState?.rating === 'forgot'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300'
+                    }`}
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </div>
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">مش فاكرها خالص / صعبة</span>
+                    <span className="text-[10px] font-normal opacity-85 block truncate">تحتاج إعادة وتكرار</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono font-bold flex-shrink-0">4</span>
               </button>
             </div>
           </div>
@@ -959,7 +1084,7 @@ export default function Flashcards3D({
             <button
               type="button"
               onClick={handlePrev}
-              disabled={currentIndex <= 0}
+              disabled={currentIndex <= 0 || !!feedbackState}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
             >
               <ChevronRight className="w-4 h-4" />
@@ -969,6 +1094,7 @@ export default function Flashcards3D({
             <button
               type="button"
               onClick={handleFlip}
+              disabled={!!feedbackState}
               className="flex-1 sm:flex-initial px-6 py-3 rounded-2xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-black text-xs sm:text-sm border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition active:scale-95 shadow-sm"
             >
               {isFlipped ? '🔄 عرض السؤال' : '✨ إظهار الإجابة'}
@@ -977,7 +1103,7 @@ export default function Flashcards3D({
             <button
               type="button"
               onClick={handleNext}
-              disabled={currentIndex >= activeDeck.length - 1}
+              disabled={currentIndex >= activeDeck.length - 1 || !!feedbackState}
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
                 currentCard && !evaluations[currentCard.id]
                   ? 'bg-teal-600/70 hover:bg-teal-600 text-white'
@@ -990,7 +1116,7 @@ export default function Flashcards3D({
           </div>
 
           <div className="text-center text-[11px] text-slate-400">
-            💡 اختصارات لوحة المفاتيح: (مسافة أو Enter) لقلب الكارت • [1] نسيتها • [2] كنت فاكرها • [3] فهمتها غلط • [4] متقنة
+            💡 اختصارات لوحة المفاتيح: (مسافة أو Enter) لقلب الكارت • [1] متقنها • [2] كنت فاكرها • [3] فهمتها غلط • [4] صعبة ومش فاكرها
           </div>
         </>
       )}
