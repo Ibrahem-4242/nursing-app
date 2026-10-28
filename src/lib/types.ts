@@ -272,6 +272,16 @@ export interface DeviceLoginRecord {
   ip?: string;
 }
 
+export interface ActiveDeviceSession {
+  deviceId: string;
+  sessionId: string;
+  userAgent?: string;
+  deviceLabel?: string;
+  ip?: string;
+  loginAt: string;
+  lastActiveAt: string;
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -285,6 +295,7 @@ export interface StudentUser {
   isActive?: boolean;
   notes?: string;
   currentSessionId?: string;
+  activeDevices?: ActiveDeviceSession[];
   knownDevices?: string[];
   deviceLogins?: DeviceLoginRecord[];
   isSuspicious?: boolean;

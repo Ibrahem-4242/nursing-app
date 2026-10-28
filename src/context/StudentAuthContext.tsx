@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { StudentUser } from '@/lib/types';
+import { StudentUser, ActiveDeviceSession } from '@/lib/types';
 
 interface StudentAuthContextType {
   student: StudentUser | null;
@@ -15,7 +15,14 @@ interface StudentAuthContextType {
     locked?: boolean;
     lockedUntil?: number;
     remainingSeconds?: number;
+    deviceLimitReached?: boolean;
+    activeDevices?: ActiveDeviceSession[];
   }>;
+  replaceDevice: (
+    phone: string,
+    pass: string,
+    targetDeviceIdToLogout: string
+  ) => Promise<{ success: boolean; message: string }>;
   register: (phone: string, name: string, university: string, pass: string, yearId?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshStudent: () => Promise<void>;
@@ -52,11 +59,12 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   const refreshStudent = useCallback(async () => {
     try {
-      const res = await fetch('/api/student/auth', { cache: 'no-store' });
+      const devId = getOrCreateDeviceId();
+      const res = await fetch(`/api/student/auth?deviceId=${encodeURIComponent(devId)}&t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data && data.sessionTerminated) {
         setStudent(null);
-        alert(data.message || 'تم إنهاء الجلسة لأن حسابك فُتح من جهاز آخر 🔒');
+        alert(data.message || 'تم إنهاء الجلسة لأن حسابك فُتح من جهاز آخر أو تم تسجيل الخروج من هذا الجهاز 🔒');
         return;
       }
       if (data && data.isSuspended) {
@@ -79,6 +87,30 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     refreshStudent();
+
+    // Periodic session heartbeat & check every 60 seconds
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshStudent();
+      }
+    }, 60000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshStudent();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibility);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibility);
+      }
+    };
   }, [refreshStudent]);
 
   const login = async (phone: string, pass: string) => {
@@ -103,7 +135,35 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         locked: data?.locked,
         lockedUntil: data?.lockedUntil,
         remainingSeconds: data?.remainingSeconds,
+        deviceLimitReached: data?.code === 'DEVICE_LIMIT_REACHED',
+        activeDevices: data?.activeDevices || [],
       };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'خطأ في الاتصال' };
+    }
+  };
+
+  const replaceDevice = async (phone: string, pass: string, targetDeviceIdToLogout: string) => {
+    try {
+      const newDeviceId = getOrCreateDeviceId();
+      const res = await fetch('/api/student/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'replace-device',
+          phone,
+          password: pass,
+          targetDeviceIdToLogout,
+          newDeviceId,
+        }),
+      });
+      const data = await res.json();
+      if (data && data.success && data.student) {
+        setStudent(data.student);
+        setIsAuthModalOpen(false);
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data?.message || 'فشل تبديل الجهاز' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'خطأ في الاتصال' };
     }
@@ -190,6 +250,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         isLoading,
         isLoggedIn: !!student,
         login,
+        replaceDevice,
         register,
         logout,
         refreshStudent,

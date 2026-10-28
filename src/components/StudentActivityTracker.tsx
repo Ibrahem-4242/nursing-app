@@ -90,7 +90,16 @@ export default function StudentActivityTracker({
       headers: { 'Content-Type': 'application/json' },
       body: payload,
       keepalive: true,
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.sessionTerminated) {
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {

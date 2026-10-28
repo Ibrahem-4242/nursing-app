@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useStudentAuth } from '@/context/StudentAuthContext';
+import { ActiveDeviceSession } from '@/lib/types';
 import {
   X,
   User,
@@ -19,10 +20,14 @@ import {
   Clock,
   BookOpen,
   MessageCircle,
+  Smartphone,
+  Laptop,
+  RefreshCw,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function StudentAuthModal() {
-  const { isAuthModalOpen, closeAuthModal, authModalMode, openAuthModal, login, register } = useStudentAuth();
+  const { isAuthModalOpen, closeAuthModal, authModalMode, openAuthModal, login, register, replaceDevice } = useStudentAuth();
 
   const [mode, setMode] = useState<'login' | 'register'>(authModalMode);
   const [phone, setPhone] = useState('');
@@ -36,12 +41,19 @@ export default function StudentAuthModal() {
   const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
   const [isSuspended, setIsSuspended] = useState(false);
   const [suspendedMessage, setSuspendedMessage] = useState('');
+  const [deviceLimitData, setDeviceLimitData] = useState<{
+    activeDevices: ActiveDeviceSession[];
+    phone: string;
+    pass: string;
+  } | null>(null);
+  const [isReplacingDevice, setIsReplacingDevice] = useState(false);
 
   React.useEffect(() => {
     setMode(authModalMode);
     setFeedback(null);
     setIsSuspended(false);
     setSuspendedMessage('');
+    setDeviceLimitData(null);
   }, [authModalMode, isAuthModalOpen]);
 
   React.useEffect(() => {
@@ -84,6 +96,13 @@ export default function StudentAuthModal() {
           setCountdownSeconds(0);
           setFeedback({ type: 'success', message: res.message });
           setTimeout(() => closeAuthModal(), 1200);
+        } else if (res.deviceLimitReached) {
+          setDeviceLimitData({
+            activeDevices: res.activeDevices || [],
+            phone,
+            pass: password,
+          });
+          return;
         } else {
           if (res.isSuspended || res.message?.includes('تم تعليق وتجميد')) {
             setIsSuspended(true);
@@ -114,6 +133,30 @@ export default function StudentAuthModal() {
       setFeedback({ type: 'error', message: err?.message || 'حدث خطأ، يرجى المحاولة مرة أخرى' });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleReplaceDevice = async (targetDeviceId: string) => {
+    if (!deviceLimitData) return;
+    setIsReplacingDevice(true);
+    setFeedback(null);
+    try {
+      const res = await replaceDevice(
+        deviceLimitData.phone,
+        deviceLimitData.pass,
+        targetDeviceId
+      );
+      if (res.success) {
+        setFeedback({ type: 'success', message: res.message });
+        setDeviceLimitData(null);
+        setTimeout(() => closeAuthModal(), 1200);
+      } else {
+        setFeedback({ type: 'error', message: res.message });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'حدث خطأ في استبدال الجهاز' });
+    } finally {
+      setIsReplacingDevice(false);
     }
   };
 
@@ -154,8 +197,113 @@ export default function StudentAuthModal() {
           </button>
         </div>
 
-        {/* Mode Switcher Tabs */}
-        <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1.5 gap-1.5 relative z-10">
+        {/* Feedback message banner if outside form */}
+        {feedback && (!lockedUntil || countdownSeconds <= 0) && !isSuspended && (
+          <div
+            className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200 relative z-10 ${
+              feedback.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+            }`}
+          >
+            {feedback.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+        )}
+
+        {deviceLimitData ? (
+          <div className="space-y-4 relative z-10 animate-in fade-in">
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 space-y-2">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-black text-xs sm:text-sm">
+                <ShieldAlert className="w-5 h-5 flex-shrink-0 text-amber-600" />
+                <span>الحد الأقصى للأجهزة النشطة (جهازين فقط) 📱💻</span>
+              </div>
+              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
+                حسابك الأكاديمي مسجل به حالياً جهازان يعملان في نفس الوقت. لحماية حسابك من المشاركة غير المصرح بها، يرجى اختيار أحد الجهازين لتسجيل الخروج منه والمتابعة من هذا الجهاز:
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {deviceLimitData.activeDevices.map((dev, idx) => (
+                <div
+                  key={dev.deviceId || idx}
+                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        {idx === 0 ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-slate-900 dark:text-white">
+                          {dev.deviceLabel || `الجهاز ${idx + 1}`}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono" dir="ltr">
+                          {dev.deviceId ? `${dev.deviceId.slice(0, 16)}...` : 'افتراضي'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-left text-[11px] text-slate-500 dark:text-slate-400">
+                      <span className="block text-[10px] text-slate-400">آخر تواجد:</span>
+                      <span className="font-bold text-teal-600 dark:text-teal-400">
+                        {dev.lastActiveAt
+                          ? new Date(dev.lastActiveAt).toLocaleDateString('ar-EG', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'سابقاً'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isReplacingDevice}
+                    onClick={() => handleReplaceDevice(dev.deviceId)}
+                    className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                  >
+                    {isReplacingDevice ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    <span>تسجيل الخروج من هذا الجهاز والدخول هنا 🔄</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeviceLimitData(null)}
+                className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                إلغاء والرجوع
+              </button>
+
+              <a
+                href="https://chat.whatsapp.com/FMoAgeSYXKsFshfsNm3oti"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-bold flex items-center gap-1"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>مساعدة الدعم الفني</span>
+              </a>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mode Switcher Tabs */}
+            <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1.5 gap-1.5 relative z-10">
           <button
             type="button"
             onClick={() => {
@@ -381,6 +529,8 @@ export default function StudentAuthModal() {
             )}
           </button>
         </form>
+      </>
+    )}
 
         {/* Note on free content */}
         <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">

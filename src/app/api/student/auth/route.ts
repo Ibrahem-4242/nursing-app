@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
 
       const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
       const cleanDeviceId = (deviceId || '').trim();
+      const userAgent = req.headers.get('user-agent') || undefined;
+      const clientIp = getClientIp(req);
 
       const result = await CmsService.registerStudent({
         phone: cleanPhone,
@@ -80,6 +82,8 @@ export async function POST(req: NextRequest) {
         deviceId: cleanDeviceId,
         sessionId,
         yearId: yearId ? String(yearId).trim() : '1',
+        userAgent,
+        ip: clientIp,
       });
 
       if (!result.success || !result.student) {
@@ -220,10 +224,30 @@ export async function POST(req: NextRequest) {
 
       const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
       const cleanDeviceId = (deviceId || '').trim();
+      const userAgent = req.headers.get('user-agent') || undefined;
 
-      // Check 5 devices lifetime limit and set single active session ID
-      const record = await CmsService.recordStudentLogin(student.id, cleanDeviceId, sessionId);
+      // Check 2 devices active limit and register session
+      const record = await CmsService.recordStudentLogin(
+        student.id,
+        cleanDeviceId,
+        sessionId,
+        userAgent,
+        clientIp
+      );
+
       if (!record.success) {
+        if (record.code === 'DEVICE_LIMIT_REACHED') {
+          return NextResponse.json(
+            {
+              success: false,
+              code: 'DEVICE_LIMIT_REACHED',
+              message: 'تم الوصول للحد الأقصى المسموح به (جهازين فقط متصلين بحسابك في نفس الوقت).',
+              activeDevices: record.activeDevices || [],
+              phone: cleanPhone,
+            },
+            { status: 409 }
+          );
+        }
         return NextResponse.json(
           {
             success: false,
@@ -258,6 +282,70 @@ export async function POST(req: NextRequest) {
       return res;
     }
 
+    // 2.5 REPLACE ACTIVE DEVICE (When user selects which old device to log out)
+    if (action === 'replace-device') {
+      const { phone, password, targetDeviceIdToLogout, newDeviceId } = body;
+      if (!phone || !password || !targetDeviceIdToLogout || !newDeviceId) {
+        return NextResponse.json(
+          { success: false, message: 'يرجى إكمال بيانات تبديل الجهاز' },
+          { status: 400 }
+        );
+      }
+
+      let cleanPhone = String(phone).trim().replace(/[^0-9]/g, '');
+      const student = await CmsService.getStudentByPhone(cleanPhone);
+      if (!student) {
+        return NextResponse.json({ success: false, message: 'الطالب غير موجود' }, { status: 404 });
+      }
+
+      if (student.password.trim() !== String(password).trim()) {
+        return NextResponse.json({ success: false, message: 'الباسورد غير صحيح' }, { status: 401 });
+      }
+
+      const sessionId = 'sid_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+      const userAgent = req.headers.get('user-agent') || undefined;
+      const clientIp = getClientIp(req);
+
+      const resReplace = await CmsService.replaceStudentActiveDevice(
+        student.id,
+        targetDeviceIdToLogout,
+        newDeviceId,
+        sessionId,
+        userAgent,
+        clientIp
+      );
+
+      if (!resReplace.success || !resReplace.student) {
+        return NextResponse.json(
+          { success: false, message: resReplace.message || 'فشل تبديل الجهاز' },
+          { status: 400 }
+        );
+      }
+
+      const res = NextResponse.json({
+        success: true,
+        message: 'تم تسجيل الخروج من الجهاز القديم وتفعيل هذا الجهاز بنجاح! 🎓',
+        student: {
+          id: resReplace.student.id,
+          phone: resReplace.student.phone,
+          name: resReplace.student.name,
+          university: resReplace.student.university,
+          yearId: resReplace.student.yearId || '1',
+          readNotificationIds: resReplace.student.readNotificationIds || [],
+          purchasedLectureIds: resReplace.student.purchasedLectureIds || [],
+          shakibRakibSubscription: resReplace.student.shakibRakibSubscription,
+        },
+      });
+
+      res.cookies.set(STUDENT_COOKIE_NAME, `${resReplace.student.id}:::${sessionId}`, {
+        path: '/',
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: 'lax',
+      });
+
+      return res;
+    }
+
     // 3. LOGOUT
     if (action === 'logout') {
       const res = NextResponse.json({
@@ -275,7 +363,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const cookieStore = cookies();
     const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
@@ -290,42 +378,27 @@ export async function GET() {
       return NextResponse.json({ success: true, loggedIn: false, student: null });
     }
 
-    const student = await CmsService.getStudentById(studentId);
-    if (!student) {
-      const res = NextResponse.json({ success: true, loggedIn: false, student: null });
-      res.cookies.delete(STUDENT_COOKIE_NAME);
-      return res;
-    }
+    const { searchParams } = new URL(req.url);
+    const deviceId = searchParams.get('deviceId') || undefined;
 
-    if (student.isSuspended) {
-      const res = NextResponse.json(
-        {
-          success: false,
-          loggedIn: false,
-          isSuspended: true,
-          contactPhone: '01148283443',
-          message:
-            '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة بسبب نشاط غير مصرح به.\nيرجى التواصل فوراً مع التيم لحل المشكلة على الرقم التالي:\n📞 01148283443',
-        },
-        { status: 403 }
-      );
-      res.cookies.delete(STUDENT_COOKIE_NAME);
-      return res;
-    }
+    // Strict 2-devices concurrency validation
+    const validation = await CmsService.validateStudentSession(studentId, sessionId, deviceId);
 
-    // SINGLE ACTIVE DEVICE CONCURRENT SESSION CHECK:
-    // If student has a currentSessionId and our session doesn't match it,
-    // another device has logged in! Immediately terminate this session!
-    if (student.currentSessionId && sessionId && student.currentSessionId !== sessionId) {
+    if (!validation.isValid) {
       const res = NextResponse.json({
         success: false,
         loggedIn: false,
         sessionTerminated: true,
-        message: 'تم فتح حسابك من جهاز آخر، وتم إنهاء هذه الجلسة تلقائياً للحفاظ على خصوصيتك وأمان حسابك 🔒',
+        message:
+          validation.reason === 'SUSPENDED'
+            ? '⚠️ تم تعليق وتجميد حسابك من قبل إدارة المنصة.'
+            : 'تم إنهاء هذه الجلسة لأنك قمت بتسجيل الدخول من جهاز آخر أو تسجيل الخروج من هذا الجهاز 🔒',
       });
       res.cookies.delete(STUDENT_COOKIE_NAME);
       return res;
     }
+
+    const student = validation.student!;
 
     return NextResponse.json({
       success: true,
@@ -339,6 +412,7 @@ export async function GET() {
         readNotificationIds: student.readNotificationIds || [],
         purchasedLectureIds: student.purchasedLectureIds || [],
         knownDevicesCount: student.knownDevices?.length || 1,
+        activeDevicesCount: student.activeDevices?.length || 1,
         shakibRakibSubscription: student.shakibRakibSubscription,
       },
     });

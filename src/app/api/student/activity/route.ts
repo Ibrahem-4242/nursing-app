@@ -84,6 +84,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if ((result as any).sessionTerminated) {
+      const res = NextResponse.json(
+        { success: false, sessionTerminated: true, message: 'تم إنهاء الجلسة لأن هذا الجهاز لم يعد ضمن الأجهزة المصرح بها' },
+        { status: 401 }
+      );
+      res.cookies.delete(STUDENT_COOKIE_NAME);
+      return res;
+    }
+
     return NextResponse.json({
       success: true,
       totalStudySeconds: result.totalStudySeconds,

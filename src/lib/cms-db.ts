@@ -22,6 +22,7 @@ import {
   PlatformFeaturesConfig,
   StudentActivityLog,
   StudentActivitySummary,
+  ActiveDeviceSession,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -1877,8 +1878,38 @@ export const CmsService = {
     return students.find((s) => s.phone.trim().replace(/\s+/g, '') === cleanPhone) || null;
   },
 
+  parseDeviceLabel(userAgent?: string): string {
+    if (!userAgent) return 'جهاز كمبيوتر / هاتف';
+    const ua = userAgent.toLowerCase();
+    let os = 'جهاز كمبيوتر';
+    if (ua.includes('iphone')) os = 'آيفون (iPhone)';
+    else if (ua.includes('ipad')) os = 'آيباد (iPad)';
+    else if (ua.includes('android')) os = 'هاتف أندرويد';
+    else if (ua.includes('macintosh') || ua.includes('mac os')) os = 'ماك (Mac)';
+    else if (ua.includes('windows')) os = 'كمبيوتر ويندوز';
+    else if (ua.includes('linux')) os = 'نظام لينكس';
+
+    let browser = '';
+    if (ua.includes('edg/')) browser = 'Edge';
+    else if (ua.includes('chrome') && !ua.includes('edg/')) browser = 'Chrome';
+    else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari';
+    else if (ua.includes('firefox')) browser = 'Firefox';
+
+    return browser ? `${os} (${browser})` : os;
+  },
+
   async registerStudent(
-    data: { phone: string; name: string; university: string; password: string; deviceId?: string; sessionId?: string; yearId?: string },
+    data: {
+      phone: string;
+      name: string;
+      university: string;
+      password: string;
+      deviceId?: string;
+      sessionId?: string;
+      yearId?: string;
+      userAgent?: string;
+      ip?: string;
+    },
     customToken?: string
   ): Promise<{ success: boolean; student?: StudentUser; message?: string }> {
     const store = await getFreshStore();
@@ -1890,17 +1921,32 @@ export const CmsService = {
       return { success: false, message: 'رقم الهاتف مسجل بالفعل! يرجى تسجيل الدخول أو إدخال رقم هاتف آخر.' };
     }
 
-    const initialDeviceId = data.deviceId ? [data.deviceId.trim()] : [];
+    const cleanDev = data.deviceId ? data.deviceId.trim() : '';
+    const nowIso = new Date().toISOString();
+    const label = this.parseDeviceLabel(data.userAgent);
+    const initialDeviceId = cleanDev ? [cleanDev] : [];
+
+    const initialActiveDevices = cleanDev && data.sessionId ? [{
+      deviceId: cleanDev,
+      sessionId: data.sessionId,
+      userAgent: data.userAgent,
+      deviceLabel: label,
+      ip: data.ip,
+      loginAt: nowIso,
+      lastActiveAt: nowIso,
+    }] : [];
+
     const newStudent: StudentUser = {
       id: `stu-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       phone: cleanPhone,
       name: data.name.trim(),
       university: data.university.trim(),
       password: data.password.trim(),
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
       purchasedLectureIds: [],
       isActive: true,
       currentSessionId: data.sessionId,
+      activeDevices: initialActiveDevices,
       knownDevices: initialDeviceId,
       yearId: data.yearId || '1',
       readNotificationIds: [],
@@ -1924,8 +1970,17 @@ export const CmsService = {
     studentId: string,
     deviceId: string,
     sessionId: string,
+    userAgent?: string,
+    ip?: string,
     customToken?: string
-  ): Promise<{ success: boolean; message?: string; student?: StudentUser; code?: string; isSuspended?: boolean }> {
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    student?: StudentUser;
+    code?: string;
+    isSuspended?: boolean;
+    activeDevices?: ActiveDeviceSession[];
+  }> {
     const store = await getFreshStore();
     if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
     const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
@@ -1942,22 +1997,20 @@ export const CmsService = {
       };
     }
 
-    if (!student.knownDevices) {
-      student.knownDevices = [];
-    }
-
-    if (!student.deviceLogins) {
-      student.deviceLogins = [];
-    }
+    if (!student.knownDevices) student.knownDevices = [];
+    if (!student.deviceLogins) student.deviceLogins = [];
+    if (!student.activeDevices) student.activeDevices = [];
 
     const cleanDev = (deviceId || '').trim();
+    const nowIso = new Date().toISOString();
     const now = Date.now();
+    const label = this.parseDeviceLabel(userAgent);
 
-    // 2. INTELLIGENT ACCOUNT SHARING DETECTION ALGORITHM
     if (cleanDev) {
       student.deviceLogins.push({
         deviceId: cleanDev,
         timestamp: now,
+        ip,
       });
 
       // Keep recent 60 login events to maintain clean storage
@@ -1967,40 +2020,41 @@ export const CmsService = {
         );
       }
 
-      // Check distinct devices switched within the last 24 hours
-      const last24hLogins = student.deviceLogins.filter(
-        (d) => now - d.timestamp <= 24 * 60 * 60 * 1000
-      );
-      const distinct24hDevices = Array.from(new Set(last24hLogins.map((d) => d.deviceId).filter(Boolean)));
+      // Check if this device is already one of the active devices
+      const existingIdx = student.activeDevices.findIndex((d) => d.deviceId === cleanDev);
 
-      if (distinct24hDevices.length >= 3) {
-        student.isSuspicious = true;
-        student.suspiciousAt = now;
-        student.suspiciousReason = `تم التبديل بين ${distinct24hDevices.length} أجهزة مختلفة اليوم (اشتباه مشاركة جماعية)`;
+      if (existingIdx !== -1) {
+        // Same device logging in again -> refresh its active session!
+        student.activeDevices[existingIdx].sessionId = sessionId;
+        student.activeDevices[existingIdx].lastActiveAt = nowIso;
+        student.activeDevices[existingIdx].loginAt = nowIso;
+        if (userAgent) student.activeDevices[existingIdx].userAgent = userAgent;
+        if (ip) student.activeDevices[existingIdx].ip = ip;
+        student.activeDevices[existingIdx].deviceLabel = label;
       } else {
-        // Also check rapid session switching: 5 or more logins across 2 or more devices within 1 hour
-        const last1hLogins = student.deviceLogins.filter(
-          (d) => now - d.timestamp <= 60 * 60 * 1000
-        );
-        const distinct1hDevices = Array.from(new Set(last1hLogins.map((d) => d.deviceId).filter(Boolean)));
-        if (last1hLogins.length >= 5 && distinct1hDevices.length >= 2) {
-          student.isSuspicious = true;
-          student.suspiciousAt = now;
-          student.suspiciousReason = `تسجيل دخول متكرر ومتسارع (${last1hLogins.length} مرات عبر أجهزة مختلفة في ساعة واحدة)`;
-        }
-      }
-
-      // Check lifetime 5 devices limit
-      const isKnown = student.knownDevices.includes(cleanDev);
-      if (!isKnown) {
-        if (student.knownDevices.length >= 5) {
+        // New device attempting to log in: check if account already has 2 active devices
+        if (student.activeDevices.length >= 2) {
           return {
             success: false,
-            code: 'DEVICE_LIMIT_EXCEEDED',
-            message:
-              'عذراً، لقد تجاوزت الحد الأقصى للأجهزة المصرح بها (5 أجهزة). يرجى التواصل مع إدارة المنصة أو الدعم الفني لإعادة تعيين أجهزتك المصرح لها.',
+            code: 'DEVICE_LIMIT_REACHED',
+            message: 'تم الوصول للحد الأقصى المسموح به (جهازين فقط متصلين بحسابك في نفس الوقت).',
+            activeDevices: student.activeDevices,
           };
         }
+
+        // Under limit (0 or 1 device): allow adding this 2nd device!
+        student.activeDevices.push({
+          deviceId: cleanDev,
+          sessionId,
+          userAgent,
+          deviceLabel: label,
+          ip,
+          loginAt: nowIso,
+          lastActiveAt: nowIso,
+        });
+      }
+
+      if (!student.knownDevices.includes(cleanDev)) {
         student.knownDevices.push(cleanDev);
       }
     }
@@ -2011,6 +2065,87 @@ export const CmsService = {
     persistStore(store, customToken);
     await syncToCloud(store, customToken);
     return { success: true, student };
+  },
+
+  async replaceStudentActiveDevice(
+    studentId: string,
+    targetDeviceIdToLogout: string,
+    newDeviceId: string,
+    newSessionId: string,
+    userAgent?: string,
+    ip?: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message?: string; student?: StudentUser }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+    if (student.isSuspended) return { success: false, message: 'الحساب معلق ومجمد' };
+
+    if (!student.activeDevices) student.activeDevices = [];
+    const nowIso = new Date().toISOString();
+    const label = this.parseDeviceLabel(userAgent);
+
+    // Filter out target device
+    student.activeDevices = student.activeDevices.filter((d) => d.deviceId !== targetDeviceIdToLogout);
+
+    // If still >= 2, clamp to 1
+    if (student.activeDevices.length >= 2) {
+      student.activeDevices = student.activeDevices.slice(0, 1);
+    }
+
+    // Add new device
+    student.activeDevices.push({
+      deviceId: newDeviceId,
+      sessionId: newSessionId,
+      userAgent,
+      deviceLabel: label,
+      ip,
+      loginAt: nowIso,
+      lastActiveAt: nowIso,
+    });
+
+    if (!student.knownDevices) student.knownDevices = [];
+    if (!student.knownDevices.includes(newDeviceId)) {
+      student.knownDevices.push(newDeviceId);
+    }
+
+    student.currentSessionId = newSessionId;
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return { success: true, student };
+  },
+
+  async validateStudentSession(
+    studentId: string,
+    sessionId: string,
+    deviceId?: string
+  ): Promise<{ isValid: boolean; reason?: string; student?: StudentUser }> {
+    const store = await getFreshStore();
+    if (!store.students) return { isValid: false, reason: 'NOT_FOUND' };
+    const student = store.students.find((s) => s.id === studentId);
+    if (!student) return { isValid: false, reason: 'NOT_FOUND' };
+    if (student.isSuspended) return { isValid: false, reason: 'SUSPENDED' };
+
+    // Strict 2-devices concurrency validation:
+    if (student.activeDevices && student.activeDevices.length > 0) {
+      const match = student.activeDevices.find(
+        (d) => d.sessionId === sessionId || (deviceId && d.deviceId === deviceId)
+      );
+      if (!match) {
+        return { isValid: false, reason: 'SESSION_TERMINATED', student };
+      }
+      match.lastActiveAt = new Date().toISOString();
+      return { isValid: true, student };
+    }
+
+    // Fallback if activeDevices not yet populated
+    if (student.currentSessionId && sessionId && student.currentSessionId !== sessionId) {
+      return { isValid: false, reason: 'SESSION_TERMINATED', student };
+    }
+
+    return { isValid: true, student };
   },
 
   async resetStudentDevices(
@@ -2024,6 +2159,7 @@ export const CmsService = {
 
     student.knownDevices = [];
     student.deviceLogins = [];
+    student.activeDevices = [];
     student.currentSessionId = undefined;
 
     memoryStore = store;
@@ -2988,7 +3124,7 @@ export const CmsService = {
       deviceId?: string;
     },
     customToken?: string
-  ): Promise<{ success: boolean; totalStudySeconds?: number; isSuspended?: boolean }> {
+  ): Promise<{ success: boolean; totalStudySeconds?: number; isSuspended?: boolean; sessionTerminated?: boolean }> {
     // 1. Camouflage / Panic Mode check
     const panicMode = await PanicEngine.getPanicMode();
     if (panicMode.isEnabled) {
@@ -3006,6 +3142,16 @@ export const CmsService = {
 
     if (student && student.isSuspended) {
       return { success: false, isSuspended: true };
+    }
+
+    // Verify that this device is still authorized among activeDevices
+    if (student && student.activeDevices && student.activeDevices.length > 0 && payload.deviceId) {
+      const isDeviceActive = student.activeDevices.some((d) => d.deviceId === payload.deviceId);
+      if (!isDeviceActive) {
+        return { success: false, sessionTerminated: true };
+      }
+      const dev = student.activeDevices.find((d) => d.deviceId === payload.deviceId);
+      if (dev) dev.lastActiveAt = new Date().toISOString();
     }
 
     // Safely clamp increment between 1 and 60 seconds (default 15)
