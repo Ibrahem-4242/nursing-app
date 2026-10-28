@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح أو العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغذية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -21,7 +21,7 @@
   "flashcards": [
     {
       "id": 1,
-      "front": "How is catarrhal inflammation (التهاب مخاط��) defined?",
+      "front": "How is catarrhal inflammation (التهاب مخاطي) defined?",
       "back": "It is a mild acute non-suppurative inflammation of mucous membranes resulting in an exudate rich in mucus.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
@@ -107,14 +107,14 @@
       "id": 13,
       "front": "Which patient group is particularly prone to developing a carbuncle (الجمرة)?",
       "back": "Diabetic patients (مرضى السكري) are particularly susceptible due to lowered resistance to infection.",
-      "category": "كروت استذكا��",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
     },
     {
       "id": 14,
       "front": "Why does a carbuncle (الجمرة) typically develop in areas like the back of the neck, scalp, and buttocks?",
       "back": "The subcutaneous tissue in these regions is tough and divided into compartments by dense fibrous septa.",
-      "category": "كروت استذ��ار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
     },
     {
@@ -129,7 +129,7 @@
       "front": "What is the definitive surgical treatment for a localized abscess (خراج)?",
       "back": "Surgical excision with total removal of the abscess cavity and its pyogenic membrane.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي و��لقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقيح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 17,
@@ -163,7 +163,7 @@
       "id": 21,
       "front": "What is an ulcer (قرحة)?",
       "back": "An ulcer is a local defect or breach in the surface of an organ or tissue produced by the sloughing of inflammatory necrotic tissue.",
-      "category": "كروت اس��ذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "مضاعفات الالتهاب (Ulcer, Sinus & Fistula Complications)"
     },
     {
@@ -171,11 +171,11 @@
       "front": "What is a sinus (جيب صديدي)?",
       "back": "A sinus is a blind track lined by infected granulation tissue that connects an internal abscess cavity to an outer surface.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالته��ب الصديدي والقح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 23,
-      "front": "What structural feature defines the inner termination of a sinus (جيب صد��دي)?",
+      "front": "What structural feature defines the inner termination of a sinus (جيب صديدي)?",
       "back": "It has a single closed, blind end within the tissue.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -259,9 +259,9 @@
     },
     {
       "id": 35,
-      "front": "In portal pyemia (ق��ام الدم البابي), which organ receives the septic emboli and develops abscesses?",
+      "front": "In portal pyemia (قيام الدم البابي), which organ receives the septic emboli and develops abscesses?",
       "back": "The liver (الكبد) is the primary organ affected.",
-      "category": "كروت اس��ذكار",
+      "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
@@ -332,14 +332,14 @@
       "front": "How do abscesses (خراج) and cellulitis (التهاب خلوي) compare regarding localization?",
       "back": "Abscesses are circumscribed and localized by fibrin, whereas cellulitis is diffuse and unlocalized.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي وال��ح (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقيح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 46,
       "front": "What defines chronic inflammation (التهاب مزمن)?",
       "back": "It is a prolonged inflammatory reaction lasting weeks to years where tissue destruction, mononuclear cell infiltration, and repair attempts occur simultaneously.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتها�� ا��مزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
+      "clinicalPearl": "الالتهاب المزمن والورم الحبيبي (Chronic Inflammation & Granuloma)"
     },
     {
       "id": 47,
@@ -364,7 +364,7 @@
     },
     {
       "id": 50,
-      "front": "What constitutes a chronic abscess (��راج مزمن)?",
+      "front": "What constitutes a chronic abscess (خراج مزمن)?",
       "back": "It is an abscess surrounded by a thick, dense fibrous wall formed due to long-standing unhealed suppurative inflammation.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
@@ -387,7 +387,7 @@
       "fileSize": "1.8 MB",
       "downloadUrl": "/api/files/1791657853103-hyadk2_المحاضرة_الثانية_باثولوجي_PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
-      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:��٤ م",
+      "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٥٤ م",
       "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
     },
     {
