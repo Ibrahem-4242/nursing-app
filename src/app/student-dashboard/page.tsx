@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStudentAuth } from '@/context/StudentAuthContext';
-import { StudentActivitySummary, StudentActivityLog } from '@/lib/types';
+import {
+  StudentActivitySummary,
+  StudentActivityLog,
+  FlashcardReviewState,
+  SpacedRepetitionCardItem,
+  SpacedRepetitionSubjectGroup,
+  SpacedRepetitionLectureGroup,
+} from '@/lib/types';
 import {
   GraduationCap,
   Clock,
@@ -23,11 +30,13 @@ import {
   RefreshCw,
   ArrowRight,
   TrendingUp,
+  TrendingDown,
   BookmarkCheck,
   AlertCircle,
   Sparkles,
   ChevronLeft,
   ChevronDown,
+  ChevronUp,
   Target,
   Search,
   ExternalLink,
@@ -41,6 +50,12 @@ import {
   Stethoscope,
   Lightbulb,
   RotateCw,
+  Download,
+  Copy,
+  Check,
+  Filter,
+  History,
+  FolderTree,
 } from 'lucide-react';
 
 export default function StudentDashboardPage() {
@@ -54,6 +69,17 @@ export default function StudentDashboardPage() {
   const [cardStateFilter, setCardStateFilter] = useState<string>('all');
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Spaced Repetition Analytics States
+  const [spacedSearchQuery, setSpacedSearchQuery] = useState('');
+  const [spacedSubjectFilter, setSpacedSubjectFilter] = useState('all');
+  const [spacedDateFilter, setSpacedDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [spacedTrajectoryFilter, setSpacedTrajectoryFilter] = useState('all');
+  const [collapsedSubjects, setCollapsedSubjects] = useState<Record<string, boolean>>({});
+  const [collapsedLectures, setCollapsedLectures] = useState<Record<string, boolean>>({});
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [expandedCardHistory, setExpandedCardHistory] = useState<Record<string, boolean>>({});
+  const [revealedSpacedAnswers, setRevealedSpacedAnswers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!isLoggedIn || !student) {
@@ -121,6 +147,242 @@ export default function StudentDashboardPage() {
       return isoString;
     }
   };
+
+  const formatArabicDateTime = (isoString?: string) => {
+    if (!isoString) return '';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('ar-EG', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return isoString;
+    }
+  };
+
+  const renderCardStateBadge = (st: FlashcardReviewState) => {
+    switch (st) {
+      case 'knew':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+            <span>متقنها وفاكرها كويس</span>
+          </span>
+        );
+      case 'remembered_then_forgot':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+            <Lightbulb className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+            <span>كنت فاكرها بس نسيتها</span>
+          </span>
+        );
+      case 'misunderstood':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
+            <Stethoscope className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+            <span>المعلومة وصلتلي غلط</span>
+          </span>
+        );
+      case 'forgot':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+            <RotateCw className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+            <span>مش فاكرها خالص / صعبة</span>
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderCardTrajectory = (item: SpacedRepetitionCardItem) => {
+    switch (item.improvementStatus) {
+      case 'improved':
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-black shadow-xs">
+            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>تحسن ملحوظ في الحفظ 📈 (ارتقاء إلى الإتقان)</span>
+          </div>
+        );
+      case 'declined':
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-black shadow-xs">
+            <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <span>تراجع في التذكر 📉 (يحتاج تثبيت فوري قبل النسيان)</span>
+          </div>
+        );
+      case 'stable_mastered':
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-200 text-xs font-black shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>إتقان راسخ وثابت 🛡️ (استقرار طويل المدى)</span>
+          </div>
+        );
+      case 'struggling':
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs font-black shadow-xs">
+            <RotateCcw className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span>تكرار مع استمرار الصعوبة 🔄 (نقطة تركيز للمذاكرة)</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const handleExportSpacedSummary = () => {
+    if (!summary?.flashcardMemory?.spacedRepetition) return;
+    const sp = summary.flashcardMemory.spacedRepetition;
+
+    let text = `📋 تقرير تحليلات تكرار المراجعة (Spaced Repetition Analytics)\n`;
+    text += `👤 الطالب: ${student?.name || 'غير معروف'} (${student?.phone || ''})\n`;
+    text += `📅 التاريخ: ${new Date().toLocaleDateString('ar-EG', { dateStyle: 'full' })}\n`;
+    text += `========================================================\n\n`;
+    text += `📊 إحصائيات عامة لتكرار المراجعة:\n`;
+    text += `• إجمالي الكروت المكررة (Review Count > 1): ${sp.totalRepeatedCards} كارت\n`;
+    text += `• إجمالي جلسات التكرار عبر الكروت: ${sp.totalReviewsAcrossRepeated} مرة\n`;
+    text += `• كروت شهدت تحسناً ملحوظاً 📈: ${sp.improvedCardsCount}\n`;
+    text += `• كروت حافظت على الإتقان 🛡️: ${sp.stableMasteredCount}\n`;
+    text += `• كروت تراجعت وتحتاج تثبيت 📉: ${sp.declinedCardsCount}\n`;
+    text += `• كروت مستمرة في الصعوبة 🔄: ${sp.strugglingCount}\n\n`;
+    text += `========================================================\n`;
+    text += `🎴 تفاصيل الكروت المكررة مقسمة هرمياً (المادة ⬅️ المحاضرة ⬅️ الكروت):\n\n`;
+
+    sp.hierarchyBySubject.forEach((subGroup) => {
+      text += `📚 المادة: ${subGroup.subjectTitle} (إجمالي ${subGroup.totalCards} كارت مكرر • ${subGroup.totalRepetitions} تكرار)\n`;
+      subGroup.lectures.forEach((lecGroup) => {
+        text += `  📖 المحاضرة: ${lecGroup.lectureTitle} (${lecGroup.cardsCount} كارت مكرر)\n`;
+        lecGroup.cards.forEach((card, idx) => {
+          text += `    [${idx + 1}] السؤال: ${card.cardFront}\n`;
+          text += `        الإجابة: ${card.cardBack}\n`;
+          text += `        عدد مرات المراجعة: ${card.reviewCount} مرات (${card.improvementLabel})\n`;
+          if (card.history && card.history.length > 0) {
+            text += `        سجل المراجعات والتواريخ:\n`;
+            card.history.forEach((h, hIdx) => {
+              const stName =
+                h.state === 'knew'
+                  ? 'متقنها وفاكرها كويس'
+                  : h.state === 'remembered_then_forgot'
+                  ? 'كنت فاكرها بس نسيتها'
+                  : h.state === 'misunderstood'
+                  ? 'المعلومة وصلتلي غلط'
+                  : 'مش فاكرها خالص/صعبة';
+              text += `          - مراجعة ${hIdx + 1}: ${new Date(h.reviewedAt).toLocaleString('ar-EG')} [${stName}]\n`;
+            });
+          }
+          text += `\n`;
+        });
+      });
+      text += `--------------------------------------------------------\n`;
+    });
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 3000);
+    }
+
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `spaced-repetition-${student?.name || 'student'}.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+  };
+
+  const filteredSpacedHierarchy = (() => {
+    const sp = summary?.flashcardMemory?.spacedRepetition;
+    if (!sp || !sp.hierarchyBySubject || sp.hierarchyBySubject.length === 0) return [];
+
+    const now = Date.now();
+
+    return sp.hierarchyBySubject
+      .map((subGroup) => {
+        if (
+          spacedSubjectFilter !== 'all' &&
+          subGroup.subjectId !== spacedSubjectFilter &&
+          subGroup.subjectTitle !== spacedSubjectFilter
+        ) {
+          return null;
+        }
+
+        const filteredLectures = subGroup.lectures
+          .map((lecGroup) => {
+            const filteredCards = lecGroup.cards.filter((card) => {
+              if (spacedSearchQuery.trim()) {
+                const q = spacedSearchQuery.toLowerCase();
+                const f = (card.cardFront || '').toLowerCase();
+                const b = (card.cardBack || '').toLowerCase();
+                const l = (card.lectureTitle || '').toLowerCase();
+                const s = (card.subjectTitle || '').toLowerCase();
+                if (!f.includes(q) && !b.includes(q) && !l.includes(q) && !s.includes(q)) return false;
+              }
+
+              if (spacedTrajectoryFilter !== 'all' && card.improvementStatus !== spacedTrajectoryFilter) {
+                return false;
+              }
+
+              if (spacedDateFilter !== 'all') {
+                const cardTime = new Date(card.latestReviewedAt || card.reviewedAt).getTime();
+                const diffHours = (now - cardTime) / (1000 * 3600);
+                if (spacedDateFilter === 'today' && diffHours > 24) return false;
+                if (spacedDateFilter === 'week' && diffHours > 24 * 7) return false;
+                if (spacedDateFilter === 'month' && diffHours > 24 * 30) return false;
+              }
+
+              return true;
+            });
+
+            if (filteredCards.length === 0) return null;
+
+            return {
+              ...lecGroup,
+              cardsCount: filteredCards.length,
+              cards: filteredCards,
+            };
+          })
+          .filter(Boolean) as SpacedRepetitionLectureGroup[];
+
+        if (filteredLectures.length === 0) return null;
+
+        const totalCards = filteredLectures.reduce((acc, l) => acc + l.cardsCount, 0);
+        const totalRepetitions = filteredLectures.reduce(
+          (acc, l) => acc + l.cards.reduce((cAcc, c) => cAcc + c.reviewCount, 0),
+          0
+        );
+
+        return {
+          ...subGroup,
+          totalCards,
+          totalRepetitions,
+          lectures: filteredLectures,
+        };
+      })
+      .filter(Boolean) as SpacedRepetitionSubjectGroup[];
+  })();
+
+  const totalFilteredSpacedCards = filteredSpacedHierarchy.reduce(
+    (acc, sub) => acc + sub.totalCards,
+    0
+  );
+
+  const availableSpacedSubjects = (() => {
+    const sp = summary?.flashcardMemory?.spacedRepetition;
+    if (!sp || !sp.hierarchyBySubject) return [];
+    return sp.hierarchyBySubject.map((s) => ({
+      id: s.subjectId,
+      title: s.subjectTitle,
+      count: s.totalCards,
+    }));
+  })();
 
   // NOT LOGGED IN STATE
   if (!isLoggedIn || !student) {
@@ -982,6 +1244,493 @@ export default function StudentDashboardPage() {
                                 </Link>
                               </div>
                             </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* SECTION 3: SPACED REPETITION ANALYTICS (تحليلات تكرار المراجعة المتقدمة) */}
+              {/* ========================================================================= */}
+              <div id="spaced-repetition" className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
+                {/* Header with Title and Export Button */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <RotateCcw className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                          تحليلات تكرار المراجعة (Spaced Repetition Analytics) 🔁
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                          {summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0} كارت مكرر
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        تقسيم هرمي للكروت المراجعة أكثر من مرة (المادة ⬅️ المحاضرة ⬅️ الكروت) وسجل التواريخ ومسار تطور الحفظ
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Export and Action Buttons */}
+                  <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleExportSpacedSummary}
+                      disabled={!summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards}
+                      className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer"
+                      title="نسخ وتنزيل تقرير نصي شامل بالكروت الأكثر تكراراً"
+                    >
+                      {copyFeedback ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-300" />
+                          <span>تم نسخ وحفظ التقرير! 📋</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>تصدير ملخص الكروت الأكثر تكراراً 📥</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Cards Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-right space-y-1">
+                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 block">الكروت المكررة (مرات &gt; 1)</span>
+                    <div className="text-2xl font-black font-mono text-amber-900 dark:text-amber-200">
+                      {summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0}
+                    </div>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400/80 block">
+                      إجمالي {summary.flashcardMemory?.spacedRepetition?.totalReviewsAcrossRepeated || 0} جلسة تكرار
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 text-right space-y-1">
+                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 block">شهدت تحسناً ملحوظاً 📈</span>
+                    <div className="text-2xl font-black font-mono text-emerald-900 dark:text-emerald-200">
+                      {summary.flashcardMemory?.spacedRepetition?.improvedCardsCount || 0}
+                    </div>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400/80 block">
+                      ارتقاء إلى الإتقان بعد النسيان
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-right space-y-1">
+                    <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 block">إتقان راسخ وثابت 🛡️</span>
+                    <div className="text-2xl font-black font-mono text-blue-900 dark:text-blue-200">
+                      {summary.flashcardMemory?.spacedRepetition?.stableMasteredCount || 0}
+                    </div>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400/80 block">
+                      مستقر في الذاكرة طويلة المدى
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-right space-y-1">
+                    <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 block">تراجع أو صعوبة مستمرة 🔄</span>
+                    <div className="text-2xl font-black font-mono text-rose-900 dark:text-rose-200">
+                      {(summary.flashcardMemory?.spacedRepetition?.declinedCardsCount || 0) +
+                        (summary.flashcardMemory?.spacedRepetition?.strugglingCount || 0)}
+                    </div>
+                    <span className="text-[10px] text-rose-600 dark:text-rose-400/80 block">
+                      نقاط تركيز تحتاج تثبيت وإعادة شرح
+                    </span>
+                  </div>
+                </div>
+
+                {/* Search & Filter Controls Bar */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex flex-col md:flex-row items-center gap-3">
+                    {/* Search */}
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                      <input
+                        type="text"
+                        value={spacedSearchQuery}
+                        onChange={(e) => setSpacedSearchQuery(e.target.value)}
+                        placeholder="ابحث في نص السؤال، الإجابة، أو المحاضرة..."
+                        className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    {/* Filter by Subject */}
+                    <div className="w-full md:w-auto min-w-[180px]">
+                      <select
+                        value={spacedSubjectFilter}
+                        onChange={(e) => setSpacedSubjectFilter(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                      >
+                        <option value="all">كل المواد الدراسية 📚</option>
+                        {availableSpacedSubjects.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.title} ({sub.count} كارت)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filter by Review Date */}
+                    <div className="w-full md:w-auto min-w-[160px]">
+                      <select
+                        value={spacedDateFilter}
+                        onChange={(e) => setSpacedDateFilter(e.target.value as any)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                      >
+                        <option value="all">كل التواريخ 🗓️</option>
+                        <option value="today">مراجعات اليوم (24 س) 🕒</option>
+                        <option value="week">آخر 7 أيام 📅</option>
+                        <option value="month">آخر 30 يوماً 🗓️</option>
+                      </select>
+                    </div>
+
+                    {/* Filter by Trajectory */}
+                    <div className="w-full md:w-auto min-w-[170px]">
+                      <select
+                        value={spacedTrajectoryFilter}
+                        onChange={(e) => setSpacedTrajectoryFilter(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                      >
+                        <option value="all">كل مسارات التطور 📈</option>
+                        <option value="improved">تحسن ملحوظ 📈</option>
+                        <option value="stable_mastered">إتقان ثابت 🛡️</option>
+                        <option value="declined">تراجع في الحفظ 📉</option>
+                        <option value="struggling">صعوبة مستمرة 🔄</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Filter Badges Active Summary */}
+                  {(spacedSearchQuery || spacedSubjectFilter !== 'all' || spacedDateFilter !== 'all' || spacedTrajectoryFilter !== 'all') && (
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-slate-500">
+                      <span>
+                        تم العثور على <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">{totalFilteredSpacedCards}</strong> كارت مكرر يطابق الفلاتر
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpacedSearchQuery('');
+                          setSpacedSubjectFilter('all');
+                          setSpacedDateFilter('all');
+                          setSpacedTrajectoryFilter('all');
+                        }}
+                        className="text-rose-600 dark:text-rose-400 hover:underline font-bold text-[11px]"
+                      >
+                        إلغاء الفلاتر
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hierarchical Breakdown List (Subject ➡️ Lecture ➡️ Cards) */}
+                {(() => {
+                  if (!summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards) {
+                    return (
+                      <div className="py-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 p-8 space-y-4">
+                        <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 mx-auto flex items-center justify-center">
+                          <RotateCcw className="w-8 h-8" />
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-slate-800 dark:text-slate-200">
+                          لا توجد كروت تمت مراجعتها أكثر من مرة بعد 🔁
+                        </h4>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
+                          نظام التكرار المتباعد (Spaced Repetition) يقوم تلقائياً برصد وتتبع أي كارت تراجعه مرتين أو أكثر، مع توثيق تواريخ المراجعات الدقيقة ومسار تحسن استيعابك (هل ارتقيت للإتقان أم تحتاج تثبيت إضافي).
+                        </p>
+                        <div className="pt-2">
+                          <Link
+                            href="/subjects"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition"
+                          >
+                            <span>ابدأ بمراجعة كروت المحاضرات الآن</span>
+                            <ChevronLeft className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (filteredSpacedHierarchy.length === 0) {
+                    return (
+                      <div className="py-10 text-center rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 p-6 space-y-2">
+                        <Search className="w-8 h-8 text-slate-400 mx-auto" />
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          لا توجد كروت مكررة تطابق هذا البحث أو الفلاتر المحددة!
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpacedSearchQuery('');
+                            setSpacedSubjectFilter('all');
+                            setSpacedDateFilter('all');
+                            setSpacedTrajectoryFilter('all');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold transition hover:bg-amber-700"
+                        >
+                          إعادة ضبط جميع الفلاتر
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      {filteredSpacedHierarchy.map((subGroup) => {
+                        const isSubCollapsed = !!collapsedSubjects[subGroup.subjectId];
+
+                        return (
+                          <div
+                            key={subGroup.subjectId}
+                            className="rounded-3xl bg-slate-50/80 dark:bg-slate-850/80 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs"
+                          >
+                            {/* LEVEL 1: Subject Header */}
+                            <div
+                              onClick={() =>
+                                setCollapsedSubjects((prev) => ({
+                                  ...prev,
+                                  [subGroup.subjectId]: !prev[subGroup.subjectId],
+                                }))
+                              }
+                              className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-amber-500/15 transition border-b border-slate-200/80 dark:border-slate-800"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-sm">
+                                  <BookOpen className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                    <span>{subGroup.subjectTitle}</span>
+                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md">
+                                      مادة دراسية
+                                    </span>
+                                  </h4>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
+                                    {subGroup.totalCards} كارت مكرر • {subGroup.totalRepetitions} جلسة مراجعة عبر {subGroup.lectures.length} محاضرة
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              >
+                                {isSubCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                              </button>
+                            </div>
+
+                            {/* LEVEL 2: Lectures inside Subject */}
+                            {!isSubCollapsed && (
+                              <div className="p-4 sm:p-5 space-y-5">
+                                {subGroup.lectures.map((lecGroup) => {
+                                  const isLecCollapsed = !!collapsedLectures[lecGroup.lectureId];
+
+                                  return (
+                                    <div
+                                      key={lecGroup.lectureId}
+                                      className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs space-y-4 p-4 sm:p-5"
+                                    >
+                                      {/* Lecture Header */}
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                                        <div
+                                          onClick={() =>
+                                            setCollapsedLectures((prev) => ({
+                                              ...prev,
+                                              [lecGroup.lectureId]: !prev[lecGroup.lectureId],
+                                            }))
+                                          }
+                                          className="flex items-center gap-2 cursor-pointer select-none group"
+                                        >
+                                          <Layers className="w-4 h-4 text-amber-600 group-hover:scale-110 transition" />
+                                          <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-amber-600 transition">
+                                            {lecGroup.lectureTitle}
+                                          </h5>
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                            {lecGroup.cardsCount} كارت
+                                          </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                                          <Link
+                                            href={`/lecture/${lecGroup.lectureId}?tab=flashcards`}
+                                            className="px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white dark:text-amber-300 dark:hover:text-white font-bold text-[11px] transition flex items-center gap-1"
+                                          >
+                                            <span>مذاكرة في المحاضرة</span>
+                                            <ExternalLink className="w-3 h-3" />
+                                          </Link>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setCollapsedLectures((prev) => ({
+                                                ...prev,
+                                                [lecGroup.lectureId]: !prev[lecGroup.lectureId],
+                                              }))
+                                            }
+                                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                                          >
+                                            {isLecCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* LEVEL 3: Cards List */}
+                                      {!isLecCollapsed && (
+                                        <div className="grid grid-cols-1 gap-4">
+                                          {lecGroup.cards.map((card, cardIdx) => {
+                                            const cardKey = `spaced_${card.lectureId}_${card.cardId}_${cardIdx}`;
+                                            const isRevealed = !!revealedSpacedAnswers[cardKey];
+                                            const isHistoryExpanded = expandedCardHistory[cardKey] !== false;
+
+                                            return (
+                                              <div
+                                                key={cardKey}
+                                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-4 hover:border-amber-400 dark:hover:border-amber-600 transition"
+                                              >
+                                                {/* Top Row: Repetition Pill & Trajectory */}
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="px-3 py-1 rounded-xl text-xs font-black font-mono bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 flex items-center gap-1.5">
+                                                      <RotateCw className="w-3.5 h-3.5 text-amber-600" />
+                                                      <span>تمت مراجعته {card.reviewCount} مرات</span>
+                                                    </span>
+
+                                                    <span className="text-[11px] text-slate-400">
+                                                      آخر مراجعة: {formatRelativeTime(card.latestReviewedAt)}
+                                                    </span>
+                                                  </div>
+
+                                                  {/* Trajectory Badge */}
+                                                  {renderCardTrajectory(card)}
+                                                </div>
+
+                                                {/* Question (Front) */}
+                                                <div className="space-y-1">
+                                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                                                    السؤال / وجه الكارت (Front):
+                                                  </span>
+                                                  <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed">
+                                                    {card.cardFront}
+                                                  </p>
+                                                </div>
+
+                                                {/* Answer (Back) - Togglable */}
+                                                {isRevealed ? (
+                                                  <div className="p-4 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line animate-in fade-in space-y-1.5">
+                                                    <strong className="block text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                                                      <CheckCircle2 className="w-4 h-4" />
+                                                      <span>الإجابة النموذجية والشرح (Back):</span>
+                                                    </strong>
+                                                    <p>{card.cardBack}</p>
+                                                  </div>
+                                                ) : null}
+
+                                                {/* Answer Toggle Button */}
+                                                <div className="flex items-center justify-between pt-1 text-xs">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setRevealedSpacedAnswers((prev) => ({
+                                                        ...prev,
+                                                        [cardKey]: !prev[cardKey],
+                                                      }))
+                                                    }
+                                                    className="text-teal-600 dark:text-teal-400 hover:underline font-bold flex items-center gap-1.5 cursor-pointer"
+                                                  >
+                                                    {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                    <span>{isRevealed ? 'إخفاء الإجابة والشرح' : 'عرض الإجابة النموذجية 👁️'}</span>
+                                                  </button>
+
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setExpandedCardHistory((prev) => ({
+                                                        ...prev,
+                                                        [cardKey]: !isHistoryExpanded,
+                                                      }))
+                                                    }
+                                                    className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                                  >
+                                                    <History className="w-3.5 h-3.5 text-amber-500" />
+                                                    <span>
+                                                      {isHistoryExpanded ? 'طي سجل المراجعات' : `عرض سجل المراجعات (${card.history?.length || card.reviewCount})`}
+                                                    </span>
+                                                  </button>
+                                                </div>
+
+                                                {/* Review History Timeline */}
+                                                {isHistoryExpanded && card.history && card.history.length > 0 && (
+                                                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 mt-2">
+                                                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 pb-2 border-b border-slate-100 dark:border-slate-800">
+                                                      <span className="flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                                        <span>سجل التواريخ والأوقات لكل مراجعة تمت:</span>
+                                                      </span>
+                                                      <span className="text-[10px] text-slate-400 font-normal">
+                                                        من أقدم مراجعة ⬅️ إلى أحدث مراجعة
+                                                      </span>
+                                                    </div>
+
+                                                    {/* Timeline Steps */}
+                                                    <div className="space-y-3 relative pr-3 border-r-2 border-amber-400/40 dark:border-amber-600/40 mr-2">
+                                                      {card.history.map((h, hIdx) => {
+                                                        const isLatest = hIdx === card.history!.length - 1;
+                                                        const isFirst = hIdx === 0;
+
+                                                        return (
+                                                          <div key={hIdx} className="relative flex items-start justify-between gap-3 text-xs pr-4">
+                                                            {/* Stepper Dot */}
+                                                            <div
+                                                              className={`w-3.5 h-3.5 rounded-full absolute -right-[23px] top-1 border-2 border-white dark:border-slate-900 ${
+                                                                isLatest
+                                                                  ? 'bg-amber-500 ring-4 ring-amber-500/20'
+                                                                  : 'bg-slate-300 dark:bg-slate-600'
+                                                              }`}
+                                                            />
+
+                                                            <div className="space-y-0.5">
+                                                              <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                                  المراجعة {hIdx + 1}
+                                                                </span>
+                                                                {isFirst && (
+                                                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold">
+                                                                    أول مراجعة
+                                                                  </span>
+                                                                )}
+                                                                {isLatest && (
+                                                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 font-bold">
+                                                                    أحدث مراجعة
+                                                                  </span>
+                                                                )}
+                                                             </div>
+                                                              <span className="text-[11px] text-slate-400 block">
+                                                                {formatArabicDateTime(h.reviewedAt)} ({formatRelativeTime(h.reviewedAt)})
+                                                              </span>
+                                                            </div>
+
+                                                            {/* State Badge for this attempt */}
+                                                            <div>{renderCardStateBadge(h.state)}</div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

@@ -284,6 +284,11 @@ export interface ActiveDeviceSession {
 
 export type FlashcardReviewState = 'knew' | 'forgot' | 'remembered_then_forgot' | 'misunderstood';
 
+export interface FlashcardReviewHistoryItem {
+  state: FlashcardReviewState;
+  reviewedAt: string;
+}
+
 export interface StudentFlashcardProgressRecord {
   cardId: number | string;
   cardFront?: string;
@@ -295,6 +300,46 @@ export interface StudentFlashcardProgressRecord {
   state: FlashcardReviewState;
   reviewedAt: string;
   reviewCount: number;
+  history?: FlashcardReviewHistoryItem[];
+}
+
+export interface SpacedRepetitionCardItem extends StudentFlashcardProgressRecord {
+  firstState: FlashcardReviewState;
+  latestState: FlashcardReviewState;
+  firstReviewedAt: string;
+  latestReviewedAt: string;
+  improvementStatus: 'improved' | 'declined' | 'stable_mastered' | 'struggling';
+  improvementLabel: string;
+  history: FlashcardReviewHistoryItem[];
+}
+
+export interface SpacedRepetitionLectureGroup {
+  lectureId: string;
+  lectureTitle: string;
+  subjectId?: string;
+  subjectTitle?: string;
+  cardsCount: number;
+  totalRepetitions: number;
+  cards: SpacedRepetitionCardItem[];
+}
+
+export interface SpacedRepetitionSubjectGroup {
+  subjectId: string;
+  subjectTitle: string;
+  totalCards: number;
+  totalRepetitions: number;
+  lectures: SpacedRepetitionLectureGroup[];
+}
+
+export interface SpacedRepetitionAnalyticsSummary {
+  totalRepeatedCards: number;
+  totalReviewsAcrossRepeated: number;
+  improvedCardsCount: number;
+  declinedCardsCount: number;
+  stableMasteredCount: number;
+  strugglingCount: number;
+  mostRepeatedCards: SpacedRepetitionCardItem[];
+  hierarchyBySubject: SpacedRepetitionSubjectGroup[];
 }
 
 export interface StudentFlashcardLectureSummary {
@@ -329,6 +374,8 @@ export interface StudentFlashcardsMemorySummary {
   byLecture: StudentFlashcardLectureSummary[];
   forgottenCards: StudentFlashcardProgressRecord[];
   misunderstoodCards?: StudentFlashcardProgressRecord[];
+  spacedRepetition?: SpacedRepetitionAnalyticsSummary;
+  repeatedCards?: SpacedRepetitionCardItem[];
 }
 
 export interface MisunderstoodConceptReportItem {

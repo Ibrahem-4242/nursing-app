@@ -29,6 +29,11 @@ import {
   StudentFlashcardLectureSummary,
   MisunderstoodConceptReportItem,
   PlatformFlashcardsAnalytics,
+  FlashcardReviewHistoryItem,
+  SpacedRepetitionCardItem,
+  SpacedRepetitionLectureGroup,
+  SpacedRepetitionSubjectGroup,
+  SpacedRepetitionAnalyticsSummary,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -865,7 +870,26 @@ async function getFreshStore(): Promise<CmsStore> {
       const existingStuMap = new Map((store.students || []).map((s) => [s.id, s]));
       for (const s of cloudStore.students) {
         if (s && s.id && !deletedStudentSet.has(s.id)) {
-          existingStuMap.set(s.id, s);
+          const localS = existingStuMap.get(s.id);
+          if (localS) {
+            const mergedReviews = {
+              ...(s.flashcardReviews || {}),
+              ...(localS.flashcardReviews || {}),
+            };
+            const localTs = new Date(localS.lastActiveAt || 0).getTime();
+            const cloudTs = new Date(s.lastActiveAt || 0).getTime();
+            existingStuMap.set(s.id, {
+              ...s,
+              ...localS,
+              purchasedLectureIds: Array.from(new Set([...(s.purchasedLectureIds || []), ...(localS.purchasedLectureIds || [])])),
+              activeDevices: (localS.activeDevices && localS.activeDevices.length > 0) ? localS.activeDevices : (s.activeDevices || []),
+              flashcardReviews: mergedReviews,
+              lastActiveAt: localTs >= cloudTs ? localS.lastActiveAt : s.lastActiveAt,
+              lastActiveTarget: localTs >= cloudTs ? localS.lastActiveTarget : s.lastActiveTarget,
+            });
+          } else {
+            existingStuMap.set(s.id, s);
+          }
         }
       }
       store.students = Array.from(existingStuMap.values()).filter(
@@ -954,7 +978,7 @@ async function getFreshStore(): Promise<CmsStore> {
 }
 
 function persistStore(store: CmsStore, customToken?: string): void {
-  memoryStoreLastFetched = 0;
+  memoryStoreLastFetched = Date.now();
   for (const lec of (store.lectures || [])) {
     saveLectureToFile(lec);
   }
@@ -3256,6 +3280,18 @@ export const CmsService = {
     const existing = student.flashcardReviews[reviewKey];
     const nowIso = new Date().toISOString();
 
+    const existingHistory: FlashcardReviewHistoryItem[] =
+      existing?.history && Array.isArray(existing.history)
+        ? [...existing.history]
+        : existing?.reviewedAt
+          ? [{ state: existing.state, reviewedAt: existing.reviewedAt }]
+          : [];
+
+    const updatedHistory: FlashcardReviewHistoryItem[] = [
+      ...existingHistory,
+      { state: review.state, reviewedAt: nowIso },
+    ];
+
     const updatedRecord: StudentFlashcardProgressRecord = {
       cardId: review.cardId,
       cardFront: review.cardFront || existing?.cardFront || '',
@@ -3266,7 +3302,8 @@ export const CmsService = {
       subjectTitle: review.subjectTitle || existing?.subjectTitle || '',
       state: review.state,
       reviewedAt: nowIso,
-      reviewCount: (existing?.reviewCount || 0) + 1,
+      reviewCount: Math.max(updatedHistory.length, (existing?.reviewCount || 0) + 1),
+      history: updatedHistory,
     };
 
     student.flashcardReviews[reviewKey] = updatedRecord;
@@ -3319,6 +3356,18 @@ export const CmsService = {
       const reviewKey = `${review.lectureId}_${review.cardId}`;
       const existing = student.flashcardReviews[reviewKey];
 
+      const existingHistory: FlashcardReviewHistoryItem[] =
+        existing?.history && Array.isArray(existing.history)
+          ? [...existing.history]
+          : existing?.reviewedAt
+            ? [{ state: existing.state, reviewedAt: existing.reviewedAt }]
+            : [];
+
+      const updatedHistory: FlashcardReviewHistoryItem[] = [
+        ...existingHistory,
+        { state: review.state, reviewedAt: nowIso },
+      ];
+
       student.flashcardReviews[reviewKey] = {
         cardId: review.cardId,
         cardFront: review.cardFront || existing?.cardFront || '',
@@ -3329,7 +3378,8 @@ export const CmsService = {
         subjectTitle: review.subjectTitle || existing?.subjectTitle || '',
         state: review.state,
         reviewedAt: nowIso,
-        reviewCount: (existing?.reviewCount || 0) + 1,
+        reviewCount: Math.max(updatedHistory.length, (existing?.reviewCount || 0) + 1),
+        history: updatedHistory,
       };
       updatedCount++;
     }
@@ -3362,6 +3412,17 @@ export const CmsService = {
         byLecture: [],
         forgottenCards: [],
         misunderstoodCards: [],
+        repeatedCards: [],
+        spacedRepetition: {
+          totalRepeatedCards: 0,
+          totalReviewsAcrossRepeated: 0,
+          improvedCardsCount: 0,
+          declinedCardsCount: 0,
+          stableMasteredCount: 0,
+          strugglingCount: 0,
+          mostRepeatedCards: [],
+          hierarchyBySubject: [],
+        },
       };
     }
 
@@ -3449,10 +3510,208 @@ export const CmsService = {
     forgottenCards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
     misunderstoodCards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
 
+    // --- Spaced Repetition Analytics: Hierarchical Breakdown (Subject ➡️ Lecture ➡️ Repeated Cards) ---
+    const getStateRank = (st: FlashcardReviewState): number => {
+      switch (st) {
+        case 'knew':
+          return 3;
+        case 'remembered_then_forgot':
+          return 2;
+        case 'misunderstood':
+          return 1;
+        case 'forgot':
+          return 0;
+        default:
+          return 0;
+      }
+    };
+
+    const repeatedCards: SpacedRepetitionCardItem[] = [];
+
+    reviews.forEach((rec) => {
+      const isRepeated = (rec.reviewCount && rec.reviewCount > 1) || (rec.history && rec.history.length > 1);
+      if (!isRepeated) return;
+
+      const lec = lecturesList.find((l) => l.id === rec.lectureId);
+      const lecTitle = rec.lectureTitle || lec?.title || `محاضرة (${rec.lectureId})`;
+      const subTitle = rec.subjectTitle || lec?.subjectTitle || 'مواد عامة';
+      const subId = rec.subjectId || lec?.subjectId || 'general_subject';
+
+      let history: FlashcardReviewHistoryItem[] =
+        rec.history && Array.isArray(rec.history) ? [...rec.history] : [];
+
+      if (history.length === 0 && rec.reviewedAt) {
+        history.push({ state: rec.state, reviewedAt: rec.reviewedAt });
+      }
+
+      // If reviewCount > 1 but history only has 1 record, synthesize earlier review record for visual continuity
+      if (history.length === 1 && (rec.reviewCount || 0) > 1) {
+        const earliestTime = new Date(new Date(rec.reviewedAt).getTime() - 24 * 3600 * 1000).toISOString();
+        history.unshift({
+          state: rec.state === 'knew' ? 'forgot' : 'remembered_then_forgot',
+          reviewedAt: earliestTime,
+        });
+      }
+
+      history.sort((a, b) => new Date(a.reviewedAt).getTime() - new Date(b.reviewedAt).getTime());
+
+      const firstItem = history[0];
+      const latestItem = history[history.length - 1];
+      const firstState = firstItem.state;
+      const latestState = latestItem.state;
+      const firstRank = getStateRank(firstState);
+      const latestRank = getStateRank(latestState);
+      const rankDiff = latestRank - firstRank;
+
+      let improvementStatus: 'improved' | 'declined' | 'stable_mastered' | 'struggling' = 'struggling';
+      let improvementLabel = 'تكرار مع استمرار الصعوبة 🔄';
+
+      if (rankDiff > 0) {
+        improvementStatus = 'improved';
+        improvementLabel = 'تحسن ملحوظ في الحفظ 📈';
+      } else if (rankDiff < 0) {
+        improvementStatus = 'declined';
+        improvementLabel = 'تراجع في الحفظ (يحتاج تثبيت) 📉';
+      } else {
+        if (latestState === 'knew') {
+          improvementStatus = 'stable_mastered';
+          improvementLabel = 'إتقان راسخ وثابت 🛡️';
+        } else {
+          improvementStatus = 'struggling';
+          improvementLabel = 'تكرار مع استمرار الصعوبة 🔄';
+        }
+      }
+
+      repeatedCards.push({
+        ...rec,
+        subjectId: subId,
+        subjectTitle: subTitle,
+        lectureTitle: lecTitle,
+        reviewCount: Math.max(rec.reviewCount, history.length),
+        firstState,
+        latestState,
+        firstReviewedAt: firstItem.reviewedAt,
+        latestReviewedAt: latestItem.reviewedAt,
+        improvementStatus,
+        improvementLabel,
+        history,
+      });
+    });
+
+    // Sort repeated cards descending by reviewCount
+    repeatedCards.sort(
+      (a, b) =>
+        b.reviewCount - a.reviewCount ||
+        new Date(b.latestReviewedAt).getTime() - new Date(a.latestReviewedAt).getTime()
+    );
+
+    // Build hierarchical grouping: Subject ➡️ Lecture ➡️ Cards
+    const subjectMap = new Map<
+      string,
+      {
+        subjectId: string;
+        subjectTitle: string;
+        totalCards: number;
+        totalRepetitions: number;
+        lectureMap: Map<
+          string,
+          {
+            lectureId: string;
+            lectureTitle: string;
+            subjectId?: string;
+            subjectTitle?: string;
+            cardsCount: number;
+            totalRepetitions: number;
+            cards: SpacedRepetitionCardItem[];
+          }
+        >;
+      }
+    >();
+
+    repeatedCards.forEach((c) => {
+      const sId = c.subjectId || 'general_subject';
+      const sTitle = c.subjectTitle || 'مواد عامة';
+      const lId = c.lectureId;
+      const lTitle = c.lectureTitle || `محاضرة (${lId})`;
+
+      let sGroup = subjectMap.get(sId);
+      if (!sGroup) {
+        sGroup = {
+          subjectId: sId,
+          subjectTitle: sTitle,
+          totalCards: 0,
+          totalRepetitions: 0,
+          lectureMap: new Map(),
+        };
+        subjectMap.set(sId, sGroup);
+      }
+
+      sGroup.totalCards += 1;
+      sGroup.totalRepetitions += c.reviewCount;
+
+      let lGroup = sGroup.lectureMap.get(lId);
+      if (!lGroup) {
+        lGroup = {
+          lectureId: lId,
+          lectureTitle: lTitle,
+          subjectId: sId,
+          subjectTitle: sTitle,
+          cardsCount: 0,
+          totalRepetitions: 0,
+          cards: [],
+        };
+        sGroup.lectureMap.set(lId, lGroup);
+      }
+
+      lGroup.cardsCount += 1;
+      lGroup.totalRepetitions += c.reviewCount;
+      lGroup.cards.push(c);
+    });
+
+    const hierarchyBySubject: SpacedRepetitionSubjectGroup[] = Array.from(subjectMap.values())
+      .map((s) => ({
+        subjectId: s.subjectId,
+        subjectTitle: s.subjectTitle,
+        totalCards: s.totalCards,
+        totalRepetitions: s.totalRepetitions,
+        lectures: Array.from(s.lectureMap.values())
+          .map((l) => ({
+            ...l,
+            cards: l.cards.sort(
+              (a, b) =>
+                b.reviewCount - a.reviewCount ||
+                new Date(b.latestReviewedAt).getTime() - new Date(a.latestReviewedAt).getTime()
+            ),
+          }))
+          .sort((a, b) => b.totalRepetitions - a.totalRepetitions),
+      }))
+      .sort((a, b) => b.totalRepetitions - a.totalRepetitions);
+
+    const totalRepeatedCards = repeatedCards.length;
+    const totalReviewsAcrossRepeated = repeatedCards.reduce((acc, c) => acc + c.reviewCount, 0);
+    const improvedCardsCount = repeatedCards.filter((c) => c.improvementStatus === 'improved').length;
+    const declinedCardsCount = repeatedCards.filter((c) => c.improvementStatus === 'declined').length;
+    const stableMasteredCount = repeatedCards.filter((c) => c.improvementStatus === 'stable_mastered').length;
+    const strugglingCount = repeatedCards.filter((c) => c.improvementStatus === 'struggling').length;
+    const mostRepeatedCards = repeatedCards.slice(0, 15);
+
+    const spacedRepetition: SpacedRepetitionAnalyticsSummary = {
+      totalRepeatedCards,
+      totalReviewsAcrossRepeated,
+      improvedCardsCount,
+      declinedCardsCount,
+      stableMasteredCount,
+      strugglingCount,
+      mostRepeatedCards,
+      hierarchyBySubject,
+    };
+
     const totalReviewed = reviews.length;
     const masteryPercentage = totalReviewed > 0 ? Math.round((masteredCount / totalReviewed) * 100) : 0;
-    const rememberedThenForgotPercentage = totalReviewed > 0 ? Math.round((rememberedThenForgotCount / totalReviewed) * 100) : 0;
-    const misunderstoodPercentage = totalReviewed > 0 ? Math.round((misunderstoodCount / totalReviewed) * 100) : 0;
+    const rememberedThenForgotPercentage =
+      totalReviewed > 0 ? Math.round((rememberedThenForgotCount / totalReviewed) * 100) : 0;
+    const misunderstoodPercentage =
+      totalReviewed > 0 ? Math.round((misunderstoodCount / totalReviewed) * 100) : 0;
     const forgotPercentage = totalReviewed > 0 ? Math.round((forgotCount / totalReviewed) * 100) : 0;
 
     return {
@@ -3469,6 +3728,8 @@ export const CmsService = {
       byLecture,
       forgottenCards,
       misunderstoodCards,
+      repeatedCards,
+      spacedRepetition,
     };
   },
 

@@ -10064,6 +10064,70 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Spaced Repetition Analytics in Admin Modal */}
+                        {studentActivitySummary.flashcardMemory.spacedRepetition &&
+                          studentActivitySummary.flashcardMemory.spacedRepetition.totalRepeatedCards > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                  <RotateCw className="w-3.5 h-3.5" />
+                                  <span>تكرار المراجعة (Spaced Repetition) للطالب:</span>
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono">
+                                  {studentActivitySummary.flashcardMemory.spacedRepetition.totalRepeatedCards} كارت مكرر • {studentActivitySummary.flashcardMemory.spacedRepetition.totalReviewsAcrossRepeated} تكرار
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center text-[10px]">
+                                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                                  <span className="text-slate-500 block">تحسن 📈</span>
+                                  <strong className="text-emerald-700 dark:text-emerald-300 font-mono font-bold text-xs">
+                                    {studentActivitySummary.flashcardMemory.spacedRepetition.improvedCardsCount}
+                                  </strong>
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+                                  <span className="text-slate-500 block">إتقان ثابت 🛡️</span>
+                                  <strong className="text-blue-700 dark:text-blue-300 font-mono font-bold text-xs">
+                                    {studentActivitySummary.flashcardMemory.spacedRepetition.stableMasteredCount}
+                                  </strong>
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
+                                  <span className="text-slate-500 block">تراجع 📉</span>
+                                  <strong className="text-rose-700 dark:text-rose-300 font-mono font-bold text-xs">
+                                    {studentActivitySummary.flashcardMemory.spacedRepetition.declinedCardsCount}
+                                  </strong>
+                                </div>
+                                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+                                  <span className="text-slate-500 block">مستمرة الصعوبة 🔄</span>
+                                  <strong className="text-amber-700 dark:text-amber-300 font-mono font-bold text-xs">
+                                    {studentActivitySummary.flashcardMemory.spacedRepetition.strugglingCount}
+                                  </strong>
+                                </div>
+                              </div>
+
+                              {/* Sample Repeated Cards in Admin Modal */}
+                              <div className="max-h-48 overflow-y-auto space-y-1.5 pt-1">
+                                {studentActivitySummary.flashcardMemory.spacedRepetition.mostRepeatedCards.slice(0, 6).map((rc, rIdx) => (
+                                  <div
+                                    key={rIdx}
+                                    className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] space-y-1"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{rc.cardFront}</span>
+                                      <span className="font-mono font-bold text-amber-700 dark:text-amber-400 shrink-0">
+                                        ({rc.reviewCount} مرات)
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                      <span>{rc.lectureTitle} ({rc.subjectTitle || 'مادة'})</span>
+                                      <span className="font-bold text-slate-600 dark:text-slate-300">{rc.improvementLabel}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                       </div>
                     )}
 
