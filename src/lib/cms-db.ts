@@ -23,6 +23,10 @@ import {
   StudentActivityLog,
   StudentActivitySummary,
   ActiveDeviceSession,
+  FlashcardReviewState,
+  StudentFlashcardProgressRecord,
+  StudentFlashcardsMemorySummary,
+  StudentFlashcardLectureSummary,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -3222,6 +3226,204 @@ export const CmsService = {
       .slice(0, limit);
   },
 
+  async recordFlashcardReview(
+    studentId: string,
+    review: {
+      cardId: number | string;
+      cardFront?: string;
+      cardBack?: string;
+      lectureId: string;
+      lectureTitle?: string;
+      subjectId?: string;
+      subjectTitle?: string;
+      state: FlashcardReviewState;
+    },
+    customToken?: string
+  ): Promise<{ success: boolean; progress?: StudentFlashcardProgressRecord; message?: string }> {
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) {
+      return { success: false, message: 'طالب غير موجود' };
+    }
+
+    if (!student.flashcardReviews) {
+      student.flashcardReviews = {};
+    }
+
+    const reviewKey = `${review.lectureId}_${review.cardId}`;
+    const existing = student.flashcardReviews[reviewKey];
+    const nowIso = new Date().toISOString();
+
+    const updatedRecord: StudentFlashcardProgressRecord = {
+      cardId: review.cardId,
+      cardFront: review.cardFront || existing?.cardFront || '',
+      cardBack: review.cardBack || existing?.cardBack || '',
+      lectureId: review.lectureId,
+      lectureTitle: review.lectureTitle || existing?.lectureTitle || '',
+      subjectId: review.subjectId || existing?.subjectId || '',
+      subjectTitle: review.subjectTitle || existing?.subjectTitle || '',
+      state: review.state,
+      reviewedAt: nowIso,
+      reviewCount: (existing?.reviewCount || 0) + 1,
+    };
+
+    student.flashcardReviews[reviewKey] = updatedRecord;
+    student.lastActiveAt = nowIso;
+    if (review.lectureTitle) {
+      student.lastActiveTarget = `كروت استذكار: ${review.lectureTitle}`;
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+
+    return {
+      success: true,
+      progress: updatedRecord,
+    };
+  },
+
+  async recordBatchFlashcardReviews(
+    studentId: string,
+    reviews: Array<{
+      cardId: number | string;
+      cardFront?: string;
+      cardBack?: string;
+      lectureId: string;
+      lectureTitle?: string;
+      subjectId?: string;
+      subjectTitle?: string;
+      state: FlashcardReviewState;
+    }>,
+    customToken?: string
+  ): Promise<{ success: boolean; count: number; message?: string }> {
+    if (!reviews || reviews.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) {
+      return { success: false, count: 0, message: 'طالب غير موجود' };
+    }
+
+    if (!student.flashcardReviews) {
+      student.flashcardReviews = {};
+    }
+
+    const nowIso = new Date().toISOString();
+    let updatedCount = 0;
+
+    for (const review of reviews) {
+      const reviewKey = `${review.lectureId}_${review.cardId}`;
+      const existing = student.flashcardReviews[reviewKey];
+
+      student.flashcardReviews[reviewKey] = {
+        cardId: review.cardId,
+        cardFront: review.cardFront || existing?.cardFront || '',
+        cardBack: review.cardBack || existing?.cardBack || '',
+        lectureId: review.lectureId,
+        lectureTitle: review.lectureTitle || existing?.lectureTitle || '',
+        subjectId: review.subjectId || existing?.subjectId || '',
+        subjectTitle: review.subjectTitle || existing?.subjectTitle || '',
+        state: review.state,
+        reviewedAt: nowIso,
+        reviewCount: (existing?.reviewCount || 0) + 1,
+      };
+      updatedCount++;
+    }
+
+    student.lastActiveAt = nowIso;
+    memoryStore = store;
+    persistStore(store, customToken);
+
+    return { success: true, count: updatedCount };
+  },
+
+  async getStudentFlashcardMemory(studentId: string): Promise<StudentFlashcardsMemorySummary | null> {
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return null;
+
+    const reviews = student.flashcardReviews ? Object.values(student.flashcardReviews) : [];
+    if (reviews.length === 0) {
+      return {
+        totalReviewed: 0,
+        masteredCount: 0,
+        needsPracticeCount: 0,
+        masteryPercentage: 0,
+        byLecture: [],
+        forgottenCards: [],
+      };
+    }
+
+    let masteredCount = 0;
+    let needsPracticeCount = 0;
+    const lectureMap = new Map<string, StudentFlashcardLectureSummary>();
+    const forgottenCards: StudentFlashcardProgressRecord[] = [];
+
+    const deletedSet = new Set(store.deletedLectureIds || []);
+    const lecturesList = (store.lectures || []).filter((l) => !deletedSet.has(l.id));
+
+    reviews.forEach((rec) => {
+      const isMastered = rec.state === 'knew';
+      if (isMastered) {
+        masteredCount++;
+      } else {
+        needsPracticeCount++;
+        forgottenCards.push(rec);
+      }
+
+      const lec = lecturesList.find((l) => l.id === rec.lectureId);
+      const lecTitle = rec.lectureTitle || lec?.title || `محاضرة (${rec.lectureId})`;
+      const subTitle = rec.subjectTitle || '';
+      const subId = rec.subjectId || lec?.subjectId || '';
+
+      const existingLec = lectureMap.get(rec.lectureId) || {
+        lectureId: rec.lectureId,
+        lectureTitle: lecTitle,
+        subjectId: subId,
+        subjectTitle: subTitle,
+        totalReviewed: 0,
+        masteredCount: 0,
+        needsPracticeCount: 0,
+        masteryPercentage: 0,
+        cards: [] as StudentFlashcardProgressRecord[],
+      };
+
+      existingLec.totalReviewed += 1;
+      if (isMastered) {
+        existingLec.masteredCount += 1;
+      } else {
+        existingLec.needsPracticeCount += 1;
+      }
+      existingLec.cards.push(rec);
+      lectureMap.set(rec.lectureId, existingLec);
+    });
+
+    const byLecture = Array.from(lectureMap.values()).map((lec) => {
+      const pct = lec.totalReviewed > 0 ? Math.round((lec.masteredCount / lec.totalReviewed) * 100) : 0;
+      return {
+        ...lec,
+        masteryPercentage: pct,
+        cards: lec.cards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime()),
+      };
+    }).sort((a, b) => b.totalReviewed - a.totalReviewed);
+
+    forgottenCards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+
+    const totalReviewed = reviews.length;
+    const masteryPercentage = totalReviewed > 0 ? Math.round((masteredCount / totalReviewed) * 100) : 0;
+
+    return {
+      totalReviewed,
+      masteredCount,
+      needsPracticeCount,
+      masteryPercentage,
+      byLecture,
+      forgottenCards,
+    };
+  },
+
   async getStudentStudySummary(studentId: string): Promise<StudentActivitySummary | null> {
     const store = await getFreshStore();
     const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
@@ -3374,6 +3576,7 @@ export const CmsService = {
         totalSessions: breakdown.flashcards?.count || 0,
         totalDurationSeconds: breakdown.flashcards?.durationSeconds || 0,
       },
+      flashcardMemory: (await this.getStudentFlashcardMemory(student.id)) || undefined,
       devicesUsed,
     };
   },

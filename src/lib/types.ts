@@ -282,6 +282,42 @@ export interface ActiveDeviceSession {
   lastActiveAt: string;
 }
 
+export type FlashcardReviewState = 'knew' | 'forgot' | 'remembered_then_forgot' | 'misunderstood';
+
+export interface StudentFlashcardProgressRecord {
+  cardId: number | string;
+  cardFront?: string;
+  cardBack?: string;
+  lectureId: string;
+  lectureTitle?: string;
+  subjectId?: string;
+  subjectTitle?: string;
+  state: FlashcardReviewState;
+  reviewedAt: string;
+  reviewCount: number;
+}
+
+export interface StudentFlashcardLectureSummary {
+  lectureId: string;
+  lectureTitle: string;
+  subjectId?: string;
+  subjectTitle?: string;
+  totalReviewed: number;
+  masteredCount: number;
+  needsPracticeCount: number;
+  masteryPercentage: number;
+  cards: StudentFlashcardProgressRecord[];
+}
+
+export interface StudentFlashcardsMemorySummary {
+  totalReviewed: number;
+  masteredCount: number;
+  needsPracticeCount: number;
+  masteryPercentage: number;
+  byLecture: StudentFlashcardLectureSummary[];
+  forgottenCards: StudentFlashcardProgressRecord[];
+}
+
 export interface StudentUser {
   id: string;
   phone: string;
@@ -292,6 +328,7 @@ export interface StudentUser {
   purchasedLectureIds: string[];
   shakibRakibSubscription?: ShakibRakibSubscription;
   bookmarks?: StudentBookmarks;
+  flashcardReviews?: Record<string, StudentFlashcardProgressRecord>;
   isActive?: boolean;
   notes?: string;
   currentSessionId?: string;
@@ -397,6 +434,7 @@ export interface StudentActivitySummary {
     totalSessions: number;
     totalDurationSeconds: number;
   };
+  flashcardMemory?: StudentFlashcardsMemorySummary;
   devicesUsed?: StudentDeviceInfo[];
 }
 

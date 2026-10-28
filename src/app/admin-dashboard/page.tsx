@@ -9661,6 +9661,96 @@ export default function AdminDashboardPage() {
                       </div>
                     )}
 
+                    {/* Flashcards & Memory Retention Overview */}
+                    {studentActivitySummary.flashcardMemory && (
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <Layers className="w-4 h-4 text-amber-600" />
+                            <span>كروت الاستذكار وحفظ الذاكرة للطالب:</span>
+                          </h4>
+                          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            نسبة الإتقان: {studentActivitySummary.flashcardMemory.masteryPercentage}%
+                          </span>
+                        </div>
+
+                        {/* Flashcard Stats Pills */}
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <span className="text-[10px] text-slate-400 block">الكروت المراجعة</span>
+                            <span className="font-black text-slate-800 dark:text-slate-200 font-mono">{studentActivitySummary.flashcardMemory.totalReviewed}</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block">✅ كروت متقنة</span>
+                            <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono">{studentActivitySummary.flashcardMemory.masteredCount}</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
+                            <span className="text-[10px] text-rose-700 dark:text-rose-400 block">❌ كروت تحتاج تثبيت</span>
+                            <span className="font-black text-rose-700 dark:text-rose-300 font-mono">{studentActivitySummary.flashcardMemory.needsPracticeCount}</span>
+                          </div>
+                        </div>
+
+                        {/* Per-Lecture Retention breakdown */}
+                        {studentActivitySummary.flashcardMemory.byLecture && studentActivitySummary.flashcardMemory.byLecture.length > 0 && (
+                          <div className="space-y-2 pt-1">
+                            <span className="text-[11px] font-bold text-slate-500 block">نسبة الحفظ لكل محاضرة:</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {studentActivitySummary.flashcardMemory.byLecture.slice(0, 6).map((lec) => (
+                                <div
+                                  key={lec.lectureId}
+                                  className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{lec.lectureTitle}</span>
+                                    <span className="font-black font-mono text-amber-600 dark:text-amber-400">{lec.masteryPercentage}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                      className="bg-amber-500 h-1.5 rounded-full"
+                                      style={{ width: `${lec.masteryPercentage}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                    <span>متقن {lec.masteredCount}/{lec.totalReviewed}</span>
+                                    <span>يحتاج مراجعة: {lec.needsPracticeCount}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sample Forgotten Cards for this student */}
+                        {studentActivitySummary.flashcardMemory.forgottenCards && studentActivitySummary.flashcardMemory.forgottenCards.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 block">
+                              أبرز الكروت الصعبة التي واجه الطالب صعوبة في حفظها ({studentActivitySummary.flashcardMemory.forgottenCards.length} كارت):
+                            </span>
+                            <div className="max-h-40 overflow-y-auto space-y-1.5">
+                              {studentActivitySummary.flashcardMemory.forgottenCards.slice(0, 8).map((fc, idx) => (
+                                <div
+                                  key={idx}
+                                  className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/50 text-[11px] flex items-center justify-between gap-2"
+                                >
+                                  <div className="truncate">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">{fc.cardFront}</span>
+                                    <span className="text-[10px] text-slate-400">{fc.lectureTitle}</span>
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-bold flex-shrink-0 bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+                                    {fc.state === 'remembered_then_forgot'
+                                      ? 'تردد ونسيان'
+                                      : fc.state === 'misunderstood'
+                                      ? 'فهم خاطئ'
+                                      : 'نسيان تام'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Filter Tabs */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <span className="text-xs font-bold text-slate-500 ml-1">تصفية السجل:</span>

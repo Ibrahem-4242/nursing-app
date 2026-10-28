@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Flashcard } from '@/lib/types';
+import { Flashcard, FlashcardReviewState } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
 import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
@@ -24,7 +24,80 @@ import {
   X,
   Flame,
   Brain,
+  AlertTriangle,
+  Lightbulb,
 } from 'lucide-react';
+
+export function getFlashcardEncouragingMessage(percent: number): { title: string; subtitle: string; emoji: string } {
+  if (percent >= 95) {
+    return {
+      title: 'أسطوري! ذاكرة فولاذية واستيعاب فائق 🌟👑',
+      subtitle: 'أنت جاهز للامتحان بجدارة تامة ومرشح للامتياز! استمر بهذا الحماس والتركيز العالي.',
+      emoji: '👑',
+    };
+  }
+  if (percent >= 85) {
+    return {
+      title: 'ممتاز جداً! أداء بطولي ومستوى متقدم للغاية 🔥💪',
+      subtitle: 'استيعابك للمعلومات دقيق وثابت، أنت من الأوائل بكل ثقة واقتدار.',
+      emoji: '🔥',
+    };
+  }
+  if (percent >= 75) {
+    return {
+      title: 'رائع جداً! استيعاب قوي ومتقن لمعظم النقاط ✨🎯',
+      subtitle: 'أداء متميز! راجع الكروت القليلة المتبقية لتصل للعلامة الكاملة بسهولة.',
+      emoji: '✨',
+    };
+  }
+  if (percent >= 65) {
+    return {
+      title: 'جيد جداً! خطوة ممتازة نحو الإتقان التام 🚀📚',
+      subtitle: 'لديك أساس متين وقوي، ركز على النقاط البسيطة غير المتقنة وستتفوق.',
+      emoji: '🚀',
+    };
+  }
+  if (percent >= 55) {
+    return {
+      title: 'جهد طيب وبداية مبشرة! التكرار هو سر ترسيخ المعلومة 💡🔁',
+      subtitle: 'أنت في المسار الصحيح تماماً، أعد مراجعة الكروت المنسية الآن لتثبيتها في الذاكرة طويلة المدى.',
+      emoji: '💡',
+    };
+  }
+  if (percent >= 45) {
+    return {
+      title: 'في منتصف الطريق! لا تقلق، التكرار يصنع الفارق ⏳🌱',
+      subtitle: 'كل كارت راجعته الآن قرّبك خطوة من الإتقان، أعد جولة التثبيت وستلاحظ القفزة فوراً.',
+      emoji: '⏳',
+    };
+  }
+  if (percent >= 35) {
+    return {
+      title: 'المحاولة هي بداية التفوق الحقيقي! 🔍💪',
+      subtitle: 'اقرأ الشرح واللؤلؤة السريرية لكل كارت، فالتكرار المتباعد كفيل بحفظ أصعب المصطلحات.',
+      emoji: '🔍',
+    };
+  }
+  if (percent >= 25) {
+    return {
+      title: 'الذاكرة تُبنى خطوة بخطوة! استعن بملخص الدرس 📖🩺',
+      subtitle: 'هذه المفاهيم جديدة عليك، أعد قراءة المحاضرة سريعاً ثم عُد للكروت وسترى تحسناً مبهراً.',
+      emoji: '📖',
+    };
+  }
+  if (percent >= 15) {
+    return {
+      title: 'لا بأس! الأخطاء هي أفضل فرصة حقيقية للتعلم 🛡️⚡',
+      subtitle: 'معرفة ما لا تتذكره الآن ينقذك في الامتحان النهائي، خذ نفساً وأعد المحاولة بهدوء.',
+      emoji: '🛡️',
+    };
+  }
+  return {
+    title: 'كل بداية صعبة! لا تستسلم فالبداية تصنع النجاح 🧠🌱',
+    subtitle: 'اقرأ السؤال والإجابة بتركيز، والتكرار هو السر الذهبي لترسيخ أصعب المعلومات الطبية.',
+    emoji: '🧠',
+  };
+}
 
 interface Flashcards3DProps {
   cards: Flashcard[];
@@ -63,8 +136,9 @@ export default function Flashcards3D({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSessionFinished, setIsSessionFinished] = useState(false);
 
-  // Card evaluations: card.id -> 'knew' | 'forgot'
-  const [evaluations, setEvaluations] = useState<Record<number, 'knew' | 'forgot'>>({});
+  // Card evaluations: card.id -> FlashcardReviewState
+  const [evaluations, setEvaluations] = useState<Record<number, FlashcardReviewState>>({});
+  const [needsEvaluationWarning, setNeedsEvaluationWarning] = useState(false);
 
   // Summary screen tab: 'forgot' | 'knew'
   const [summaryTab, setSummaryTab] = useState<'forgot' | 'knew'>('forgot');
@@ -94,6 +168,7 @@ export default function Flashcards3D({
     setIsFlipped(false);
     setIsSessionFinished(false);
     setEvaluations({});
+    setNeedsEvaluationWarning(false);
   }, [cards]);
 
   const currentCard = activeDeck[currentIndex];
@@ -102,17 +177,20 @@ export default function Flashcards3D({
   const totalInSession = activeDeck.length;
   const cardsAnswered = Object.keys(evaluations).length;
   const knewCount = Object.values(evaluations).filter((v) => v === 'knew').length;
-  const forgotCount = Object.values(evaluations).filter((v) => v === 'forgot').length;
+  const rememberedThenForgotCount = Object.values(evaluations).filter((v) => v === 'remembered_then_forgot').length;
+  const misunderstoodCount = Object.values(evaluations).filter((v) => v === 'misunderstood').length;
+  const strictlyForgotCount = Object.values(evaluations).filter((v) => v === 'forgot').length;
+  const needsPracticeCount = totalInSession - knewCount;
   const remainingInSession = Math.max(0, totalInSession - (currentIndex + 1));
   const sessionProgressPercent = totalInSession > 0 ? Math.round(((currentIndex + 1) / totalInSession) * 100) : 0;
 
-  // Persist progress to localStorage when session completes
+  // Persist progress to localStorage and cloud API when session completes
   const saveSessionProgress = useCallback(
-    (knewMap: Record<number, 'knew' | 'forgot'>) => {
+    (evalsMap: Record<number, FlashcardReviewState>) => {
       if (typeof window === 'undefined') return;
       try {
-        const mastered = activeDeck.filter((c) => knewMap[c.id] === 'knew').map((c) => c.id);
-        const needsPractice = activeDeck.filter((c) => knewMap[c.id] === 'forgot').map((c) => c.id);
+        const mastered = activeDeck.filter((c) => evalsMap[c.id] === 'knew').map((c) => c.id);
+        const needsPractice = activeDeck.filter((c) => evalsMap[c.id] && evalsMap[c.id] !== 'knew').map((c) => c.id);
         const score = totalInSession > 0 ? Math.round((mastered.length / totalInSession) * 100) : 0;
 
         const payload: StoredProgress = {
@@ -125,9 +203,30 @@ export default function Flashcards3D({
 
         localStorage.setItem(storageKey, JSON.stringify(payload));
         setSavedHistory(payload);
+
+        // Batch sync all evaluated cards to the cloud API for student & admin dashboards
+        const reviewsBatch = activeDeck
+          .filter((c) => evalsMap[c.id])
+          .map((c) => ({
+            cardId: c.id,
+            cardFront: c.front,
+            cardBack: c.back,
+            lectureId: lectureId || 'general_lecture',
+            lectureTitle: lectureTitle || '',
+            subjectTitle: subjectTitle || '',
+            state: evalsMap[c.id],
+          }));
+
+        if (reviewsBatch.length > 0) {
+          fetch('/api/student/flashcards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reviews: reviewsBatch }),
+          }).catch(() => {});
+        }
       } catch {}
     },
-    [activeDeck, totalInSession, storageKey]
+    [activeDeck, totalInSession, storageKey, lectureId, lectureTitle, subjectTitle]
   );
 
   // Flip card
@@ -135,24 +234,42 @@ export default function Flashcards3D({
     setIsFlipped((prev) => !prev);
   };
 
-  // Evaluate card: 'knew' or 'forgot'
+  // Evaluate card: any of the 4 states
   const handleEvaluate = useCallback(
-    (rating: 'knew' | 'forgot') => {
+    (rating: FlashcardReviewState) => {
       if (!currentCard) return;
 
+      setNeedsEvaluationWarning(false);
       const updatedEvals = { ...evaluations, [currentCard.id]: rating };
       setEvaluations(updatedEvals);
+
+      // Async single card sync to API
+      try {
+        fetch('/api/student/flashcards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            cardFront: currentCard.front,
+            cardBack: currentCard.back,
+            lectureId: lectureId || 'general_lecture',
+            lectureTitle: lectureTitle || '',
+            subjectTitle: subjectTitle || '',
+            state: rating,
+          }),
+        }).catch(() => {});
+      } catch {}
 
       // Check if this was the last card in the session
       if (currentIndex >= activeDeck.length - 1) {
         setIsFlipped(false);
         saveSessionProgress(updatedEvals);
-        // Default summary tab to 'forgot' if any forgotten cards exist, otherwise 'knew'
-        const hasForgot = Object.values(updatedEvals).some((v) => v === 'forgot');
-        setSummaryTab(hasForgot ? 'forgot' : 'knew');
+        // Default summary tab to 'forgot' if any non-mastered cards exist, otherwise 'knew'
+        const hasNeedsPractice = Object.values(updatedEvals).some((v) => v !== 'knew');
+        setSummaryTab(hasNeedsPractice ? 'forgot' : 'knew');
         setTimeout(() => {
           setIsSessionFinished(true);
-        }, 200);
+        }, 220);
       } else {
         // Smoothly transition to next card
         setIsFlipped(false);
@@ -161,29 +278,42 @@ export default function Flashcards3D({
         }, 180);
       }
     },
-    [currentCard, evaluations, currentIndex, activeDeck.length, saveSessionProgress]
+    [currentCard, evaluations, currentIndex, activeDeck.length, saveSessionProgress, lectureId, lectureTitle, subjectTitle]
   );
 
-  // Next and Previous manual navigation
+  // Next and Previous manual navigation (with strict evaluation requirement on Next)
   const handleNext = useCallback(() => {
+    if (!currentCard) return;
+
+    // Strict constraint: Do not allow skipping a card without evaluating its state
+    if (!evaluations[currentCard.id]) {
+      setNeedsEvaluationWarning(true);
+      setTimeout(() => {
+        setNeedsEvaluationWarning(false);
+      }, 4000);
+      return;
+    }
+
+    setNeedsEvaluationWarning(false);
     if (currentIndex >= activeDeck.length - 1) return;
     setIsFlipped(false);
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
     }, 150);
-  }, [currentIndex, activeDeck.length]);
+  }, [currentIndex, activeDeck.length, currentCard, evaluations]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex <= 0) return;
+    setNeedsEvaluationWarning(false);
     setIsFlipped(false);
     setTimeout(() => {
       setCurrentIndex((prev) => prev - 1);
     }, 150);
   }, [currentIndex]);
 
-  // Restart only forgotten cards
+  // Restart only non-mastered cards (forgot / remembered_then_forgot / misunderstood)
   const handleRestartForgottenOnly = () => {
-    const forgottenCards = activeDeck.filter((c) => evaluations[c.id] === 'forgot');
+    const forgottenCards = activeDeck.filter((c) => evaluations[c.id] && evaluations[c.id] !== 'knew');
     if (forgottenCards.length === 0) return;
 
     setActiveDeck(forgottenCards);
@@ -192,6 +322,7 @@ export default function Flashcards3D({
     setIsFlipped(false);
     setIsSessionFinished(false);
     setEvaluations({});
+    setNeedsEvaluationWarning(false);
   };
 
   // Launch review session directly from previously saved history
@@ -207,6 +338,7 @@ export default function Flashcards3D({
     setIsFlipped(false);
     setIsSessionFinished(false);
     setEvaluations({});
+    setNeedsEvaluationWarning(false);
   };
 
   // Full Reset to all cards
@@ -217,6 +349,7 @@ export default function Flashcards3D({
     setIsFlipped(false);
     setIsSessionFinished(false);
     setEvaluations({});
+    setNeedsEvaluationWarning(false);
   };
 
   // Shuffle deck
@@ -226,6 +359,7 @@ export default function Flashcards3D({
     setActiveDeck(shuffled);
     setCurrentIndex(0);
     setEvaluations({});
+    setNeedsEvaluationWarning(false);
   };
 
   // Keyboard navigation
@@ -245,6 +379,12 @@ export default function Flashcards3D({
         e.preventDefault();
         handleEvaluate('forgot');
       } else if (e.key === '2') {
+        e.preventDefault();
+        handleEvaluate('remembered_then_forgot');
+      } else if (e.key === '3') {
+        e.preventDefault();
+        handleEvaluate('misunderstood');
+      } else if (e.key === '4') {
         e.preventDefault();
         handleEvaluate('knew');
       }
@@ -267,8 +407,23 @@ export default function Flashcards3D({
 
   // Final retention score percentage
   const finalScore = totalInSession > 0 ? Math.round((knewCount / totalInSession) * 100) : 0;
-  const forgottenCardsList = activeDeck.filter((c) => evaluations[c.id] === 'forgot');
+  const encouragingMessage = getFlashcardEncouragingMessage(finalScore);
+  const forgottenCardsList = activeDeck.filter((c) => evaluations[c.id] && evaluations[c.id] !== 'knew');
   const knownCardsList = activeDeck.filter((c) => evaluations[c.id] === 'knew');
+
+  const getStateBadge = (state?: FlashcardReviewState) => {
+    switch (state) {
+      case 'knew':
+        return <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">✅ كنت عارفها</span>;
+      case 'remembered_then_forgot':
+        return <span className="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-[10px] font-bold">🤔 كنت فاكرها بس نسيتها</span>;
+      case 'misunderstood':
+        return <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 text-[10px] font-bold">⚠️ المعلومة وصلتني غلط</span>;
+      case 'forgot':
+      default:
+        return <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-bold">❌ مش فاكرها خالص</span>;
+    }
+  };
 
   return (
     <div className="w-full my-8 space-y-6" dir="rtl">
@@ -333,40 +488,64 @@ export default function Flashcards3D({
       {/* ========================================================================= */}
       {isSessionFinished ? (
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-xl space-y-8 animate-in fade-in zoom-in-95 duration-200">
-          {/* Header Score Gauge */}
-          <div className="text-center space-y-4 max-w-lg mx-auto">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-400 text-white text-2xl font-black shadow-xl shadow-teal-500/25 mx-auto">
+          {/* Header Score Gauge & 10 Dynamic Encouraging Levels */}
+          <div className="text-center space-y-4 max-w-xl mx-auto">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-tr from-teal-500 via-emerald-500 to-teal-400 text-white text-3xl font-black shadow-xl shadow-teal-500/25 mx-auto ring-4 ring-teal-100 dark:ring-teal-950">
               {finalScore}%
             </div>
 
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                {finalScore >= 80 ? 'إتقان ممتاز يا بطل! 🌟' : finalScore >= 50 ? 'أداء رائع ومحتاج تثبيت شوية كروت 🩺' : 'جلسة مفيدة! ركز على الكروت الصعبة 💪'}
+            <div className="space-y-1.5">
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight">
+                {encouragingMessage.title}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                نسبة الحفظ والإتقان الإجمالية: <strong>{finalScore}%</strong> — أتقنت{' '}
-                <strong className="text-emerald-600">{knewCount}</strong> من أصل{' '}
-                <strong>{totalInSession}</strong> كارت
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {encouragingMessage.subtitle}
               </p>
+              <div className="text-xs text-slate-400 pt-1">
+                أتقنت <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{knewCount}</strong> من أصل{' '}
+                <strong>{totalInSession}</strong> كارت • نسبة الحفظ الكلية: <strong className="font-mono">{finalScore}%</strong>
+              </div>
             </div>
 
-            {/* Metric Pills */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center">
-                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">
-                  ✅ كنت عارفها (متقنة)
+            {/* 4 Detailed Metric Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+              {/* Knew */}
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center">
+                <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">
+                  ✅ متقنة
                 </span>
-                <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
-                  {knewCount} كارت
+                <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">
+                  {knewCount}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-center">
-                <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 block mb-0.5">
-                  ❌ مش فاكره (تحتاج تثبيت)
+              {/* Remembered then forgot */}
+              <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 text-center">
+                <span className="text-[10px] font-bold text-sky-800 dark:text-sky-300 block mb-0.5">
+                  🤔 كنت فاكرها
                 </span>
-                <span className="text-2xl font-black text-rose-700 dark:text-rose-400">
-                  {forgotCount} كارت
+                <span className="text-xl font-black text-sky-700 dark:text-sky-400">
+                  {rememberedThenForgotCount}
+                </span>
+              </div>
+
+              {/* Misunderstood */}
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-center">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 block mb-0.5">
+                  ⚠️ فهمتها غلط
+                </span>
+                <span className="text-xl font-black text-amber-700 dark:text-amber-400">
+                  {misunderstoodCount}
+                </span>
+              </div>
+
+              {/* Strictly Forgot */}
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-center">
+                <span className="text-[10px] font-bold text-rose-800 dark:text-rose-300 block mb-0.5">
+                  ❌ نسيتها تماماً
+                </span>
+                <span className="text-xl font-black text-rose-700 dark:text-rose-400">
+                  {strictlyForgotCount}
                 </span>
               </div>
             </div>
@@ -374,14 +553,14 @@ export default function Flashcards3D({
 
           {/* Quick Restart Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 max-w-xl mx-auto">
-            {forgotCount > 0 ? (
+            {forgottenCardsList.length > 0 ? (
               <button
                 type="button"
                 onClick={handleRestartForgottenOnly}
                 className="w-full sm:w-auto flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-amber-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-rose-600/25 active:scale-95 transition flex items-center justify-center gap-2"
               >
                 <RotateCw className="w-4 h-4" />
-                <span>إعادة الكروت اللي مكنتش فاكرها فقط ({forgotCount}) 🔄</span>
+                <span>إعادة الكروت المحتاجة تثبيت فقط ({forgottenCardsList.length}) 🔄</span>
               </button>
             ) : null}
 
@@ -408,7 +587,7 @@ export default function Flashcards3D({
                 }`}
               >
                 <XCircle className="w-4 h-4" />
-                <span>الكروت اللي مكنتش فاكرها ({forgottenCardsList.length})</span>
+                <span>الكروت المحتاجة تثبيت ومراجعة ({forgottenCardsList.length})</span>
               </button>
 
               <button
@@ -421,17 +600,17 @@ export default function Flashcards3D({
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>الكروت اللي كنت عارفها ({knownCardsList.length})</span>
+                <span>الكروت المتقنة ({knownCardsList.length})</span>
               </button>
             </div>
 
-            {/* List for Forgotten Cards */}
+            {/* List for Forgotten / Needs Practice Cards */}
             {summaryTab === 'forgot' && (
               <div className="space-y-3">
                 {forgottenCardsList.length === 0 ? (
                   <div className="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
                     <Sparkles className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="font-bold">ما شاء الله! لم تسجل أي كارت كـ "مش فاكره" في هذه الجلسة 🎉</p>
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400">ما شاء الله! أتقنت جميع الكروت بنجاح تام في هذه الجلسة 🎉</p>
                   </div>
                 ) : (
                   forgottenCardsList.map((card, idx) => (
@@ -439,14 +618,12 @@ export default function Flashcards3D({
                       key={card.id || idx}
                       className="p-5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 space-y-2.5 text-right"
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1">
-                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>السؤال أو المصطلح:</span>
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <Brain className="w-3.5 h-3.5 text-rose-600" />
+                          <span>السؤال أو المفهوم:</span>
                         </span>
-                        <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 text-[10px] font-bold">
-                          {card.category || 'كارت استذكار'}
-                        </span>
+                        <div>{getStateBadge(evaluations[card.id])}</div>
                       </div>
 
                       <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
@@ -572,7 +749,7 @@ export default function Flashcards3D({
                   ✅ عارفها: {knewCount}
                 </span>
                 <span className="text-rose-600 dark:text-rose-400 font-bold">
-                  ❌ مش فاكرها: {forgotCount}
+                  ❌ تحتاج تثبيت: {needsPracticeCount}
                 </span>
               </div>
             </div>
@@ -581,13 +758,13 @@ export default function Flashcards3D({
             <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
               <div
                 className="h-full bg-emerald-500 transition-all duration-300"
-                style={{ width: `${(knewCount / totalInSession) * 100}%` }}
+                style={{ width: `${(knewCount / (totalInSession || 1)) * 100}%` }}
                 title={`عارفها: ${knewCount}`}
               />
               <div
                 className="h-full bg-rose-500 transition-all duration-300"
-                style={{ width: `${(forgotCount / totalInSession) * 100}%` }}
-                title={`مش فاكرها: ${forgotCount}`}
+                style={{ width: `${(needsPracticeCount / (totalInSession || 1)) * 100}%` }}
+                title={`تحتاج تثبيت: ${needsPracticeCount}`}
               />
             </div>
           </div>
@@ -662,56 +839,117 @@ export default function Flashcards3D({
             </div>
           </div>
 
-          {/* 4. Self-Evaluation Rating Buttons (أسفل الكارت) */}
+          {/* 4. Self-Evaluation Rating Buttons (أسفل الكارت - 4 خيارات لتقييم الذاكرة) */}
           <div className="p-4 sm:p-5 rounded-3xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
-              <span>🎯 تقييمك لاستيعاب هذا الكارت:</span>
+              <span className="flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-teal-600" />
+                <span>تقييم مستوى حفظك واستيعابك لهذا الكارت:</span>
+              </span>
               <span className="text-[11px] text-slate-400">
-                {isFlipped ? 'اختر التقييم للانتقال للكارت التالي تلقائياً' : 'يُفضل قلب الكارت وقراءة الإجابة أولاً'}
+                {isFlipped ? 'اختر حالة الكارت للانتقال للتالي' : 'اقرأ الإجابة أولاً ثم حدد مستواك بدقة'}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {/* Button: مش فاكره */}
+            {/* Warning when attempting to skip without selecting rating */}
+            {needsEvaluationWarning && (
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/70 border-2 border-amber-400 text-amber-900 dark:text-amber-200 text-xs font-black flex items-center justify-center gap-2 shadow-sm animate-bounce">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>⚠️ تنبيه: يرجى تحديد حالتك مع هذا الكارت أولاً من الأزرار الأربعة بالأسفل لحساب تقدمك بدقة</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {/* Option 1: نسيتها تماماً */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleEvaluate('forgot');
                 }}
-                className={`py-3.5 px-4 rounded-2xl border-2 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-95 shadow-sm ${
+                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
                   evaluations[currentCard?.id] === 'forgot'
                     ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+                    : 'bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80'
                 }`}
               >
-                <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                <div className="text-right">
-                  <span className="block leading-tight">❌ مش فاكره</span>
-                  <span className="text-[10px] font-normal opacity-80 block">(محتاج تكرار ومراجعة)</span>
+                <div className="flex items-center gap-2 truncate">
+                  <XCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">❌ نسيتها تماماً</span>
+                    <span className="text-[10px] font-normal opacity-80 block truncate">تحتاج إعادة حفظ</span>
+                  </div>
                 </div>
-                <span className="hidden sm:inline-block mr-auto text-[10px] px-1.5 py-0.5 rounded bg-black/10">1</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">1</span>
               </button>
 
-              {/* Button: كنت عارفها */}
+              {/* Option 2: كنت فاكرها بس نسيتها */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEvaluate('remembered_then_forgot');
+                }}
+                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
+                  evaluations[currentCard?.id] === 'remembered_then_forgot'
+                    ? 'bg-sky-600 text-white border-sky-600 shadow-sky-600/25 ring-2 ring-sky-400'
+                    : 'bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/80'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Clock className="w-4 h-4 text-sky-500 flex-shrink-0" />
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">🤔 كنت فاكرها بس نسيتها</span>
+                    <span className="text-[10px] font-normal opacity-80 block truncate">تردد ونسيان مؤقت</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">2</span>
+              </button>
+
+              {/* Option 3: المعلومة وصلتني غلط */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEvaluate('misunderstood');
+                }}
+                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
+                  evaluations[currentCard?.id] === 'misunderstood'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-amber-600/25 ring-2 ring-amber-400'
+                    : 'bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">⚠️ فهمتها غلط</span>
+                    <span className="text-[10px] font-normal opacity-80 block truncate">تصحيح فهم المفهوم</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">3</span>
+              </button>
+
+              {/* Option 4: كنت عارفها ومتقنها */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleEvaluate('knew');
                 }}
-                className={`py-3.5 px-4 rounded-2xl border-2 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-95 shadow-sm ${
+                className={`py-3 px-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-1.5 transition active:scale-95 shadow-sm text-right ${
                   evaluations[currentCard?.id] === 'knew'
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/25 ring-2 ring-emerald-400'
-                    : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                    : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80'
                 }`}
               >
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                <div className="text-right">
-                  <span className="block leading-tight">✅ كنت عارفها</span>
-                  <span className="text-[10px] font-normal opacity-80 block">(متقنة وجاهزة)</span>
+                <div className="flex items-center gap-2 truncate">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  <div className="truncate">
+                    <span className="block leading-tight font-black">✅ كنت عارفها</span>
+                    <span className="text-[10px] font-normal opacity-80 block truncate">متقنة وجاهزة للامتحان</span>
+                  </div>
                 </div>
-                <span className="hidden sm:inline-block mr-auto text-[10px] px-1.5 py-0.5 rounded bg-black/10">2</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/10 font-mono">4</span>
               </button>
             </div>
           </div>
@@ -740,7 +978,11 @@ export default function Flashcards3D({
               type="button"
               onClick={handleNext}
               disabled={currentIndex >= activeDeck.length - 1}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-teal-600/25 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
+                currentCard && !evaluations[currentCard.id]
+                  ? 'bg-teal-600/70 hover:bg-teal-600 text-white'
+                  : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/25'
+              }`}
             >
               <span>البطاقة التالية</span>
               <ChevronLeft className="w-4 h-4" />
@@ -748,7 +990,7 @@ export default function Flashcards3D({
           </div>
 
           <div className="text-center text-[11px] text-slate-400">
-            💡 تلميح للكمبيوتر: اضغط (مسافة أو Enter) لقلب الكارت • اضغط [1] لـ "مش فاكره" • اضغط [2] لـ "كنت عارفها"
+            💡 اختصارات لوحة المفاتيح: (مسافة أو Enter) لقلب الكارت • [1] نسيتها • [2] كنت فاكرها • [3] فهمتها غلط • [4] متقنة
           </div>
         </>
       )}
