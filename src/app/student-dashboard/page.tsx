@@ -38,6 +38,9 @@ import {
   Brain,
   Eye,
   EyeOff,
+  Stethoscope,
+  Lightbulb,
+  RotateCw,
 } from 'lucide-react';
 
 export default function StudentDashboardPage() {
@@ -302,21 +305,37 @@ export default function StudentDashboardPage() {
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 block">كروت الاستذكار</span>
+                    <span className="text-[11px] font-bold text-slate-400 block">كروت الاستذكار والذاكرة</span>
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                         {summary.flashcardMemory?.totalReviewed || summary.byTypeBreakdown?.flashcards?.count || 0}
                       </span>
-                      {summary.flashcardMemory?.masteryPercentage ? (
+                      {summary.flashcardMemory?.masteryPercentage !== undefined ? (
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          ({summary.flashcardMemory.masteryPercentage}% متقن)
+                          ({summary.flashcardMemory.masteryPercentage}% إتقان)
                         </span>
                       ) : null}
                     </div>
                   </div>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold block">
-                    كارت تمت مراجعته وتثبيته 🎴
-                  </span>
+                  {summary.flashcardMemory && summary.flashcardMemory.totalReviewed > 0 ? (
+                    <div className="pt-1 text-[10px] space-y-1.5">
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
+                        <div className="bg-emerald-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.masteryPercentage}%` }} title={`متقنة: ${summary.flashcardMemory.masteryPercentage}%`} />
+                        <div className="bg-amber-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.rememberedThenForgotPercentage}%` }} title={`فاكرها ونسيت: ${summary.flashcardMemory.rememberedThenForgotPercentage}%`} />
+                        <div className="bg-indigo-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.misunderstoodPercentage}%` }} title={`وصلت غلط: ${summary.flashcardMemory.misunderstoodPercentage}%`} />
+                        <div className="bg-rose-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.forgotPercentage}%` }} title={`منسية: ${summary.flashcardMemory.forgotPercentage}%`} />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="text-emerald-600 dark:text-emerald-400">🟢 {summary.flashcardMemory.masteredCount} متقن</span>
+                        <span className="text-indigo-600 dark:text-indigo-400">🩺 {summary.flashcardMemory.misunderstoodCount} تصحيح</span>
+                        <span className="text-rose-600 dark:text-rose-400">🔴 {summary.flashcardMemory.forgotCount} منسي</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold block">
+                      كارت تمت مراجعته وتثبيته 🎴
+                    </span>
+                  )}
                 </div>
 
                 {/* Stat 4: Quizzes */}
@@ -512,7 +531,7 @@ export default function StudentDashboardPage() {
           {activeTab === 'flashcards' && (
             <div className="space-y-6">
               {/* Header Hero Card */}
-              <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-4">
+              <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -522,38 +541,220 @@ export default function StudentDashboardPage() {
                       <h2 className="text-xl sm:text-2xl font-black">كروت الاستذكار والذاكرة التفاعلية 🎴</h2>
                     </div>
                     <p className="text-xs sm:text-sm text-amber-100 max-w-2xl leading-relaxed">
-                      نظام ذكي يتتبع حفظك لكل كارت فلاش كارد، يصنف نقاط القوة لديك مقابل النقاط الصعبة، ويوفر لك بنكاً فورياً للكروت المنسية لإعادة تثبيتها بضغطة زر واحدة.
+                      نظام ذكي يتتبع حفظك لكل كارت فلاش كارد، يحلل توزيع استيعابك للمفاهيم الطبية عبر 4 حالات دقيقة، ويوفر لك بنكاً فورياً للكروت المنسية لإعادة تثبيتها وتصحيحها بضغطة زر.
                     </p>
                   </div>
 
                   <div className="text-left sm:text-right bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
-                    <span className="text-[11px] text-amber-200 block">نسبة الحفظ والإتقان الإجمالية:</span>
+                    <span className="text-[11px] text-amber-200 block">إجمالي كروت المنهج المراجعة:</span>
                     <div className="text-3xl font-black font-mono text-yellow-300">
-                      {summary.flashcardMemory?.masteryPercentage || 0}%
+                      {summary.flashcardMemory?.totalReviewed || 0} <span className="text-sm font-normal text-amber-100">كارت</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 4 Flashcard Stat Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  <div className="p-3.5 rounded-2xl bg-black/20 backdrop-blur-md border border-white/10 text-center">
-                    <span className="text-[11px] text-amber-200 block mb-1">إجمالي الكروت المراجعة</span>
-                    <span className="text-xl sm:text-2xl font-black font-mono">{summary.flashcardMemory?.totalReviewed || 0}</span>
+                {/* The 4 Distinct Comprehension State Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                  {/* State 1: Mastered (knew) */}
+                  <div className="p-4 rounded-2xl bg-emerald-950/50 backdrop-blur-md border border-emerald-400/40 text-right space-y-2 relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300">
+                        <Award className="w-4 h-4" />
+                      </span>
+                      <span className="text-2xl font-black font-mono text-emerald-300">
+                        {summary.flashcardMemory?.masteryPercentage || 0}%
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-white flex items-center gap-1">
+                        <span>متقنها وفاكرها كويس</span>
+                        <span className="text-emerald-400 text-xs">✨</span>
+                      </h4>
+                      <p className="text-[11px] text-emerald-200/90 mt-0.5">متقنة وجاهزة للامتحان النهائي</p>
+                    </div>
+                    <div className="pt-2 border-t border-emerald-400/20 flex items-center justify-between text-xs text-emerald-100">
+                      <span>العدد الفعلي:</span>
+                      <strong className="font-mono font-black text-emerald-300">{summary.flashcardMemory?.masteredCount || 0} كارت</strong>
+                    </div>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-emerald-950/40 backdrop-blur-md border border-emerald-400/30 text-center">
-                    <span className="text-[11px] text-emerald-300 block mb-1">✅ كروت متقنة ومحفوظة</span>
-                    <span className="text-xl sm:text-2xl font-black font-mono text-emerald-300">{summary.flashcardMemory?.masteredCount || 0}</span>
+                  {/* State 2: Remembered then forgot */}
+                  <div className="p-4 rounded-2xl bg-amber-950/50 backdrop-blur-md border border-amber-400/40 text-right space-y-2 relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="p-2 rounded-xl bg-amber-500/20 text-amber-300">
+                        <Lightbulb className="w-4 h-4" />
+                      </span>
+                      <span className="text-2xl font-black font-mono text-amber-300">
+                        {summary.flashcardMemory?.rememberedThenForgotPercentage || 0}%
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-white flex items-center gap-1">
+                        <span>كنت فاكرها بس نسيتها</span>
+                        <span className="text-amber-400 text-xs">💡</span>
+                      </h4>
+                      <p className="text-[11px] text-amber-200/90 mt-0.5">محفوظة مسبقاً وتحتاج تذكيراً سريعاً</p>
+                    </div>
+                    <div className="pt-2 border-t border-amber-400/20 flex items-center justify-between text-xs text-amber-100">
+                      <span>العدد الفعلي:</span>
+                      <strong className="font-mono font-black text-amber-300">{summary.flashcardMemory?.rememberedThenForgotCount || 0} كارت</strong>
+                    </div>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-rose-950/40 backdrop-blur-md border border-rose-400/30 text-center">
-                    <span className="text-[11px] text-rose-300 block mb-1">❌ كروت تحتاج تثبيت</span>
-                    <span className="text-xl sm:text-2xl font-black font-mono text-rose-300">{summary.flashcardMemory?.needsPracticeCount || 0}</span>
+                  {/* State 3: Misunderstood / Medical Concept Correction */}
+                  <div className="p-4 rounded-2xl bg-indigo-950/60 backdrop-blur-md border border-indigo-400/50 text-right space-y-2 relative overflow-hidden group ring-1 ring-indigo-400/30">
+                    <div className="flex items-center justify-between">
+                      <span className="p-2 rounded-xl bg-indigo-500/30 text-indigo-200">
+                        <Stethoscope className="w-4 h-4" />
+                      </span>
+                      <span className="text-2xl font-black font-mono text-indigo-200">
+                        {summary.flashcardMemory?.misunderstoodPercentage || 0}%
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="font-black text-sm text-white">المعلومة وصلتلي غلط</h4>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/40 text-indigo-100 border border-indigo-400/30">
+                          تصحيح فوري
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-indigo-200/90 mt-0.5">مفهوم طبي ملتبس يحتاج إعادة ضبط</p>
+                    </div>
+                    <div className="pt-2 border-t border-indigo-400/20 flex items-center justify-between text-xs text-indigo-100">
+                      <span>العدد الفعلي:</span>
+                      <strong className="font-mono font-black text-indigo-200">{summary.flashcardMemory?.misunderstoodCount || 0} كارت</strong>
+                    </div>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-black/20 backdrop-blur-md border border-white/10 text-center">
-                    <span className="text-[11px] text-amber-200 block mb-1">المحاضرات المراجعة</span>
-                    <span className="text-xl sm:text-2xl font-black font-mono">{summary.flashcardMemory?.byLecture?.length || 0}</span>
+                  {/* State 4: Hard / Forgot */}
+                  <div className="p-4 rounded-2xl bg-rose-950/50 backdrop-blur-md border border-rose-400/40 text-right space-y-2 relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="p-2 rounded-xl bg-rose-500/20 text-rose-300">
+                        <RotateCw className="w-4 h-4" />
+                      </span>
+                      <span className="text-2xl font-black font-mono text-rose-300">
+                        {summary.flashcardMemory?.forgotPercentage || 0}%
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-white flex items-center gap-1">
+                        <span>مش فاكرها خالص / صعبة</span>
+                        <span className="text-rose-400 text-xs">🔄</span>
+                      </h4>
+                      <p className="text-[11px] text-rose-200/90 mt-0.5">منسية كلياً وتحتاج تكراراً مكثفاً</p>
+                    </div>
+                    <div className="pt-2 border-t border-rose-400/20 flex items-center justify-between text-xs text-rose-100">
+                      <span>العدد الفعلي:</span>
+                      <strong className="font-mono font-black text-rose-300">{summary.flashcardMemory?.forgotCount || 0} كارت</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comprehension Distribution Chart (الرسم البياني لتوزيع استيعاب الطالب) */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-amber-600" />
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                      مخطط توزيع استيعاب الذاكرة ومستوى التمكن 📊
+                    </h3>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    مبني على تقييمك الحقيقي لـ {summary.flashcardMemory?.totalReviewed || 0} كارت
+                  </span>
+                </div>
+
+                {/* Stacked Proportional Bar */}
+                <div className="space-y-2">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-5 rounded-2xl overflow-hidden flex p-0.5 shadow-inner">
+                    {summary.flashcardMemory && summary.flashcardMemory.totalReviewed > 0 ? (
+                      <>
+                        {summary.flashcardMemory.masteryPercentage > 0 && (
+                          <div
+                            className="bg-emerald-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
+                            style={{ width: `${summary.flashcardMemory.masteryPercentage}%` }}
+                            title={`متقنة: ${summary.flashcardMemory.masteryPercentage}%`}
+                          >
+                            {summary.flashcardMemory.masteryPercentage >= 10 ? `${summary.flashcardMemory.masteryPercentage}%` : ''}
+                          </div>
+                        )}
+                        {summary.flashcardMemory.rememberedThenForgotPercentage > 0 && (
+                          <div
+                            className="bg-amber-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
+                            style={{ width: `${summary.flashcardMemory.rememberedThenForgotPercentage}%` }}
+                            title={`كنت فاكرها ونسيت: ${summary.flashcardMemory.rememberedThenForgotPercentage}%`}
+                          >
+                            {summary.flashcardMemory.rememberedThenForgotPercentage >= 10 ? `${summary.flashcardMemory.rememberedThenForgotPercentage}%` : ''}
+                          </div>
+                        )}
+                        {summary.flashcardMemory.misunderstoodPercentage > 0 && (
+                          <div
+                            className="bg-indigo-600 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
+                            style={{ width: `${summary.flashcardMemory.misunderstoodPercentage}%` }}
+                            title={`المعلومة وصلت غلط: ${summary.flashcardMemory.misunderstoodPercentage}%`}
+                          >
+                            {summary.flashcardMemory.misunderstoodPercentage >= 10 ? `${summary.flashcardMemory.misunderstoodPercentage}%` : ''}
+                          </div>
+                        )}
+                        {summary.flashcardMemory.forgotPercentage > 0 && (
+                          <div
+                            className="bg-rose-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
+                            style={{ width: `${summary.flashcardMemory.forgotPercentage}%` }}
+                            title={`منسية / صعبة: ${summary.flashcardMemory.forgotPercentage}%`}
+                          >
+                            {summary.flashcardMemory.forgotPercentage >= 10 ? `${summary.flashcardMemory.forgotPercentage}%` : ''}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center text-xs text-slate-400">
+                        لم تبدأ مراجعة الكروت بعد
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Interactive Legend with detailed numbers */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-2">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                        <span className="font-bold text-emerald-900 dark:text-emerald-200">متقنة ومحفوظة</span>
+                      </div>
+                      <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">
+                        {summary.flashcardMemory?.masteryPercentage || 0}% ({summary.flashcardMemory?.masteredCount || 0})
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                        <span className="font-bold text-amber-900 dark:text-amber-200">كنت فاكرها ونسيت</span>
+                      </div>
+                      <span className="font-mono font-black text-amber-700 dark:text-amber-400">
+                        {summary.flashcardMemory?.rememberedThenForgotPercentage || 0}% ({summary.flashcardMemory?.rememberedThenForgotCount || 0})
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+                        <span className="font-bold text-indigo-900 dark:text-indigo-200">وصلتلي غلط</span>
+                      </div>
+                      <span className="font-mono font-black text-indigo-700 dark:text-indigo-400">
+                        {summary.flashcardMemory?.misunderstoodPercentage || 0}% ({summary.flashcardMemory?.misunderstoodCount || 0})
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                        <span className="font-bold text-rose-900 dark:text-rose-200">منسية / صعبة</span>
+                      </div>
+                      <span className="font-mono font-black text-rose-700 dark:text-rose-400">
+                        {summary.flashcardMemory?.forgotPercentage || 0}% ({summary.flashcardMemory?.forgotCount || 0})
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -658,10 +859,10 @@ export default function StudentDashboardPage() {
                   {/* State filter buttons */}
                   <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
                     {[
-                      { id: 'all', label: 'الكل' },
-                      { id: 'forgot', label: '❌ نسيتها' },
-                      { id: 'remembered_then_forgot', label: '🤔 كنت فاكرها' },
-                      { id: 'misunderstood', label: '⚠️ فهمتها غلط' },
+                      { id: 'all', label: `الكل (${(summary.flashcardMemory?.forgottenCards || []).length})` },
+                      { id: 'remembered_then_forgot', label: `💡 كنت فاكرها (${summary.flashcardMemory?.rememberedThenForgotCount || 0})` },
+                      { id: 'misunderstood', label: `🩺 وصلت غلط (${summary.flashcardMemory?.misunderstoodCount || 0})` },
+                      { id: 'forgot', label: `🔄 منسية كلياً (${summary.flashcardMemory?.forgotCount || 0})` },
                     ].map((st) => (
                       <button
                         key={st.id}
@@ -669,7 +870,7 @@ export default function StudentDashboardPage() {
                         onClick={() => setCardStateFilter(st.id)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                           cardStateFilter === st.id
-                            ? 'bg-rose-600 text-white shadow-xs'
+                            ? 'bg-amber-600 text-white shadow-xs'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                         }`}
                       >
@@ -724,11 +925,20 @@ export default function StudentDashboardPage() {
                               </span>
                               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold">
                                 {card.state === 'remembered_then_forgot' ? (
-                                  <span className="text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950 px-2 py-0.5 rounded-md">🤔 كنت فاكرها بس نسيتها</span>
+                                  <span className="text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <Lightbulb className="w-3 h-3 text-amber-500" />
+                                    <span>كنت فاكرها بس نسيتها</span>
+                                  </span>
                                 ) : card.state === 'misunderstood' ? (
-                                  <span className="text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md">⚠️ المعلومة وصلتني غلط</span>
+                                  <span className="text-indigo-800 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950 border border-indigo-300 dark:border-indigo-800 px-2 py-0.5 rounded-md flex items-center gap-1 font-black">
+                                    <Stethoscope className="w-3 h-3 text-indigo-500" />
+                                    <span>المعلومة وصلتلي غلط • محتاجة تصحيح فوري ⚠️</span>
+                                  </span>
                                 ) : (
-                                  <span className="text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950 px-2 py-0.5 rounded-md">❌ نسيتها تماماً</span>
+                                  <span className="text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950 border border-rose-300 dark:border-rose-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <RotateCw className="w-3 h-3 text-rose-500" />
+                                    <span>مش فاكرها خالص / صعبة</span>
+                                  </span>
                                 )}
                               </span>
                             </div>

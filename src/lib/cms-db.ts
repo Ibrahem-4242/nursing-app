@@ -27,6 +27,8 @@ import {
   StudentFlashcardProgressRecord,
   StudentFlashcardsMemorySummary,
   StudentFlashcardLectureSummary,
+  MisunderstoodConceptReportItem,
+  PlatformFlashcardsAnalytics,
 } from './types';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -3349,17 +3351,28 @@ export const CmsService = {
       return {
         totalReviewed: 0,
         masteredCount: 0,
+        rememberedThenForgotCount: 0,
+        misunderstoodCount: 0,
+        forgotCount: 0,
         needsPracticeCount: 0,
         masteryPercentage: 0,
+        rememberedThenForgotPercentage: 0,
+        misunderstoodPercentage: 0,
+        forgotPercentage: 0,
         byLecture: [],
         forgottenCards: [],
+        misunderstoodCards: [],
       };
     }
 
     let masteredCount = 0;
+    let rememberedThenForgotCount = 0;
+    let misunderstoodCount = 0;
+    let forgotCount = 0;
     let needsPracticeCount = 0;
     const lectureMap = new Map<string, StudentFlashcardLectureSummary>();
     const forgottenCards: StudentFlashcardProgressRecord[] = [];
+    const misunderstoodCards: StudentFlashcardProgressRecord[] = [];
 
     const deletedSet = new Set(store.deletedLectureIds || []);
     const lecturesList = (store.lectures || []).filter((l) => !deletedSet.has(l.id));
@@ -3371,11 +3384,19 @@ export const CmsService = {
       } else {
         needsPracticeCount++;
         forgottenCards.push(rec);
+        if (rec.state === 'remembered_then_forgot') {
+          rememberedThenForgotCount++;
+        } else if (rec.state === 'misunderstood') {
+          misunderstoodCount++;
+          misunderstoodCards.push(rec);
+        } else if (rec.state === 'forgot') {
+          forgotCount++;
+        }
       }
 
       const lec = lecturesList.find((l) => l.id === rec.lectureId);
       const lecTitle = rec.lectureTitle || lec?.title || `محاضرة (${rec.lectureId})`;
-      const subTitle = rec.subjectTitle || '';
+      const subTitle = rec.subjectTitle || lec?.subjectTitle || '';
       const subId = rec.subjectId || lec?.subjectId || '';
 
       const existingLec = lectureMap.get(rec.lectureId) || {
@@ -3385,6 +3406,9 @@ export const CmsService = {
         subjectTitle: subTitle,
         totalReviewed: 0,
         masteredCount: 0,
+        rememberedThenForgotCount: 0,
+        misunderstoodCount: 0,
+        forgotCount: 0,
         needsPracticeCount: 0,
         masteryPercentage: 0,
         cards: [] as StudentFlashcardProgressRecord[],
@@ -3395,6 +3419,13 @@ export const CmsService = {
         existingLec.masteredCount += 1;
       } else {
         existingLec.needsPracticeCount += 1;
+        if (rec.state === 'remembered_then_forgot') {
+          existingLec.rememberedThenForgotCount = (existingLec.rememberedThenForgotCount || 0) + 1;
+        } else if (rec.state === 'misunderstood') {
+          existingLec.misunderstoodCount = (existingLec.misunderstoodCount || 0) + 1;
+        } else if (rec.state === 'forgot') {
+          existingLec.forgotCount = (existingLec.forgotCount || 0) + 1;
+        }
       }
       existingLec.cards.push(rec);
       lectureMap.set(rec.lectureId, existingLec);
@@ -3402,25 +3433,42 @@ export const CmsService = {
 
     const byLecture = Array.from(lectureMap.values()).map((lec) => {
       const pct = lec.totalReviewed > 0 ? Math.round((lec.masteredCount / lec.totalReviewed) * 100) : 0;
+      const remPct = lec.totalReviewed > 0 ? Math.round(((lec.rememberedThenForgotCount || 0) / lec.totalReviewed) * 100) : 0;
+      const misPct = lec.totalReviewed > 0 ? Math.round(((lec.misunderstoodCount || 0) / lec.totalReviewed) * 100) : 0;
+      const fgtPct = lec.totalReviewed > 0 ? Math.round(((lec.forgotCount || 0) / lec.totalReviewed) * 100) : 0;
       return {
         ...lec,
         masteryPercentage: pct,
+        rememberedThenForgotPercentage: remPct,
+        misunderstoodPercentage: misPct,
+        forgotPercentage: fgtPct,
         cards: lec.cards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime()),
       };
     }).sort((a, b) => b.totalReviewed - a.totalReviewed);
 
     forgottenCards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+    misunderstoodCards.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
 
     const totalReviewed = reviews.length;
     const masteryPercentage = totalReviewed > 0 ? Math.round((masteredCount / totalReviewed) * 100) : 0;
+    const rememberedThenForgotPercentage = totalReviewed > 0 ? Math.round((rememberedThenForgotCount / totalReviewed) * 100) : 0;
+    const misunderstoodPercentage = totalReviewed > 0 ? Math.round((misunderstoodCount / totalReviewed) * 100) : 0;
+    const forgotPercentage = totalReviewed > 0 ? Math.round((forgotCount / totalReviewed) * 100) : 0;
 
     return {
       totalReviewed,
       masteredCount,
+      rememberedThenForgotCount,
+      misunderstoodCount,
+      forgotCount,
       needsPracticeCount,
       masteryPercentage,
+      rememberedThenForgotPercentage,
+      misunderstoodPercentage,
+      forgotPercentage,
       byLecture,
       forgottenCards,
+      misunderstoodCards,
     };
   },
 
@@ -3596,6 +3644,7 @@ export const CmsService = {
     activeTodayCount: number;
     totalTrackedSessions: number;
     topStudiedLectures: { title: string; seconds: number; studentsCount: number }[];
+    flashcardsAnalytics?: PlatformFlashcardsAnalytics;
   }> {
     const store = await getFreshStore();
     const students = store.students || [];
@@ -3634,6 +3683,140 @@ export const CmsService = {
       activeTodayCount,
       totalTrackedSessions: logs.length,
       topStudiedLectures,
+      flashcardsAnalytics: await this.getPlatformFlashcardsAnalytics(),
+    };
+  },
+
+  async getPlatformFlashcardsAnalytics(): Promise<PlatformFlashcardsAnalytics> {
+    const store = await getFreshStore();
+    const students = store.students || [];
+
+    let totalStudentsWithReviews = 0;
+    let totalCardsReviewed = 0;
+    let totalMasteredCount = 0;
+    let totalRememberedThenForgotCount = 0;
+    let totalMisunderstoodCount = 0;
+    let totalForgotCount = 0;
+
+    const misunderstoodMap = new Map<
+      string,
+      {
+        cardId: number | string;
+        cardFront: string;
+        cardBack: string;
+        lectureId: string;
+        lectureTitle: string;
+        subjectId?: string;
+        subjectTitle?: string;
+        misunderstoodCount: number;
+        studentsSet: Set<string>;
+        totalReviewsOnThisCard: number;
+        lastFlaggedAt: string;
+      }
+    >();
+
+    const deletedSet = new Set(store.deletedLectureIds || []);
+    const lecturesList = (store.lectures || []).filter((l) => !deletedSet.has(l.id));
+
+    students.forEach((student) => {
+      const reviews = student.flashcardReviews ? Object.values(student.flashcardReviews) : [];
+      if (reviews.length > 0) {
+        totalStudentsWithReviews++;
+      }
+
+      reviews.forEach((rec) => {
+        totalCardsReviewed++;
+        if (rec.state === 'knew') {
+          totalMasteredCount++;
+        } else if (rec.state === 'remembered_then_forgot') {
+          totalRememberedThenForgotCount++;
+        } else if (rec.state === 'misunderstood') {
+          totalMisunderstoodCount++;
+        } else if (rec.state === 'forgot') {
+          totalForgotCount++;
+        }
+
+        const lec = lecturesList.find((l) => l.id === rec.lectureId);
+        const lecTitle = rec.lectureTitle || lec?.title || `محاضرة (${rec.lectureId})`;
+        const subTitle = rec.subjectTitle || lec?.subjectTitle || '';
+        const subId = rec.subjectId || lec?.subjectId || '';
+
+        const cardKey = `${rec.lectureId}__${rec.cardId}`;
+
+        if (rec.state === 'misunderstood') {
+          const item = misunderstoodMap.get(cardKey) || {
+            cardId: rec.cardId,
+            cardFront: rec.cardFront || 'كارت استذكار',
+            cardBack: rec.cardBack || '',
+            lectureId: rec.lectureId,
+            lectureTitle: lecTitle,
+            subjectId: subId,
+            subjectTitle: subTitle,
+            misunderstoodCount: 0,
+            studentsSet: new Set<string>(),
+            totalReviewsOnThisCard: 0,
+            lastFlaggedAt: rec.reviewedAt,
+          };
+
+          item.misunderstoodCount++;
+          item.studentsSet.add(student.id);
+          item.totalReviewsOnThisCard++;
+          if (new Date(rec.reviewedAt).getTime() > new Date(item.lastFlaggedAt).getTime()) {
+            item.lastFlaggedAt = rec.reviewedAt;
+          }
+          if (rec.cardFront && (!item.cardFront || item.cardFront === 'كارت استذكار')) {
+            item.cardFront = rec.cardFront;
+          }
+          if (rec.cardBack && !item.cardBack) {
+            item.cardBack = rec.cardBack;
+          }
+          misunderstoodMap.set(cardKey, item);
+        } else {
+          const existing = misunderstoodMap.get(cardKey);
+          if (existing) {
+            existing.totalReviewsOnThisCard++;
+          }
+        }
+      });
+    });
+
+    const topMisunderstoodCards: MisunderstoodConceptReportItem[] = Array.from(misunderstoodMap.values())
+      .map((item) => ({
+        cardId: item.cardId,
+        cardFront: item.cardFront,
+        cardBack: item.cardBack,
+        lectureId: item.lectureId,
+        lectureTitle: item.lectureTitle,
+        subjectId: item.subjectId,
+        subjectTitle: item.subjectTitle,
+        misunderstoodCount: item.misunderstoodCount,
+        studentsCount: item.studentsSet.size,
+        totalReviewsOnThisCard: item.totalReviewsOnThisCard,
+        lastFlaggedAt: item.lastFlaggedAt,
+      }))
+      .sort((a, b) => b.misunderstoodCount - a.misunderstoodCount);
+
+    const averageMasteryPercentage =
+      totalCardsReviewed > 0 ? Math.round((totalMasteredCount / totalCardsReviewed) * 100) : 0;
+    const averageRememberedThenForgotPercentage =
+      totalCardsReviewed > 0 ? Math.round((totalRememberedThenForgotCount / totalCardsReviewed) * 100) : 0;
+    const averageMisunderstoodPercentage =
+      totalCardsReviewed > 0 ? Math.round((totalMisunderstoodCount / totalCardsReviewed) * 100) : 0;
+    const averageForgotPercentage =
+      totalCardsReviewed > 0 ? Math.round((totalForgotCount / totalCardsReviewed) * 100) : 0;
+
+    return {
+      totalStudentsWithReviews,
+      totalCardsReviewed,
+      totalMasteredCount,
+      totalRememberedThenForgotCount,
+      totalMisunderstoodCount,
+      totalForgotCount,
+      averageMasteryPercentage,
+      averageRememberedThenForgotPercentage,
+      averageMisunderstoodPercentage,
+      averageForgotPercentage,
+      topMisunderstoodCards,
     };
   },
 };

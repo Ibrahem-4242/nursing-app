@@ -304,18 +304,59 @@ export interface StudentFlashcardLectureSummary {
   subjectTitle?: string;
   totalReviewed: number;
   masteredCount: number;
+  rememberedThenForgotCount?: number;
+  misunderstoodCount?: number;
+  forgotCount?: number;
   needsPracticeCount: number;
   masteryPercentage: number;
+  rememberedThenForgotPercentage?: number;
+  misunderstoodPercentage?: number;
+  forgotPercentage?: number;
   cards: StudentFlashcardProgressRecord[];
 }
 
 export interface StudentFlashcardsMemorySummary {
   totalReviewed: number;
   masteredCount: number;
+  rememberedThenForgotCount: number;
+  misunderstoodCount: number;
+  forgotCount: number;
   needsPracticeCount: number;
   masteryPercentage: number;
+  rememberedThenForgotPercentage: number;
+  misunderstoodPercentage: number;
+  forgotPercentage: number;
   byLecture: StudentFlashcardLectureSummary[];
   forgottenCards: StudentFlashcardProgressRecord[];
+  misunderstoodCards?: StudentFlashcardProgressRecord[];
+}
+
+export interface MisunderstoodConceptReportItem {
+  cardId: number | string;
+  cardFront: string;
+  cardBack: string;
+  lectureId: string;
+  lectureTitle: string;
+  subjectId?: string;
+  subjectTitle?: string;
+  misunderstoodCount: number;
+  studentsCount: number;
+  totalReviewsOnThisCard: number;
+  lastFlaggedAt: string;
+}
+
+export interface PlatformFlashcardsAnalytics {
+  totalStudentsWithReviews: number;
+  totalCardsReviewed: number;
+  totalMasteredCount: number;
+  totalRememberedThenForgotCount: number;
+  totalMisunderstoodCount: number;
+  totalForgotCount: number;
+  averageMasteryPercentage: number;
+  averageRememberedThenForgotPercentage: number;
+  averageMisunderstoodPercentage: number;
+  averageForgotPercentage: number;
+  topMisunderstoodCards: MisunderstoodConceptReportItem[];
 }
 
 export interface StudentUser {

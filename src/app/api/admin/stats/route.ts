@@ -14,10 +14,12 @@ export async function GET() {
 
   const stats = await CmsService.getSummaryStats();
   const todayAnalytics = await CmsService.getTodayAnalytics();
+  const flashcardsAnalytics = await CmsService.getPlatformFlashcardsAnalytics();
 
   return NextResponse.json({
     success: true,
     stats,
     todayAnalytics,
+    flashcardsAnalytics,
   });
 }

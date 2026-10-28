@@ -64,11 +64,24 @@ import {
   ToggleLeft,
   ToggleRight,
   Radio,
+  Stethoscope,
+  Lightbulb,
+  RotateCw,
 } from 'lucide-react';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
-import { PurchaseOrder, StudentUser, ShakibRakibConfig, PromoCoupon, PlatformFeaturesConfig, StudentActivitySummary, StudentActivityLog } from '@/lib/types';
+import {
+  PurchaseOrder,
+  StudentUser,
+  ShakibRakibConfig,
+  PromoCoupon,
+  PlatformFeaturesConfig,
+  StudentActivitySummary,
+  StudentActivityLog,
+  PlatformFlashcardsAnalytics,
+  MisunderstoodConceptReportItem,
+} from '@/lib/types';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -384,7 +397,9 @@ export default function AdminDashboardPage() {
     activeTodayCount: number;
     totalTrackedSessions: number;
     topStudiedLectures: { title: string; seconds: number; studentsCount: number }[];
+    flashcardsAnalytics?: PlatformFlashcardsAnalytics;
   } | null>(null);
+  const [copiedConceptCardId, setCopiedConceptCardId] = useState<string | number | null>(null);
   const [liveStudentsList, setLiveStudentsList] = useState<StudentUser[]>([]);
   const [showLiveStudents, setShowLiveStudents] = useState(false);
 
@@ -1606,6 +1621,19 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success && data.stats) {
         setStats(data.stats);
+      }
+      if (data.success && data.flashcardsAnalytics) {
+        setPlatformStudyStats((prev) =>
+          prev
+            ? { ...prev, flashcardsAnalytics: data.flashcardsAnalytics }
+            : {
+                totalStudySeconds: 0,
+                activeTodayCount: 0,
+                totalTrackedSessions: 0,
+                topStudiedLectures: [],
+                flashcardsAnalytics: data.flashcardsAnalytics,
+              }
+        );
       }
     } catch (e) {
       console.warn('Failed to load stats:', e);
@@ -8643,6 +8671,278 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
+            {/* ========================================================================= */}
+            {/* SMART FLASHCARD & MEDICAL CONCEPTS ANALYTICS REPORT (دليل المحاضر والدكتور) */}
+            {/* ========================================================================= */}
+            {platformStudyStats?.flashcardsAnalytics && (
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50/80 via-white to-slate-50 dark:from-slate-850 dark:via-slate-900 dark:to-slate-850 border-2 border-indigo-200/80 dark:border-indigo-900/60 shadow-md space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-indigo-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="p-2 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                        <Stethoscope className="w-5 h-5" />
+                      </span>
+                      <h4 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>تقرير استيعاب المفاهيم الطبية وكروت الاستذكار (دليل المحاضر) 🩺🎴</span>
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      رصد فوري لمتوسط نسب التذكر والنسيان لجميع الطلاب، وتحديد أكثر المفاهيم الطبية التي واجه فيها الطلاب التباساً لإعادة شرحها في المحاضرات القادمة.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono">
+                    <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold">
+                      👥 {platformStudyStats.flashcardsAnalytics.totalStudentsWithReviews} طالب راجعوا الكروت
+                    </span>
+                    <span className="px-3 py-1.5 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold">
+                      🎴 {platformStudyStats.flashcardsAnalytics.totalCardsReviewed} إجمالي التقييمات
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Average Platform Retention Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Card 1: Mastered */}
+                  <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/80 text-right space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">
+                          <Award className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">متوسط الإتقان</span>
+                      </div>
+                      <span className="text-xl font-black font-mono text-emerald-700 dark:text-emerald-300">
+                        {platformStudyStats.flashcardsAnalytics.averageMasteryPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">متقنة ومحفوظة لدى الطلاب بنجاح</p>
+                    <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-800/60 text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-bold flex justify-between">
+                      <span>إجمالي الإجابات:</span>
+                      <span>{platformStudyStats.flashcardsAnalytics.totalMasteredCount} كارت</span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Remembered then forgot */}
+                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 text-right space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
+                          <Lightbulb className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-amber-900 dark:text-amber-200">فاكرها بس نسيها</span>
+                      </div>
+                      <span className="text-xl font-black font-mono text-amber-700 dark:text-amber-300">
+                        {platformStudyStats.flashcardsAnalytics.averageRememberedThenForgotPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">محفوظة مسبقاً وتحتاج تذكيراً سريعاً</p>
+                    <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60 text-[11px] text-amber-700 dark:text-amber-400 font-mono font-bold flex justify-between">
+                      <span>إجمالي الإجابات:</span>
+                      <span>{platformStudyStats.flashcardsAnalytics.totalRememberedThenForgotCount} كارت</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Misunderstood (Concept Correction) */}
+                  <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-300 dark:border-indigo-700 text-right space-y-2 relative overflow-hidden ring-2 ring-indigo-400/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                          <Stethoscope className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-black text-indigo-900 dark:text-indigo-200">وصلتله غلط</span>
+                      </div>
+                      <span className="text-xl font-black font-mono text-indigo-700 dark:text-indigo-300">
+                        {platformStudyStats.flashcardsAnalytics.averageMisunderstoodPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80 font-semibold">
+                      ⚠️ مؤشر المفاهيم التي تحتاج إعادة شرح
+                    </p>
+                    <div className="pt-2 border-t border-indigo-200/60 dark:border-indigo-800/60 text-[11px] text-indigo-700 dark:text-indigo-400 font-mono font-bold flex justify-between">
+                      <span>تنبيهات الالتباس:</span>
+                      <span>{platformStudyStats.flashcardsAnalytics.totalMisunderstoodCount} كارت</span>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Forgot */}
+                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/80 text-right space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300">
+                          <RotateCw className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-rose-900 dark:text-rose-200">منسية كلياً / صعبة</span>
+                      </div>
+                      <span className="text-xl font-black font-mono text-rose-700 dark:text-rose-300">
+                        {platformStudyStats.flashcardsAnalytics.averageForgotPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-rose-800/80 dark:text-rose-300/80">نقاط صعبة تحتاج إعادة تدريس وتكرار</p>
+                    <div className="pt-2 border-t border-rose-200/60 dark:border-rose-800/60 text-[11px] text-rose-700 dark:text-rose-400 font-mono font-bold flex justify-between">
+                      <span>إجمالي الإجابات:</span>
+                      <span>{platformStudyStats.flashcardsAnalytics.totalForgotCount} كارت</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Platform Comprehension Visual Distribution Bar */}
+                {platformStudyStats.flashcardsAnalytics.totalCardsReviewed > 0 && (
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        المخطط التراكمي لتوزيع الاستيعاب لكافة طلاب المنصة:
+                      </span>
+                      <span className="text-slate-400 font-mono">100% من إجمالي المراجعات</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 h-3.5 rounded-xl overflow-hidden flex shadow-inner">
+                      <div
+                        className="bg-emerald-500 h-full transition-all"
+                        style={{ width: `${platformStudyStats.flashcardsAnalytics.averageMasteryPercentage}%` }}
+                        title={`متقن: ${platformStudyStats.flashcardsAnalytics.averageMasteryPercentage}%`}
+                      />
+                      <div
+                        className="bg-amber-500 h-full transition-all"
+                        style={{ width: `${platformStudyStats.flashcardsAnalytics.averageRememberedThenForgotPercentage}%` }}
+                        title={`فاكرها ونسي: ${platformStudyStats.flashcardsAnalytics.averageRememberedThenForgotPercentage}%`}
+                      />
+                      <div
+                        className="bg-indigo-600 h-full transition-all"
+                        style={{ width: `${platformStudyStats.flashcardsAnalytics.averageMisunderstoodPercentage}%` }}
+                        title={`وصلت غلط: ${platformStudyStats.flashcardsAnalytics.averageMisunderstoodPercentage}%`}
+                      />
+                      <div
+                        className="bg-rose-500 h-full transition-all"
+                        style={{ width: `${platformStudyStats.flashcardsAnalytics.averageForgotPercentage}%` }}
+                        title={`منسية: ${platformStudyStats.flashcardsAnalytics.averageForgotPercentage}%`}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500 pt-1">
+                      <span className="flex items-center gap-1">🟢 متقنة: {platformStudyStats.flashcardsAnalytics.averageMasteryPercentage}%</span>
+                      <span className="flex items-center gap-1">🟡 فاكرها ونسي: {platformStudyStats.flashcardsAnalytics.averageRememberedThenForgotPercentage}%</span>
+                      <span className="flex items-center gap-1 font-bold text-indigo-700 dark:text-indigo-400">🟣 وصلت غلط (إعادة شرح): {platformStudyStats.flashcardsAnalytics.averageMisunderstoodPercentage}%</span>
+                      <span className="flex items-center gap-1">🔴 منسية كلياً: {platformStudyStats.flashcardsAnalytics.averageForgotPercentage}%</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Misunderstood Concepts Section (أكثر الكروت التي اختار فيها الطلاب وصلتلي غلط) */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-indigo-600" />
+                        <span>أكثر المفاهيم والكروت التي واجه فيها الطلاب التباساً ("المعلومة وصلتلي غلط"):</span>
+                      </h5>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        هذه الأسئلة رُصدت من الطلاب كـ مفاهيم ملتبسة أو غير واضحة - يُوصى بإعادة التأكيد عليها وشرحها في بداية المحاضرة القادمة.
+                      </p>
+                    </div>
+
+                    <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                      {platformStudyStats.flashcardsAnalytics.topMisunderstoodCards.length} مفهوم ملتبس
+                    </span>
+                  </div>
+
+                  {platformStudyStats.flashcardsAnalytics.topMisunderstoodCards.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-2">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        رائع جداً دكتور! لا توجد كروت مسجلة كـ "المعلومة وصلتلي غلط" حتى الآن.
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        جميع الطلاب استوعبوا المفاهيم المشروحة دون أي تنبيهات التباس مسجلة.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {platformStudyStats.flashcardsAnalytics.topMisunderstoodCards.slice(0, 10).map((item, idx) => (
+                        <div
+                          key={`${item.lectureId}_${item.cardId}_${idx}`}
+                          className="p-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-indigo-200/90 dark:border-indigo-900/60 shadow-sm space-y-3 text-right hover:border-indigo-400 transition group"
+                        >
+                          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-indigo-600 text-white">
+                                #{idx + 1} الأكثر التباساً
+                              </span>
+                              <span className="text-[11px] font-bold text-slate-500 truncate max-w-[180px]">
+                                {item.lectureTitle}
+                              </span>
+                            </div>
+
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                              <span>🚩 {item.misunderstoodCount} طلاب اختاروا (وصلت غلط)</span>
+                            </span>
+                          </div>
+
+                          {/* Question / Concept */}
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">نص السؤال أو المفهوم الملتبس:</span>
+                            <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                              {item.cardFront}
+                            </p>
+                          </div>
+
+                          {/* Official Correction / Card Back */}
+                          {item.cardBack && (
+                            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+                              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 block mb-1 flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" />
+                                <span>التصحيح المعتمد للمفهوم (الإجابة النموذجية):</span>
+                              </span>
+                              {item.cardBack}
+                            </div>
+                          )}
+
+                          {/* Footer Action */}
+                          <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100 dark:border-slate-700 text-slate-400">
+                            <span className="text-[10px]">
+                              إجمالي المراجعات على هذا الكارت: {item.totalReviewsOnThisCard}
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const text = `📌 مفهوم طبي يحتاج إعادة توضيح:\nالسؤال: ${item.cardFront}\nالشرح الصحيح: ${item.cardBack || ''}\nالمحاضرة: ${item.lectureTitle}`;
+                                  navigator.clipboard.writeText(text);
+                                  setCopiedConceptCardId(item.cardId);
+                                  setTimeout(() => setCopiedConceptCardId(null), 2500);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition font-bold text-[10px] flex items-center gap-1"
+                              >
+                                {copiedConceptCardId === item.cardId ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span>تم النسخ ✅</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>نسخ للسلايدات 📋</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <Link
+                                href={`/lecture/${item.lectureId}?tab=flashcards`}
+                                target="_blank"
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition font-bold text-[10px] flex items-center gap-1"
+                              >
+                                <span>معاينة المحاضرة</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Search and Stats */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <input
@@ -9674,19 +9974,27 @@ export default function AdminDashboardPage() {
                           </span>
                         </div>
 
-                        {/* Flashcard Stats Pills */}
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                            <span className="text-[10px] text-slate-400 block">الكروت المراجعة</span>
-                            <span className="font-black text-slate-800 dark:text-slate-200 font-mono">{studentActivitySummary.flashcardMemory.totalReviewed}</span>
-                          </div>
+                        {/* Flashcard Stats 4 Pills */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                           <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block">✅ كروت متقنة</span>
-                            <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono">{studentActivitySummary.flashcardMemory.masteredCount}</span>
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block font-bold">🟢 متقنها وفاكرها</span>
+                            <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono text-sm block">{studentActivitySummary.flashcardMemory.masteredCount}</span>
+                            <span className="text-[10px] text-emerald-600 font-bold block">({studentActivitySummary.flashcardMemory.masteryPercentage}%)</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 block font-bold">💡 كان فاكرها ونسي</span>
+                            <span className="font-black text-amber-700 dark:text-amber-300 font-mono text-sm block">{studentActivitySummary.flashcardMemory.rememberedThenForgotCount || 0}</span>
+                            <span className="text-[10px] text-amber-600 font-bold block">({studentActivitySummary.flashcardMemory.rememberedThenForgotPercentage || 0}%)</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
+                            <span className="text-[10px] text-indigo-700 dark:text-indigo-400 block font-bold">🩺 وصلتله غلط</span>
+                            <span className="font-black text-indigo-700 dark:text-indigo-300 font-mono text-sm block">{studentActivitySummary.flashcardMemory.misunderstoodCount || 0}</span>
+                            <span className="text-[10px] text-indigo-600 font-bold block">({studentActivitySummary.flashcardMemory.misunderstoodPercentage || 0}%)</span>
                           </div>
                           <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
-                            <span className="text-[10px] text-rose-700 dark:text-rose-400 block">❌ كروت تحتاج تثبيت</span>
-                            <span className="font-black text-rose-700 dark:text-rose-300 font-mono">{studentActivitySummary.flashcardMemory.needsPracticeCount}</span>
+                            <span className="text-[10px] text-rose-700 dark:text-rose-400 block font-bold">🔄 منسية كلياً / صعبة</span>
+                            <span className="font-black text-rose-700 dark:text-rose-300 font-mono text-sm block">{studentActivitySummary.flashcardMemory.forgotCount || 0}</span>
+                            <span className="text-[10px] text-rose-600 font-bold block">({studentActivitySummary.flashcardMemory.forgotPercentage || 0}%)</span>
                           </div>
                         </div>
 
@@ -9736,12 +10044,20 @@ export default function AdminDashboardPage() {
                                     <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">{fc.cardFront}</span>
                                     <span className="text-[10px] text-slate-400">{fc.lectureTitle}</span>
                                   </div>
-                                  <span className="px-2 py-0.5 rounded text-[9px] font-bold flex-shrink-0 bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
-                                    {fc.state === 'remembered_then_forgot'
-                                      ? 'تردد ونسيان'
-                                      : fc.state === 'misunderstood'
-                                      ? 'فهم خاطئ'
-                                      : 'نسيان تام'}
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-bold flex-shrink-0">
+                                    {fc.state === 'remembered_then_forgot' ? (
+                                      <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded">
+                                        💡 كان فاكرها ونسي
+                                      </span>
+                                    ) : fc.state === 'misunderstood' ? (
+                                      <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded font-black">
+                                        🩺 وصلتله غلط (تصحيح فوري ⚠️)
+                                      </span>
+                                    ) : (
+                                      <span className="bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 px-2 py-0.5 rounded">
+                                        🔄 منسية كلياً / صعبة
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                               ))}
