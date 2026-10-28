@@ -43,6 +43,8 @@ import {
   KeyRound,
   ShieldAlert,
   Smartphone,
+  Laptop,
+  Award,
   School,
   UserCheck,
   Presentation,
@@ -9562,6 +9564,102 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Devices Used by Student */}
+                    {studentActivitySummary.devicesUsed && studentActivitySummary.devicesUsed.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                        <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Smartphone className="w-4 h-4 text-indigo-600" />
+                          <span>الأجهزة المستخدمة والمسجلة للطالب:</span>
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {studentActivitySummary.devicesUsed.map((dev, idx) => (
+                            <div
+                              key={dev.deviceId || idx}
+                              className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600">
+                                  {idx === 0 ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-slate-800 dark:text-slate-200">{dev.label || `الجهاز ${idx + 1}`}</div>
+                                  <div className="text-[10px] font-mono text-slate-400" dir="ltr">{dev.deviceId ? `${dev.deviceId.slice(0, 16)}...` : 'افتراضي'}</div>
+                                </div>
+                              </div>
+                              <div className="text-left text-[11px]">
+                                <span className="text-slate-400 block text-[10px]">آخر تواجد:</span>
+                                <span className="font-bold text-indigo-600 dark:text-indigo-400">{formatRelativeTimeArabic(dev.lastActiveAt)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subject Study Progress */}
+                    {studentActivitySummary.subjectProgress && studentActivitySummary.subjectProgress.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                        <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <TrendingUp className="w-4 h-4 text-teal-600" />
+                          <span>نسب إنجاز المواد الدراسية:</span>
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {studentActivitySummary.subjectProgress.map((sub) => (
+                            <div
+                              key={sub.subjectId}
+                              className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{sub.subjectTitle}</span>
+                                <span className="font-black font-mono text-teal-600 dark:text-teal-400">{sub.percent}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-teal-600 h-1.5 rounded-full"
+                                  style={{ width: `${Math.max(4, sub.percent)}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>فتح {sub.openedLecturesCount}/{sub.totalLectures} محاضرة</span>
+                                <span>{formatStudyDurationArabic(sub.totalDurationSeconds)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quiz Attempts & Scores */}
+                    {studentActivitySummary.quizStats && studentActivitySummary.quizStats.quizzes.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <Award className="w-4 h-4 text-emerald-600" />
+                            <span>سجل درجات الكويزات والامتحانات:</span>
+                          </h4>
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            متوسط الدرجات: {studentActivitySummary.quizStats.averageScorePercent}%
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {studentActivitySummary.quizStats.quizzes.map((q) => (
+                            <div
+                              key={q.id}
+                              className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs"
+                            >
+                              <div className="space-y-0.5 truncate">
+                                <div className="font-bold text-slate-800 dark:text-slate-200 truncate">{q.targetTitle}</div>
+                                <div className="text-[10px] text-slate-400">{formatRelativeTimeArabic(q.date)}</div>
+                              </div>
+                              <span className="px-2.5 py-1 rounded-lg font-mono font-black text-xs bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                                {q.percentage ?? 0}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Filter Tabs */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">

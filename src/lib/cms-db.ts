@@ -3110,6 +3110,102 @@ export const CmsService = {
 
     const totalSeconds = Math.max(student.totalStudySeconds || 0, calculatedTotal);
 
+    // 1. Calculate Subject Progress
+    const allSubjects = (store.subjects && store.subjects.length > 0) ? store.subjects : MOCK_SUBJECTS;
+    const deletedSet = new Set(store.deletedLectureIds || []);
+    const allLectures = (store.lectures || []).filter((l) => !deletedSet.has(l.id));
+    const openedLectureIds = new Set(
+      studentLogs
+        .filter((l) => ['lecture', 'video', 'pdf', 'audio', 'flashcards', 'quiz', 'ppt', 'mindmap'].includes(l.targetType))
+        .map((l) => l.targetId)
+    );
+
+    const subjectProgress = allSubjects.map((sub) => {
+      const subLectures = allLectures.filter((l) => l.subjectId === sub.id);
+      const totalLectures = subLectures.length;
+      const openedLecturesCount = subLectures.filter((l) => openedLectureIds.has(l.id)).length;
+      const percent = totalLectures > 0 ? Math.round((openedLecturesCount / totalLectures) * 100) : 0;
+
+      let subDuration = 0;
+      studentLogs.forEach((l) => {
+        if (l.subjectTitle === sub.title || l.targetId === sub.id) {
+          subDuration += l.durationSeconds || 0;
+        } else if (subLectures.some((lec) => lec.id === l.targetId)) {
+          subDuration += l.durationSeconds || 0;
+        }
+      });
+
+      return {
+        subjectId: sub.id,
+        subjectTitle: sub.title,
+        totalLectures,
+        openedLecturesCount,
+        percent,
+        totalDurationSeconds: subDuration,
+      };
+    }).filter((sp) => sp.totalLectures > 0 || sp.totalDurationSeconds > 0);
+
+    // 2. Quiz Performance & Attempts
+    const quizLogs = studentLogs.filter((l) => l.targetType === 'quiz');
+    const quizItems = quizLogs.map((l) => {
+      let pct = l.details?.percentage;
+      if (pct === undefined && l.details?.score !== undefined && l.details?.questionsCount) {
+        pct = Math.round((l.details.score / l.details.questionsCount) * 100);
+      }
+      return {
+        id: l.id,
+        targetId: l.targetId,
+        targetTitle: l.targetTitle,
+        subjectTitle: l.subjectTitle,
+        score: l.details?.score,
+        questionsCount: l.details?.questionsCount,
+        percentage: pct,
+        date: l.startedAt || l.lastHeartbeatAt,
+      };
+    });
+
+    const quizzesWithScores = quizItems.filter((q) => q.percentage !== undefined);
+    const averageScorePercent =
+      quizzesWithScores.length > 0
+        ? Math.round(quizzesWithScores.reduce((acc, q) => acc + (q.percentage || 0), 0) / quizzesWithScores.length)
+        : 0;
+
+    // 3. Devices Breakdown
+    const deviceMap = new Map<string, { deviceId: string; firstSeenAt?: string; lastActiveAt?: string; sessionsCount: number; label?: string }>();
+    if (student.knownDevices) {
+      student.knownDevices.forEach((devId, idx) => {
+        deviceMap.set(devId, {
+          deviceId: devId,
+          sessionsCount: 0,
+          label: `جهاز مصرح (${idx + 1})`,
+        });
+      });
+    }
+
+    studentLogs.forEach((l) => {
+      if (l.deviceId) {
+        const existing = deviceMap.get(l.deviceId) || {
+          deviceId: l.deviceId,
+          sessionsCount: 0,
+          label: `جهاز نشط`,
+        };
+        existing.sessionsCount += 1;
+        if (!existing.lastActiveAt || new Date(l.lastHeartbeatAt).getTime() > new Date(existing.lastActiveAt).getTime()) {
+          existing.lastActiveAt = l.lastHeartbeatAt;
+        }
+        if (!existing.firstSeenAt || new Date(l.startedAt).getTime() < new Date(existing.firstSeenAt).getTime()) {
+          existing.firstSeenAt = l.startedAt;
+        }
+        deviceMap.set(l.deviceId, existing);
+      }
+    });
+
+    const devicesUsed = Array.from(deviceMap.values()).sort((a, b) => {
+      const tA = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
+      const tB = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+      return tB - tA;
+    });
+
     return {
       studentId: student.id,
       studentName: student.name,
@@ -3121,7 +3217,18 @@ export const CmsService = {
       lastActiveAt: student.lastActiveAt || (studentLogs[0]?.lastHeartbeatAt),
       lastActiveTarget: student.lastActiveTarget || (studentLogs[0]?.targetTitle),
       byTypeBreakdown: breakdown,
-      recentLogs: studentLogs.slice(0, 50),
+      recentLogs: studentLogs.slice(0, 100),
+      subjectProgress,
+      quizStats: {
+        totalQuizzesTaken: quizLogs.length,
+        averageScorePercent,
+        quizzes: quizItems.slice(0, 30),
+      },
+      flashcardsStats: {
+        totalSessions: breakdown.flashcards?.count || 0,
+        totalDurationSeconds: breakdown.flashcards?.durationSeconds || 0,
+      },
+      devicesUsed,
     };
   },
 

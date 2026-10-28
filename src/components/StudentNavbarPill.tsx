@@ -13,6 +13,7 @@ import {
   Phone,
   ShieldCheck,
   Bookmark,
+  BarChart3,
 } from 'lucide-react';
 
 interface StudentNavbarPillProps {
@@ -94,6 +95,22 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
         </div>
 
         <Link
+          href="/student-dashboard"
+          onClick={() => {
+            if (onNavigate) onNavigate();
+          }}
+          className="w-full py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black flex items-center justify-between transition shadow-sm"
+        >
+          <span className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            <span>لوحة نشاطي وإحصائياتي</span>
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">
+            متابعة 📊
+          </span>
+        </Link>
+
+        <Link
           href="/bookmarks"
           onClick={() => {
             if (onNavigate) onNavigate();
@@ -167,6 +184,20 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
               {purchasedCount}
             </span>
           </div>
+
+          <Link
+            href="/student-dashboard"
+            onClick={() => setDropdownOpen(false)}
+            className="w-full py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black flex items-center justify-between transition shadow-sm"
+          >
+            <span className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span>لوحة نشاطي وإحصائياتي</span>
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">
+              إحصائيات 📊
+            </span>
+          </Link>
 
           <Link
             href="/bookmarks"

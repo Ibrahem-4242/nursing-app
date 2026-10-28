@@ -335,6 +335,35 @@ export interface StudentActivityLog {
   };
 }
 
+export interface SubjectStudyProgress {
+  subjectId: string;
+  subjectTitle: string;
+  totalLectures: number;
+  openedLecturesCount: number;
+  percent: number;
+  totalDurationSeconds: number;
+}
+
+export interface StudentQuizActivityItem {
+  id: string;
+  targetId: string;
+  targetTitle: string;
+  subjectTitle?: string;
+  score?: number;
+  questionsCount?: number;
+  percentage?: number;
+  date: string;
+}
+
+export interface StudentDeviceInfo {
+  deviceId: string;
+  firstSeenAt?: string;
+  lastActiveAt?: string;
+  sessionsCount: number;
+  label?: string;
+  isCurrent?: boolean;
+}
+
 export interface StudentActivitySummary {
   studentId: string;
   studentName: string;
@@ -347,6 +376,17 @@ export interface StudentActivitySummary {
   lastActiveTarget?: string;
   byTypeBreakdown: Record<string, { durationSeconds: number; count: number }>;
   recentLogs: StudentActivityLog[];
+  subjectProgress?: SubjectStudyProgress[];
+  quizStats?: {
+    totalQuizzesTaken: number;
+    averageScorePercent: number;
+    quizzes: StudentQuizActivityItem[];
+  };
+  flashcardsStats?: {
+    totalSessions: number;
+    totalDurationSeconds: number;
+  };
+  devicesUsed?: StudentDeviceInfo[];
 }
 
 export interface PromoCoupon {

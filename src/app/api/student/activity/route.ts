@@ -99,23 +99,36 @@ export async function GET(req: NextRequest) {
     const cookieStore = cookies();
     const isAdmin = cookieStore.get(ADMIN_COOKIE_NAME)?.value === ADMIN_SECRET_VALUE;
 
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 });
+    // Detect logged in student from session cookie
+    let sessionStudentId: string | null = null;
+    const rawStudentVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
+    if (rawStudentVal) {
+      const [id] = rawStudentVal.split(':::');
+      if (id) sessionStudentId = id;
     }
 
     const { searchParams } = new URL(req.url);
-    const studentId = searchParams.get('studentId');
+    let studentId = searchParams.get('studentId');
     const isSummary = searchParams.get('summary') === 'true';
     const isLive = searchParams.get('live') === 'true';
     const isStats = searchParams.get('stats') === 'true';
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
 
-    if (isStats) {
+    // Non-admin authorization guard
+    if (!isAdmin) {
+      if (isLive || isStats || !sessionStudentId) {
+        return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 });
+      }
+      // If student is querying their own data, lock query to their session ID
+      studentId = sessionStudentId;
+    }
+
+    if (isStats && isAdmin) {
       const stats = await CmsService.getPlatformStudyStats();
       return NextResponse.json({ success: true, stats });
     }
 
-    if (isLive) {
+    if (isLive && isAdmin) {
       const liveStudents = await CmsService.getLiveActiveStudents(15);
       return NextResponse.json({ success: true, students: liveStudents });
     }
