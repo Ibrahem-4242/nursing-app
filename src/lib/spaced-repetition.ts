@@ -114,6 +114,13 @@ export function isCardDue(card: Partial<StudentFlashcardProgressRecord>, todaySt
     return card.nextReviewDate <= todayStr;
   }
 
+  // If card was already mastered ('knew') today, it is not due again today
+  if (card.state === 'knew') {
+    if (card.reviewedAt && card.reviewedAt.startsWith(todayStr)) {
+      return false;
+    }
+  }
+
   // If card was rated forgot or misunderstood, it is due immediately
   if (card.state === 'forgot' || card.state === 'misunderstood' || card.state === 'remembered_then_forgot') {
     return true;

@@ -3592,23 +3592,29 @@ export const CmsService = {
       let history: FlashcardReviewHistoryItem[] =
         rec.history && Array.isArray(rec.history) ? [...rec.history] : [];
 
-      if (history.length === 0 && rec.reviewedAt) {
-        history.push({ state: rec.state, reviewedAt: rec.reviewedAt });
+      if (history.length === 0) {
+        history.push({ state: rec.state || 'knew', reviewedAt: rec.reviewedAt || new Date().toISOString() });
       }
 
       // If reviewCount > 1 but history only has 1 record, synthesize earlier review record for visual continuity
       if (history.length === 1 && (rec.reviewCount || 0) > 1) {
-        const earliestTime = new Date(new Date(rec.reviewedAt).getTime() - 24 * 3600 * 1000).toISOString();
+        const rawTime = rec.reviewedAt ? new Date(rec.reviewedAt).getTime() : Date.now();
+        const baseTime = isNaN(rawTime) ? Date.now() : rawTime;
+        const earliestTime = new Date(baseTime - 24 * 3600 * 1000).toISOString();
         history.unshift({
           state: rec.state === 'knew' ? 'forgot' : 'remembered_then_forgot',
           reviewedAt: earliestTime,
         });
       }
 
-      history.sort((a, b) => new Date(a.reviewedAt).getTime() - new Date(b.reviewedAt).getTime());
+      history.sort((a, b) => {
+        const timeA = new Date(a.reviewedAt || 0).getTime();
+        const timeB = new Date(b.reviewedAt || 0).getTime();
+        return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+      });
 
-      const firstItem = history[0];
-      const latestItem = history[history.length - 1];
+      const firstItem = history[0] || { state: rec.state || 'knew', reviewedAt: rec.reviewedAt || new Date().toISOString() };
+      const latestItem = history[history.length - 1] || firstItem;
       const firstState = firstItem.state;
       const latestState = latestItem.state;
       const firstRank = getStateRank(firstState);

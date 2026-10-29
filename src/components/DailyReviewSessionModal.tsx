@@ -7,6 +7,7 @@ import {
   StudentStudyStreak,
 } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
+import { getMedicalTier } from '@/lib/medical-encouragement';
 import CircularProgressRing from '@/components/CircularProgressRing';
 import CelebratoryConfetti from '@/components/CelebratoryConfetti';
 import {
@@ -74,6 +75,7 @@ export default function DailyReviewSessionModal({
   const misunderstoodCount = evaluationsList.filter((s) => s === 'misunderstood').length;
   const forgotCount = evaluationsList.filter((s) => s === 'forgot').length;
   const masteryPercentage = totalCards > 0 ? Math.round((knewCount / totalCards) * 100) : 100;
+  const medicalTier = getMedicalTier(masteryPercentage);
 
   const handleRateCard = async (rating: FlashcardReviewState) => {
     if (!currentCard || isSubmitting) return;
@@ -362,28 +364,33 @@ export default function DailyReviewSessionModal({
                 percentage={masteryPercentage}
                 size={140}
                 strokeWidth={10}
-                gradientColors={['#059669', '#10b981']}
-                glowColor="rgba(16, 185, 129, 0.4)"
-                subLabel="إتقان الجلسة"
+                gradientColors={medicalTier.theme.strokeGradient}
+                glowColor={medicalTier.theme.glowColor}
+                subLabel={medicalTier.headline}
                 uniqueId="daily-session-done"
               />
             </div>
 
             {/* Streak & Celebration Banner */}
             <div className="space-y-3 max-w-lg mx-auto">
-              {updatedStreak.currentStreak > 0 && (
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-400/80 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-black shadow-sm">
-                  <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-bounce" />
-                  <span>مراجع لـ {updatedStreak.currentStreak} أيام متتالية! استمر 🔥</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                  {medicalTier.badge}
+                </span>
+                {updatedStreak.currentStreak > 0 && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-400/80 text-amber-900 dark:text-amber-200 text-xs font-black shadow-sm">
+                    <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-bounce" />
+                    <span>{updatedStreak.currentStreak} أيام متتالية 🔥</span>
+                  </div>
+                )}
+              </div>
 
               <h4 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
-                أبطال التمريض لا يكلّون! أنهيت مراجعة اليوم كاملة بنجاح 🩺✨
+                {medicalTier.headline}
               </h4>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                تمت جدولة الكروت بنجاح وفق خوارزمية التكرار المتباعد الذكية SM-2. استرح الآن وموعدنا غداً في نفس الموعد!
+                {medicalTier.subtext}
               </p>
             </div>
 

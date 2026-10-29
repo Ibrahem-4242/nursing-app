@@ -7,13 +7,13 @@
   "slug": "lec-1791657104297",
   "lectureNumber": 1,
   "title": "Inflammation 1",
-  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (باثولوجي)",
+  "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (با��ولوجي)",
   "isFree": true,
   "price": 0,
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل آمن. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم�� أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -35,7 +35,7 @@
     },
     {
       "id": 3,
-      "front": "How is Inflammation (الالتهاب) defined in pathology?",
+      "front": "How is Inflammation (ال��لتهاب) defined in pathology?",
       "back": "Inflammation (الالتهاب) is defined as a protective immune-vascular response representing the reaction of living tissue against injury.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -94,7 +94,7 @@
       "front": "What is Chemotaxis (الانجذاب الكيميائي)?",
       "back": "Chemotaxis (الانجذاب الكيميائي) is the directional movement of white blood cells toward microbes or injury sites along a chemical gradient.",
       "category": "كروت استذكار",
-      "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
+      "clinicalPearl": "علم الأمراض والالتها�� (Pathology & Inflammation)"
     },
     {
       "id": 12,
@@ -176,7 +176,7 @@
     {
       "id": 23,
       "front": "What is the Complement System (جهاز المتممة)?",
-      "back": "The Complement System (جهاز المتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
+      "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -211,14 +211,14 @@
     {
       "id": 28,
       "front": "What specific chemoattractant Role does Complement fragment C5a play?",
-      "back": "Complement fragment C5a acts as a potent Leukocyte Chemoattractant (جذاب كيميائي قوي لخلايا الدم البيضاء).",
+      "back": "Complement fragment C5a acts as a potent Leukocyte Chemoattractant (جذ��ب كيميائي قوي لخلايا الدم البيضاء).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
       "id": 29,
       "front": "How does Complement fragment C3b facilitate Phagocytosis (البلعمة)?",
-      "back": "C3b acts as an Opsonin (طاهية) by binding to target surfaces and promoting phagocyte receptor attachment.",
+      "back": "C3b acts as an Opsonin (طاه��ة) by binding to target surfaces and promoting phagocyte receptor attachment.",
       "category": "كروت استذكار",
       "clinicalPearl": "عملية البلعمة (Phagocytosis Mechanism)"
     },
@@ -240,7 +240,7 @@
       "id": 32,
       "front": "In which inflammation type are Cardinal Signs (العلامات الرئيسية) characteristically absent?",
       "back": "Cardinal signs are characteristically absent in Chronic Inflammation (الالتهاب المزمن).",
-      "category": "كروت استذكار",
+      "category": "كروت ��ستذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
     {
@@ -392,7 +392,7 @@
     },
     {
       "type": "mindmap",
-      "title": "الخريطة الذهنية الشاملة - Inflammation 1",
+      "title": "الخر��طة الذهنية الشاملة - Inflammation 1",
       "fileSize": "1.2 MB",
       "downloadUrl": "/api/files/1791657103228-p3ocio_المحاضرة_الاولي__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",

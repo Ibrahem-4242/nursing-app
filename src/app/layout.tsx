@@ -1,11 +1,22 @@
 import type { Metadata, Viewport } from 'next';
 import { Cairo } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
+import { cookies, headers } from 'next/headers';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import VisitorTracker from '@/components/VisitorTracker';
+import MaintenanceWrapper from '@/components/MaintenanceWrapper';
+import CamouflageWrapper from '@/components/CamouflageWrapper';
+import AlKhairDairyStore from '@/components/AlKhairDairyStore';
+import StudentAuthModal from '@/components/StudentAuthModal';
+import PWAInstallBanner from '@/components/PWAInstallBanner';
+import { BookmarksProvider } from '@/context/BookmarksContext';
+import { StudentAuthProvider } from '@/context/StudentAuthContext';
+import { CmsService } from '@/lib/cms-db';
+import { ACADEMIC_YEARS } from '@/lib/mock-data';
+import { MaintenanceConfig, PanicModeConfig, PlatformFeaturesConfig } from '@/lib/types';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -20,15 +31,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
 };
-
-import { CmsService } from '@/lib/cms-db';
-import { ACADEMIC_YEARS } from '@/lib/mock-data';
-import { cookies, headers } from 'next/headers';
-import MaintenanceWrapper from '@/components/MaintenanceWrapper';
-import CamouflageWrapper from '@/components/CamouflageWrapper';
-import AlKhairDairyStore from '@/components/AlKhairDairyStore';
-import { MaintenanceConfig, PanicModeConfig, PlatformFeaturesConfig } from '@/lib/types';
-import { StudentAuthProvider } from '@/context/StudentAuthContext';
 
 export async function generateMetadata(): Promise<Metadata> {
   const panicMode = await CmsService.getPanicMode();
@@ -112,9 +114,6 @@ export async function generateMetadata(): Promise<Metadata> {
     },
   };
 }
-import { BookmarksProvider } from '@/context/BookmarksContext';
-import StudentAuthModal from '@/components/StudentAuthModal';
-import PWAInstallBanner from '@/components/PWAInstallBanner';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
