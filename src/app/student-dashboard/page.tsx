@@ -576,20 +576,20 @@ export default function StudentDashboardPage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-black text-teal-200 shadow-md">
-              {student.name.charAt(0)}
+              {(student?.name || 'ط').charAt(0)}
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black">{student.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-black">{student?.name || 'طالب'}</h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/20 text-teal-200 border border-teal-400/30">
-                  {student.university}
+                  {student?.university || 'الجامعة'}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                  السنة {student.yearId === '2' ? 'الثانية' : student.yearId === '3' ? 'الثالثة' : student.yearId === '4' ? 'الرابعة' : 'الأولى'}
+                  السنة {student?.yearId ===  '2' ? 'الثانية' : student.yearId === '3' ? 'الثالثة' : student.yearId === '4' ? 'الرابعة' : 'الأولى'}
                 </span>
               </div>
               <div className="text-xs text-teal-100 flex items-center gap-3">
-                <span className="font-mono" dir="ltr">{student.phone}</span>
+                <span className="font-mono" dir="ltr">{student?.phone || ''}</span>
                 <span>•</span>
                 <span>حساب أكاديمي نشط ✅</span>
               </div>
