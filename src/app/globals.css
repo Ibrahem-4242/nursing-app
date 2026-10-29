@@ -88,3 +88,20 @@
 .animate-medical-pulse {
   animation: medicalPulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Gentle Shake Animation for locked flashcard evaluation */
+@keyframes gentleShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-7px);
+  }
+  40%, 80% {
+    transform: translateX(7px);
+  }
+}
+
+.animate-gentle-shake {
+  animation: gentleShake 0.5s ease-in-out;
+}

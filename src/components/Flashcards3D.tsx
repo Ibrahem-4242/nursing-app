@@ -28,6 +28,7 @@ import {
   Lightbulb,
   Stethoscope,
   CheckCheck,
+  Lock,
 } from 'lucide-react';
 
 export function getFlashcardEncouragingMessage(percent: number): { title: string; subtitle: string; emoji: string } {
@@ -141,6 +142,9 @@ export default function Flashcards3D({
   // Card evaluations: card.id -> FlashcardReviewState
   const [evaluations, setEvaluations] = useState<Record<number, FlashcardReviewState>>({});
   const [needsEvaluationWarning, setNeedsEvaluationWarning] = useState(false);
+  const [shakeButtons, setShakeButtons] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [feedbackState, setFeedbackState] = useState<{
     cardId: number | string;
     rating: FlashcardReviewState;
@@ -320,16 +324,36 @@ export default function Flashcards3D({
     [currentCard, evaluations, currentIndex, activeDeck.length, saveSessionProgress, lectureId, lectureTitle, subjectTitle, feedbackState]
   );
 
+  // Gentle prompt when user attempts to skip without evaluating
+  const triggerEvaluationPrompt = useCallback(() => {
+    setNeedsEvaluationWarning(true);
+    setShakeButtons(true);
+
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(35);
+      } catch {}
+    }
+
+    setTimeout(() => {
+      setShakeButtons(false);
+    }, 550);
+
+    setTimeout(() => {
+      setNeedsEvaluationWarning(false);
+    }, 4500);
+  }, []);
+
   // Next and Previous manual navigation (with strict evaluation requirement on Next)
   const handleNext = useCallback(() => {
     if (!currentCard) return;
 
-    // Strict constraint: Do not allow skipping a card without evaluating its state
+    // Strict constraint: Do not allow advancing without evaluating current card
     if (!evaluations[currentCard.id]) {
-      setNeedsEvaluationWarning(true);
-      setTimeout(() => {
-        setNeedsEvaluationWarning(false);
-      }, 4000);
+      if (!isFlipped) {
+        setIsFlipped(true);
+      }
+      triggerEvaluationPrompt();
       return;
     }
 
@@ -339,7 +363,7 @@ export default function Flashcards3D({
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
     }, 150);
-  }, [currentIndex, activeDeck.length, currentCard, evaluations]);
+  }, [currentIndex, activeDeck.length, currentCard, evaluations, isFlipped, triggerEvaluationPrompt]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex <= 0) return;
@@ -349,6 +373,42 @@ export default function Flashcards3D({
       setCurrentIndex((prev) => prev - 1);
     }, 150);
   }, [currentIndex]);
+
+  // Touch & Swipe navigation handling (with navigation lock for swiping forward)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches && e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    // Horizontal swipe threshold: 45px
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY)) {
+      // In RTL: swiping Left (diffX < 0) advances to Next Card
+      if (diffX < 0) {
+        if (currentCard && !evaluations[currentCard.id]) {
+          if (!isFlipped) setIsFlipped(true);
+          triggerEvaluationPrompt();
+        } else {
+          handleNext();
+        }
+      } else {
+        // Swiping Right goes back to Previous Card
+        handlePrev();
+      }
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
 
   // Restart only non-mastered cards (forgot / remembered_then_forgot / misunderstood)
   const handleRestartForgottenOnly = () => {
@@ -418,7 +478,13 @@ export default function Flashcards3D({
         handleFlip();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        handleNext();
+        // In RTL: ArrowLeft attempts to advance to Next card
+        if (currentCard && !evaluations[currentCard.id]) {
+          if (!isFlipped) setIsFlipped(true);
+          triggerEvaluationPrompt();
+        } else {
+          handleNext();
+        }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         handlePrev();
@@ -439,7 +505,7 @@ export default function Flashcards3D({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSessionFinished, handleNext, handlePrev, handleEvaluate]);
+  }, [isSessionFinished, currentCard, evaluations, isFlipped, handleNext, handlePrev, handleEvaluate, triggerEvaluationPrompt]);
 
   // If no cards exist
   if (!cards || cards.length === 0) {
@@ -819,6 +885,8 @@ export default function Flashcards3D({
           {/* 3D Flip Card Interactive Area */}
           <div
             onClick={handleFlip}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
             className={`relative w-full h-[320px] sm:h-[360px] md:h-[390px] perspective-1000 cursor-pointer select-none group transition-all duration-300 ${
               isSlidingNext ? 'opacity-30 scale-95 -translate-y-2' : 'opacity-100 scale-100 translate-y-0'
             }`}
@@ -911,6 +979,10 @@ export default function Flashcards3D({
           {/* 4. Self-Evaluation Rating Buttons (أسفل الكارت - 4 خيارات تفاعلية واضحة بألوان متناسقة) */}
           <div
             className={`p-4 sm:p-5 rounded-3xl border transition-all duration-300 shadow-sm space-y-3.5 ${
+              shakeButtons
+                ? 'animate-gentle-shake ring-4 ring-amber-400/60 shadow-lg shadow-amber-500/25 border-amber-400 dark:border-amber-500'
+                : ''
+            } ${
               isFlipped
                 ? 'bg-gradient-to-br from-teal-50/50 via-white to-teal-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-teal-950/20 border-teal-300 dark:border-teal-700 shadow-md ring-2 ring-teal-500/25'
                 : 'bg-slate-100/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800'
@@ -923,20 +995,33 @@ export default function Flashcards3D({
               </span>
               <span
                 className={`text-[11px] font-semibold transition ${
-                  isFlipped ? 'text-teal-700 dark:text-teal-300' : 'text-slate-400'
+                  isFlipped ? 'text-teal-700 dark:text-teal-300 font-bold' : 'text-slate-400'
                 }`}
               >
                 {isFlipped
-                  ? '✨ الإجابة معروضة — اختر تقييمك لنقل الكارت فورياً ⚡'
+                  ? '✨ الإجابة معروضة — حدد حالتك لنقل الكارت فورياً وبسلاسة ⚡'
                   : 'اقرأ الإجابة أولاً ثم حدد مستواك بدقة'}
               </span>
             </div>
 
+            {/* Hint when card is not yet flipped */}
+            {!isFlipped && (
+              <div
+                onClick={handleFlip}
+                className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-700/60 text-center cursor-pointer hover:bg-amber-500/20 transition flex items-center justify-center gap-2 group shadow-xs select-none"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:rotate-12 transition shrink-0" />
+                <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                  اضغط على الكارت لقلبه ورؤية الإجابة أولاً لتفعيل التقييم والمتابعة 🔄
+                </span>
+              </div>
+            )}
+
             {/* Warning when attempting to skip without selecting rating */}
             {needsEvaluationWarning && (
-              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/70 border-2 border-amber-400 text-amber-900 dark:text-amber-200 text-xs font-black flex items-center justify-center gap-2 shadow-sm animate-bounce">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                <span>⚠️ تنبيه: يرجى تحديد حالتك مع هذا الكارت أولاً من الأزرار الأربعة بالأسفل لحساب تقدمك بدقة</span>
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 shadow-md animate-gentle-shake">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 animate-pulse" />
+                <span>⚠️ يرجى تحديد مدى تذكرك للكارت أولاً للمتابعة</span>
               </div>
             )}
 
@@ -1100,19 +1185,32 @@ export default function Flashcards3D({
               {isFlipped ? '🔄 عرض السؤال' : '✨ إظهار الإجابة'}
             </button>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={currentIndex >= activeDeck.length - 1 || !!feedbackState}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
-                currentCard && !evaluations[currentCard.id]
-                  ? 'bg-teal-600/70 hover:bg-teal-600 text-white'
-                  : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/25'
-              }`}
-            >
-              <span>البطاقة التالية</span>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            {/* Next Button with Navigation Lock logic */}
+            {currentCard && !evaluations[currentCard.id] ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isFlipped) setIsFlipped(true);
+                  triggerEvaluationPrompt();
+                }}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 hover:border-amber-400 dark:hover:bg-amber-900/50 cursor-pointer shadow-xs active:scale-95"
+                title="يرجى تحديد مدى تذكرك للكارت أولاً للمتابعة"
+              >
+                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>البطاقة التالية</span>
+                <ChevronLeft className="w-4 h-4 opacity-40" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={currentIndex >= activeDeck.length - 1 || !!feedbackState}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-600/25 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                <span>البطاقة التالية</span>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="text-center text-[11px] text-slate-400">
