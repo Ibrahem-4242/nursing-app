@@ -4,6 +4,25 @@ const path = require('path');
 
 const GIST_ID = process.env.GITHUB_GIST_ID || 'c9b4d3dd9bed0d8e8bde23138aff9152';
 const TOKEN = process.env.GITHUB_SYNC_TOKEN || '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8276648021:AAGP3qGqwry8iFZLonT12jhzEFubhVeciIg';
+const TARGET_WEBHOOK = 'https://www.nursingsum.live/api/telegram/webhook';
+
+// Ensure Telegram Webhook is always registered and active
+try {
+  https.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`, (res) => {
+    let d = '';
+    res.on('data', c => d += c);
+    res.on('end', () => {
+      try {
+        const info = JSON.parse(d);
+        if (info.result?.url !== TARGET_WEBHOOK) {
+          console.log('[Telegram Guard] Webhook was inactive. Re-registering to:', TARGET_WEBHOOK);
+          https.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(TARGET_WEBHOOK)}&drop_pending_updates=false`);
+        }
+      } catch {}
+    });
+  }).on('error', () => {});
+} catch {}
 
 console.log('[Prebuild Guard] Checking and syncing live cloud lectures before build...');
 
