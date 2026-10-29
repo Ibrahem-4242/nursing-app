@@ -1,5 +1,8 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStudentAuth } from '@/context/StudentAuthContext';
@@ -64,6 +67,7 @@ export default function StudentDashboardPage() {
   const { student, isLoggedIn, openAuthModal } = useStudentAuth();
   const [summary, setSummary] = useState<StudentActivitySummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'overview' | 'flashcards' | 'timeline'>('overview');
   const [cardSearchQuery, setCardSearchQuery] = useState('');
@@ -92,18 +96,53 @@ export default function StudentDashboardPage() {
 
     let isMounted = true;
     setLoading(true);
+    setErrorMessage(null);
 
     const targetStudentId = student.id || student.phone;
-    const queryUrl = `/api/student/activity?summary=true&studentId=${encodeURIComponent(targetStudentId)}&t=${Date.now()}`;
+
+    // Dual-route fetch: Primary unblockable stats endpoint, fallback to activity endpoint
+    const fetchSummaryData = async (): Promise<StudentActivitySummary | null> => {
+      // 1. Primary dedicated route (immune to Brave Shields and adblockers)
+      try {
+        const url1 = `/api/student/dashboard-stats?studentId=${encodeURIComponent(targetStudentId)}&t=${Date.now()}`;
+        const res1 = await fetch(url1, { cache: 'no-store' });
+        if (res1.ok) {
+          const data1 = await res1.json();
+          if (data1 && data1.success && data1.summary) {
+            return data1.summary;
+          }
+        }
+      } catch (e1) {
+        console.warn('[StudentDashboard] primary dashboard-stats notice:', e1);
+      }
+
+      // 2. Secondary fallback route
+      try {
+        const url2 = `/api/student/activity?summary=true&studentId=${encodeURIComponent(targetStudentId)}&t=${Date.now()}`;
+        const res2 = await fetch(url2, { cache: 'no-store' });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2 && data2.success && data2.summary) {
+            return data2.summary;
+          }
+        }
+      } catch (e2) {
+        console.warn('[StudentDashboard] secondary activity notice:', e2);
+      }
+      return null;
+    };
 
     Promise.all([
-      fetch(queryUrl, { cache: 'no-store' }).then((r) => r.json()),
+      fetchSummaryData(),
       fetch(`/api/features?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
     ])
-      .then(([activityData, featData]) => {
+      .then(([summaryResult, featData]) => {
         if (!isMounted) return;
-        if (activityData && activityData.success && activityData.summary) {
-          setSummary(activityData.summary);
+        if (summaryResult) {
+          setSummary(summaryResult);
+          setErrorMessage(null);
+        } else {
+          setErrorMessage('لم نتمكن من جلب ملخص الإحصائيات، يرجى المحاولة مرة أخرى.');
         }
         if (featData && featData.success && featData.features) {
           setPlatformFeatures(featData.features);
@@ -111,6 +150,7 @@ export default function StudentDashboardPage() {
       })
       .catch((err) => {
         console.warn('Failed to fetch student study summary or features:', err);
+        if (isMounted) setErrorMessage(err?.message || 'خطأ في الاتصال بالشبكة');
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -1946,7 +1986,7 @@ export default function StudentDashboardPage() {
             أهلاً بك يا {student?.name || 'بطل'} في لوحة إحصائياتك الأكاديمية 🩺
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-            لم نتمكن من جلب ملخص النشاط الآن، أو لم تبدأ بعد بجلسات المذاكرة وحل الكويزات لحساب الإحصائيات.
+            {errorMessage || 'لم نتمكن من جلب ملخص النشاط الآن، أو لم تبدأ بعد بجلسات المذاكرة وحل الكويزات لحساب الإحصائيات.'}
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
