@@ -26,17 +26,35 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedYearId = searchParams.get('yearId') || undefined;
+
     const cookieStore = cookies();
     const sessionVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
 
     if (!sessionVal) {
-      // Guest mode: fetch sample queue from free lectures
-      const allLectures = await CmsService.getAllLectures();
+      // Guest mode: fetch sample queue from free lectures strictly matching requested academic year (default 1)
+      const guestYearId = requestedYearId || '1';
+      const [allLectures, allSubjects] = await Promise.all([
+        CmsService.getAllLectures(),
+        CmsService.getAllSubjects(),
+      ]);
+
+      const subjectYearMap = new Map<string, string>();
+      allSubjects.forEach((s) => {
+        if (s.id && s.yearId) {
+          subjectYearMap.set(s.id, String(s.yearId));
+        }
+      });
+
       const guestCards: DailyReviewQueueItem[] = [];
       const todayStr = getCairoDateString();
 
       for (const lec of allLectures) {
         if (guestCards.length >= 10) break;
+        const lecYearId = String(lec.yearId || subjectYearMap.get(lec.subjectId) || '1');
+        if (lecYearId !== guestYearId) continue;
+
         if (lec.isFree && lec.flashcards && lec.flashcards.length > 0) {
           for (const card of lec.flashcards) {
             if (guestCards.length >= 10) break;
@@ -74,7 +92,7 @@ export async function GET(req: NextRequest) {
     }
 
     const [studentId] = sessionVal.split(':::');
-    const queueData = await CmsService.getStudentDailyReviewQueue(studentId);
+    const queueData = await CmsService.getStudentDailyReviewQueue(studentId, requestedYearId);
 
     return NextResponse.json(queueData, {
       headers: {

@@ -483,7 +483,7 @@ export default function StudentDashboardPage() {
       ) : summary ? (
         <>
           {/* 🧠 Daily Spaced Repetition Review Queue Card */}
-          {platformFeatures?.dailyReviewDose !== false && <DailyReviewQueueCard />}
+          {platformFeatures?.dailyReviewDose !== false && <DailyReviewQueueCard yearId={student?.yearId} />}
 
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto scrollbar-none">

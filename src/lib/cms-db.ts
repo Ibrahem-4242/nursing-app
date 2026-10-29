@@ -3791,7 +3791,7 @@ export const CmsService = {
     };
   },
 
-  async getStudentDailyReviewQueue(studentId: string): Promise<DailyReviewQueueResponse> {
+  async getStudentDailyReviewQueue(studentId: string, preferredYearId?: string): Promise<DailyReviewQueueResponse> {
     const store = await getFreshStore();
     const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
     const todayStr = getCairoDateString();
@@ -3810,18 +3810,40 @@ export const CmsService = {
     }
 
     const streak: StudentStudyStreak = student.studyStreak || { currentStreak: 0, longestStreak: 0 };
-    const allLectures = await this.getAllLectures();
+    const [allLectures, allSubjects] = await Promise.all([
+      this.getAllLectures(),
+      this.getAllSubjects(),
+    ]);
     const lectureMap = new Map<string, Lecture>(allLectures.map((l) => [l.id, l]));
+
+    // Build subject-to-year mapping for strict academic year matching
+    const subjectYearMap = new Map<string, string>();
+    allSubjects.forEach((s) => {
+      if (s.id && s.yearId) {
+        subjectYearMap.set(s.id, String(s.yearId));
+      }
+    });
+
+    // Determine student's target academic year
+    const targetYearId = String(student.yearId || student.shakibRakibSubscription?.yearId || preferredYearId || '1');
 
     const reviews = student.flashcardReviews ? Object.values(student.flashcardReviews) : [];
     const dueCardsMap = new Map<string, DailyReviewQueueItem>();
 
-    // 1. Gather all existing cards that are due for review today or overdue
+    // 1. Gather all existing cards that are due for review today or overdue (STRICTLY matching student's year)
     for (const r of reviews) {
       const isCardDueForReview = isCardDue(r, todayStr);
       if (isCardDueForReview) {
         const lec = lectureMap.get(r.lectureId);
-        const lCard = (lec?.flashcards || []).find((c) => String(c.id) === String(r.cardId));
+        if (!lec) continue;
+
+        // Strict academic year filtering: ensure card belongs to student's year
+        const lecYearId = String(lec.yearId || subjectYearMap.get(lec.subjectId) || '1');
+        if (lecYearId !== targetYearId) {
+          continue;
+        }
+
+        const lCard = (lec.flashcards || []).find((c) => String(c.id) === String(r.cardId));
 
         const item: DailyReviewQueueItem = {
           cardId: r.cardId,
@@ -3829,9 +3851,9 @@ export const CmsService = {
           back: r.cardBack || lCard?.back || '',
           clinicalPearl: r.clinicalPearl || lCard?.clinicalPearl || '',
           lectureId: r.lectureId,
-          lectureTitle: r.lectureTitle || lec?.title || `محاضرة (${r.lectureId})`,
-          subjectId: r.subjectId || lec?.subjectId || 'general_subject',
-          subjectTitle: r.subjectTitle || lec?.subjectTitle || 'مواد عامة',
+          lectureTitle: r.lectureTitle || lec.title || `محاضرة (${r.lectureId})`,
+          subjectId: r.subjectId || lec.subjectId || 'general_subject',
+          subjectTitle: r.subjectTitle || lec.subjectTitle || 'مواد عامة',
           state: r.state,
           intervalDays: r.intervalDays || 1,
           repetitions: r.repetitions || 0,
@@ -3846,13 +3868,20 @@ export const CmsService = {
       }
     }
 
-    // 2. If student has fewer than 15 cards, introduce fresh unreviewed cards from their accessible lectures
+    // 2. If student has fewer than 15 cards, introduce fresh unreviewed cards from their accessible lectures (STRICTLY matching student's year)
     if (dueCardsMap.size < 15) {
       const userPurchased = new Set(student.purchasedLectureIds || []);
       const hasShakib = Boolean(student.shakibRakibSubscription?.isActive);
 
       for (const lec of allLectures) {
         if (dueCardsMap.size >= 15) break;
+
+        // Strict academic year filtering: only select lectures from student's academic year
+        const lecYearId = String(lec.yearId || subjectYearMap.get(lec.subjectId) || '1');
+        if (lecYearId !== targetYearId) {
+          continue;
+        }
+
         const isAccessible = lec.isFree || hasShakib || userPurchased.has(lec.id);
         if (!isAccessible) continue;
 

@@ -7,6 +7,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
 import ShakibRakibBanner from '@/components/ShakibRakibBanner';
+import DailyReviewQueueCard from '@/components/DailyReviewQueueCard';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -80,6 +81,11 @@ export default async function YearPage({ params, searchParams }: YearPageProps) 
           yearTitle={year.title}
           monthLabel={shakibConfig.monthLabel}
         />
+      )}
+
+      {/* 🧠 Daily Spaced Repetition Queue Card strictly for this Academic Year */}
+      {platformFeatures.dailyReviewDose !== false && (
+        <DailyReviewQueueCard yearId={year.id} />
       )}
 
       {/* Subjects Grid by Semester */}
