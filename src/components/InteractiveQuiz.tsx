@@ -7,6 +7,9 @@ import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb, Video }
 import QuestionBookmarkButton from '@/components/QuestionBookmarkButton';
 import StudentActivityTracker from '@/components/StudentActivityTracker';
 import VideoPlayer from '@/components/VideoPlayer';
+import { getMedicalTier } from '@/lib/medical-encouragement';
+import CircularProgressRing from '@/components/CircularProgressRing';
+import CelebratoryConfetti from '@/components/CelebratoryConfetti';
 
 interface InteractiveQuizProps {
   questions: QuizQuestion[];
@@ -41,6 +44,7 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
 
   const score = calculateScore();
   const percentage = Math.round((score / questions.length) * 100);
+  const quizTier = getMedicalTier(percentage);
 
   const handleReset = () => {
     setSelectedAnswers({});
@@ -96,43 +100,67 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
         </div>
       </div>
 
-      {/* Score Summary Banner if submitted */}
+      {/* Celebratory Confetti for Tier 10 (>= 91%) */}
+      {showResults && quizTier.confetti && <CelebratoryConfetti />}
+
+      {/* Score Summary Banner if submitted - 10 Precise Medical Tiers */}
       {showResults && (
         <div
-          className={`my-6 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border ${
-            percentage >= 70
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
-              : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'
-          }`}
+          className={`my-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-r ${quizTier.theme.bgLight} ${quizTier.theme.bgDark} border-2 ${quizTier.theme.borderLight} ${quizTier.theme.borderDark} shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in zoom-in-95 duration-300`}
         >
-          <div className="flex items-center gap-4 text-center sm:text-right">
-            <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner ${
-                percentage >= 70 ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
-              }`}
-            >
-              {percentage}%
-            </div>
-            <div>
-              <h4 className="text-base font-bold">
-                {percentage >= 90
-                  ? '🌟 ممتاز جداً! استيعاب متكامل وشامل للمحاضرة.'
-                  : percentage >= 70
-                  ? '👏 نتيجة جيدة جداً! مراجعة النقاط ستجعلك في المقدمة.'
-                  : '💡 بحاجة لمراجعة بعض المفاهيم، راجع الشرح النموذجي بالأسفل.'}
+          <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-right flex-1">
+            <CircularProgressRing
+              percentage={percentage}
+              size={120}
+              strokeWidth={9}
+              gradientColors={quizTier.theme.strokeGradient}
+              glowColor={quizTier.theme.glowColor}
+              subLabel={quizTier.emoji}
+              uniqueId={`quiz-${lectureId || 'general'}`}
+            />
+
+            <div className="space-y-2 flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-black shadow-sm ${quizTier.theme.pillBg} ${quizTier.theme.pillText}`}
+                >
+                  {quizTier.badge}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  نتيجة الكويز التفاعلي 🎯
+                </span>
+              </div>
+
+              <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight">
+                {quizTier.headline}
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                حصلت على {score} إجابات صحيحة من إجمالي {questions.length} أسئلة
+
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed max-w-2xl">
+                {quizTier.subtext}
               </p>
+
+              <div className="text-xs text-slate-500 dark:text-slate-400 pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <span>
+                  أجبت على <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{score}</strong> من إجمالي{' '}
+                  <strong>{questions.length}</strong> أسئلة
+                </span>
+                <span>•</span>
+                <span>
+                  نسبة الإتقان: <strong className="font-mono font-bold">{percentage}%</strong>
+                </span>
+              </div>
             </div>
           </div>
 
-          <button
-            onClick={handleReset}
-            className="px-5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm"
-          >
-            إعادة المحاولة من البداية
-          </button>
+          <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto flex-shrink-0">
+            <button
+              onClick={handleReset}
+              className="px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-teal-500 text-slate-800 dark:text-slate-200 font-black text-xs hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4 text-teal-600" />
+              <span>إعادة الاختبار 🔄</span>
+            </button>
+          </div>
         </div>
       )}
 

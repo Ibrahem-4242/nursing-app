@@ -30,75 +30,22 @@ import {
   CheckCheck,
   Lock,
 } from 'lucide-react';
+import { getMedicalTier, MedicalTier } from '@/lib/medical-encouragement';
+import CircularProgressRing from '@/components/CircularProgressRing';
+import CelebratoryConfetti from '@/components/CelebratoryConfetti';
 
-export function getFlashcardEncouragingMessage(percent: number): { title: string; subtitle: string; emoji: string } {
-  if (percent >= 95) {
-    return {
-      title: 'أسطوري! ذاكرة فولاذية واستيعاب فائق 🌟👑',
-      subtitle: 'أنت جاهز للامتحان بجدارة تامة ومرشح للامتياز! استمر بهذا الحماس والتركيز العالي.',
-      emoji: '👑',
-    };
-  }
-  if (percent >= 85) {
-    return {
-      title: 'ممتاز جداً! أداء بطولي ومستوى متقدم للغاية 🔥💪',
-      subtitle: 'استيعابك للمعلومات دقيق وثابت، أنت من الأوائل بكل ثقة واقتدار.',
-      emoji: '🔥',
-    };
-  }
-  if (percent >= 75) {
-    return {
-      title: 'رائع جداً! استيعاب قوي ومتقن لمعظم النقاط ✨🎯',
-      subtitle: 'أداء متميز! راجع الكروت القليلة المتبقية لتصل للعلامة الكاملة بسهولة.',
-      emoji: '✨',
-    };
-  }
-  if (percent >= 65) {
-    return {
-      title: 'جيد جداً! خطوة ممتازة نحو الإتقان التام 🚀📚',
-      subtitle: 'لديك أساس متين وقوي، ركز على النقاط البسيطة غير المتقنة وستتفوق.',
-      emoji: '🚀',
-    };
-  }
-  if (percent >= 55) {
-    return {
-      title: 'جهد طيب وبداية مبشرة! التكرار هو سر ترسيخ المعلومة 💡🔁',
-      subtitle: 'أنت في المسار الصحيح تماماً، أعد مراجعة الكروت المنسية الآن لتثبيتها في الذاكرة طويلة المدى.',
-      emoji: '💡',
-    };
-  }
-  if (percent >= 45) {
-    return {
-      title: 'في منتصف الطريق! لا تقلق، التكرار يصنع الفارق ⏳🌱',
-      subtitle: 'كل كارت راجعته الآن قرّبك خطوة من الإتقان، أعد جولة التثبيت وستلاحظ القفزة فوراً.',
-      emoji: '⏳',
-    };
-  }
-  if (percent >= 35) {
-    return {
-      title: 'المحاولة هي بداية التفوق الحقيقي! 🔍💪',
-      subtitle: 'اقرأ الشرح واللؤلؤة السريرية لكل كارت، فالتكرار المتباعد كفيل بحفظ أصعب المصطلحات.',
-      emoji: '🔍',
-    };
-  }
-  if (percent >= 25) {
-    return {
-      title: 'الذاكرة تُبنى خطوة بخطوة! استعن بملخص الدرس 📖🩺',
-      subtitle: 'هذه المفاهيم جديدة عليك، أعد قراءة المحاضرة سريعاً ثم عُد للكروت وسترى تحسناً مبهراً.',
-      emoji: '📖',
-    };
-  }
-  if (percent >= 15) {
-    return {
-      title: 'لا بأس! الأخطاء هي أفضل فرصة حقيقية للتعلم 🛡️⚡',
-      subtitle: 'معرفة ما لا تتذكره الآن ينقذك في الامتحان النهائي، خذ نفساً وأعد المحاولة بهدوء.',
-      emoji: '🛡️',
-    };
-  }
+export function getFlashcardEncouragingMessage(percent: number): {
+  title: string;
+  subtitle: string;
+  emoji: string;
+  tier: MedicalTier;
+} {
+  const tier = getMedicalTier(percent);
   return {
-    title: 'كل بداية صعبة! لا تستسلم فالبداية تصنع النجاح 🧠🌱',
-    subtitle: 'اقرأ السؤال والإجابة بتركيز، والتكرار هو السر الذهبي لترسيخ أصعب المعلومات الطبية.',
-    emoji: '🧠',
+    title: tier.headline,
+    subtitle: tier.subtext,
+    emoji: tier.emoji,
+    tier,
   };
 }
 
@@ -600,27 +547,46 @@ export default function Flashcards3D({
       {/* 2. SUMMARY & RESULTS SCREEN (عند انتهاء المجموعة) */}
       {/* ========================================================================= */}
       {isSessionFinished ? (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-xl space-y-8 animate-in fade-in zoom-in-95 duration-200">
-          {/* Header Score Gauge & 10 Dynamic Encouraging Levels */}
-          <div className="text-center space-y-4 max-w-xl mx-auto">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-tr from-teal-500 via-emerald-500 to-teal-400 text-white text-3xl font-black shadow-xl shadow-teal-500/25 mx-auto ring-4 ring-teal-100 dark:ring-teal-950">
-              {finalScore}%
-            </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight">
-                {encouragingMessage.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                {encouragingMessage.subtitle}
-              </p>
-              <div className="text-xs text-slate-400 pt-1">
-                أتقنت <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{knewCount}</strong> من أصل{' '}
-                <strong>{totalInSession}</strong> كارت • نسبة الحفظ الكلية: <strong className="font-mono">{finalScore}%</strong>
+        <>
+          {encouragingMessage.tier.confetti && <CelebratoryConfetti />}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-xl space-y-8 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header Score Gauge & 10 Dynamic Encouraging Levels */}
+            <div className="text-center space-y-4 max-w-xl mx-auto">
+              {/* Smooth Circular Progress Indicator */}
+              <div className="flex justify-center py-2">
+                <CircularProgressRing
+                  percentage={finalScore}
+                  size={135}
+                  strokeWidth={10}
+                  gradientColors={encouragingMessage.tier.theme.strokeGradient}
+                  glowColor={encouragingMessage.tier.theme.glowColor}
+                  subLabel={encouragingMessage.tier.emoji}
+                  uniqueId={`flashcard-${lectureId || 'general'}`}
+                />
               </div>
-            </div>
 
-            {/* 4 Detailed Metric Pills */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <span
+                    className={`px-3.5 py-1 rounded-full text-xs font-black shadow-sm ${encouragingMessage.tier.theme.pillBg} ${encouragingMessage.tier.theme.pillText}`}
+                  >
+                    {encouragingMessage.tier.badge}
+                  </span>
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight">
+                  {encouragingMessage.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium max-w-xl mx-auto">
+                  {encouragingMessage.subtitle}
+                </p>
+                <div className="text-xs text-slate-400 pt-1">
+                  أتقنت <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{knewCount}</strong> من أصل{' '}
+                  <strong>{totalInSession}</strong> كارت • نسبة الحفظ الكلية: <strong className="font-mono">{finalScore}%</strong>
+                </div>
+              </div>
+
+              {/* 4 Detailed Metric Pills */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
               {/* Knew */}
               <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center">
@@ -794,6 +760,7 @@ export default function Flashcards3D({
             )}
           </div>
         </div>
+        </>
       ) : (
         /* ========================================================================= */
         /* 3. ACTIVE FLASHCARD INTERACTIVE REVIEW AREA */
