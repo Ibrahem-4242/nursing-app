@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DailyReviewQueueResponse, DailyReviewQueueItem, StudentStudyStreak } from '@/lib/types';
 import DailyReviewSessionModal from '@/components/DailyReviewSessionModal';
 import { useStudentAuth } from '@/context/StudentAuthContext';
@@ -8,50 +8,134 @@ import {
   Brain,
   Flame,
   Sparkles,
-  CheckCircle2,
   Play,
-  RotateCcw,
   Clock,
+  X,
+  BookOpen,
 } from 'lucide-react';
+
+const POPUP_TRACKER_KEY = 'nursing_daily_review_popup_v1';
+const POPUP_SESSION_DISMISS_KEY = 'nursing_daily_review_popup_dismissed_session';
+
+/**
+ * Returns today's date string in Cairo timezone (YYYY-MM-DD)
+ */
+function getCairoDateStringClient(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
+}
+
+/**
+ * Reads the daily popup impression counter for today
+ */
+function getPopupTracker(): { date: string; count: number } {
+  try {
+    if (typeof window === 'undefined') return { date: '', count: 0 };
+    const raw = localStorage.getItem(POPUP_TRACKER_KEY);
+    if (!raw) return { date: '', count: 0 };
+    const parsed = JSON.parse(raw);
+    const today = getCairoDateStringClient();
+    if (parsed.date !== today) {
+      return { date: today, count: 0 };
+    }
+    return { date: today, count: Number(parsed.count) || 0 };
+  } catch {
+    return { date: '', count: 0 };
+  }
+}
+
+/**
+ * Increments the daily impression counter (up to 2 times a day)
+ */
+function recordPopupAppearance(): number {
+  try {
+    if (typeof window === 'undefined') return 1;
+    const today = getCairoDateStringClient();
+    const current = getPopupTracker();
+    const newCount = (current.date === today ? current.count : 0) + 1;
+    localStorage.setItem(
+      POPUP_TRACKER_KEY,
+      JSON.stringify({ date: today, count: newCount, updatedAt: Date.now() })
+    );
+    return newCount;
+  } catch {
+    return 1;
+  }
+}
 
 export default function DailyReviewQueueCard({
   yearId,
-  className = '',
 }: {
   yearId?: string;
   className?: string;
 }) {
   const { student, isLoggedIn, openAuthModal } = useStudentAuth();
   const [queueData, setQueueData] = useState<DailyReviewQueueResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
-
-  // Check if previously dismissed in this browser session
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && sessionStorage.getItem('daily_queue_dismissed') === 'true') {
-        setIsDismissed(true);
-      }
-    } catch {}
-  }, []);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const hasRecordedAppearanceRef = useRef(false);
 
   // Determine effective academic year
   const effectiveYearId = yearId || student?.yearId || '1';
 
   const fetchQueue = async () => {
     try {
-      setLoading(true);
       const url = `/api/student/daily-queue?yearId=${encodeURIComponent(effectiveYearId)}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const data: DailyReviewQueueResponse = await res.json();
         setQueueData(data);
+
+        // Check if disabled by admin
+        if ((data as any)?.disabled) {
+          setIsPopupOpen(false);
+          return;
+        }
+
+        const dueList = data?.dueCards || [];
+        const isDone = data?.isCompletedToday || false;
+
+        // If no cards due or already completed today, do not pop up
+        if (dueList.length === 0 || isDone) {
+          setIsPopupOpen(false);
+          return;
+        }
+
+        // Check session dismissal (if student dismissed in this current browser tab session)
+        try {
+          if (typeof window !== 'undefined' && sessionStorage.getItem(POPUP_SESSION_DISMISS_KEY) === 'true') {
+            setIsPopupOpen(false);
+            return;
+          }
+        } catch {}
+
+        // Check frequency cap: Strictly maximum 2 times a day
+        const tracker = getPopupTracker();
+        if (tracker.count >= 2) {
+          // Reached daily limit of 2 impressions -> do not pop up
+          setIsPopupOpen(false);
+          return;
+        }
+
+        // Trigger Pop-up in the middle of the screen!
+        setIsPopupOpen(true);
+
+        // Record this appearance (only once per mount)
+        if (!hasRecordedAppearanceRef.current) {
+          hasRecordedAppearanceRef.current = true;
+          recordPopupAppearance();
+        }
       }
     } catch (e) {
       console.warn('[DailyQueueCard] fetch error:', e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -59,29 +143,36 @@ export default function DailyReviewQueueCard({
     fetchQueue();
   }, [student?.id, student?.yearId, effectiveYearId]);
 
-  const streak = queueData?.streak || student?.studyStreak || { currentStreak: 0 };
-  const dueCards = queueData?.dueCards || [];
-  const totalDue = queueData?.totalDue ?? dueCards.length;
-  const subjectsCount = queueData?.subjectsCount || 1;
-  const isCompletedToday = queueData?.isCompletedToday || (totalDue === 0 && streak.currentStreak > 0);
+  // Handle ESC key to dismiss
+  useEffect(() => {
+    if (!isPopupOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleDismiss();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPopupOpen]);
 
-  const handleStartReview = () => {
-    if (dueCards.length > 0) {
-      setIsModalOpen(true);
-    }
-  };
-
-  // When student says "مش فاضي دلوقتي", wipe it completely from in front of them
+  // When student says "مش فاضي دلوقتي ⏳" or clicks 'X', wipe it completely from view
   const handleDismiss = () => {
-    setIsDismissed(true);
+    setIsPopupOpen(false);
     try {
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('daily_queue_dismissed', 'true');
+        sessionStorage.setItem(POPUP_SESSION_DISMISS_KEY, 'true');
       }
     } catch {}
   };
 
+  // When student clicks "اشطا، يلا بينا 🚀"
+  const handleAcceptReview = () => {
+    setIsPopupOpen(false);
+    setIsSessionModalOpen(true);
+  };
+
   const handleSessionCompleted = (newStreak: StudentStudyStreak) => {
+    setIsSessionModalOpen(false);
     setQueueData((prev) =>
       prev
         ? {
@@ -95,196 +186,157 @@ export default function DailyReviewQueueCard({
     );
   };
 
-  // If dismissed by user, wiped from page completely
-  if (isDismissed) {
-    return null;
-  }
-
-  if (loading) {
-    return (
-      <div
-        className={`w-full max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-500/5 via-emerald-500/5 to-teal-500/5 border border-slate-200/80 dark:border-slate-800 animate-pulse my-6 ${className}`}
-        dir="rtl"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-          <div className="space-y-2 flex-1">
-            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
-            <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if ((queueData as any)?.disabled) {
-    return null;
-  }
-
-  // If there are no due cards and not completed today, hide silently
-  if (!isCompletedToday && dueCards.length === 0) {
-    return null;
-  }
+  const streak = queueData?.streak || student?.studyStreak || { currentStreak: 0 };
+  const dueCards = queueData?.dueCards || [];
+  const totalDue = queueData?.totalDue ?? dueCards.length;
+  const subjectsCount = queueData?.subjectsCount || 1;
 
   return (
     <>
-      <div
-        className={`w-full max-w-4xl mx-auto relative overflow-hidden rounded-3xl border transition-all duration-300 my-6 sm:my-8 shadow-2xl ${
-          isCompletedToday
-            ? 'bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-950 border-emerald-300/80 dark:border-emerald-800/60 shadow-emerald-600/10'
-            : 'bg-gradient-to-br from-teal-950/50 via-slate-900/95 to-slate-950 border-teal-500/40 dark:border-teal-600/40 shadow-teal-950/30 text-white'
-        } ${className}`}
-        dir="rtl"
-      >
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+      {/* 🧠 Centered Pop-up Modal (بوب اب في نص الشاشة) */}
+      {isPopupOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+          dir="rtl"
+          onClick={(e) => {
+            // Dismiss if clicked on outer backdrop
+            if (e.target === e.currentTarget) {
+              handleDismiss();
+            }
+          }}
+        >
+          {/* Modal Container */}
+          <div className="relative w-full max-w-lg sm:max-w-xl bg-gradient-to-br from-teal-950/95 via-slate-900/98 to-slate-950 border-2 border-teal-500/40 rounded-3xl shadow-2xl p-6 sm:p-8 text-white overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Subtle decorative glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
 
-        <div className="relative p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          {/* Right info section */}
-          <div className="flex items-start gap-4 flex-1">
-            <div
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${
-                isCompletedToday
-                  ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-500/25 ring-4 ring-emerald-100 dark:ring-emerald-950'
-                  : 'bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-500 text-white shadow-teal-500/25 ring-4 ring-teal-900/50'
-              }`}
+            {/* 'X' Close Button on Top (علامة غلط من فوق) */}
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition border border-white/15 shadow-sm active:scale-95 z-20"
+              title="إغلاق ومسح الكارت"
+              aria-label="إغلاق"
             >
-              {isCompletedToday ? (
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              ) : (
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Badges Bar */}
+            <div className="flex flex-wrap items-center gap-2 mb-4 pr-1">
+              <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-black border border-teal-500/40 flex items-center gap-1.5 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <span>جرعة المراجعة اليومية 🧠</span>
+              </span>
+
+              {/* Academic Year Badge */}
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[11px] font-bold border border-slate-700">
+                {effectiveYearId === '1'
+                  ? 'السنة الأولى 🩺'
+                  : effectiveYearId === '2'
+                  ? 'السنة الثانية 🩺'
+                  : effectiveYearId === '3'
+                  ? 'السنة الثالثة 🩺'
+                  : `السنة ${effectiveYearId} 🩺`}
+              </span>
+
+              {/* Study Streak Badge */}
+              {streak.currentStreak > 0 && (
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black border border-amber-500/40 flex items-center gap-1.5 shadow-xs">
+                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />
+                  <span>مستمر لـ {streak.currentStreak} أيام! 🔥</span>
+                </span>
+              )}
+            </div>
+
+            {/* Content Body */}
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-teal-500/25 ring-4 ring-teal-900/50">
                 <Brain className="w-8 h-8 text-white" />
-              )}
-            </div>
-
-            <div className="space-y-1.5 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-black border border-teal-500/40 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-                  <span>جرعة المراجعة اليومية 🧠</span>
-                </span>
-
-                {/* Academic Year Badge */}
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 text-[11px] font-bold border border-slate-700">
-                  {effectiveYearId === '1'
-                    ? 'السنة الأولى 🩺'
-                    : effectiveYearId === '2'
-                    ? 'السنة الثانية 🩺'
-                    : effectiveYearId === '3'
-                    ? 'السنة الثالثة 🩺'
-                    : `السنة ${effectiveYearId} 🩺`}
-                </span>
-
-                {/* Study Streak Badge */}
-                {streak.currentStreak > 0 ? (
-                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black border border-amber-500/40 flex items-center gap-1.5 shadow-xs">
-                    <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />
-                    <span>راجع لـ {streak.currentStreak} أيام متتالية! 🔥</span>
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 rounded-full bg-slate-800/80 text-slate-400 text-xs font-bold border border-slate-700">
-                    🔥 ابدأ سلسلة استمرارية مذاكرتك اليوم
-                  </span>
-                )}
               </div>
 
-              {isCompletedToday ? (
-                <>
-                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight pt-1">
-                    أبطال التمريض لا يكلّون! أنهيت مراجعة اليوم كاملة بنجاح 🩺✨
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                    استرح الآن وموعدنا غداً لتنشيط الذاكرة قصيرة وطويلة المدى وفق خوارزمية SM-2.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg sm:text-xl font-black leading-tight pt-1 text-white">
-                    عندك{' '}
-                    <strong className="text-teal-400 font-mono text-xl sm:text-2xl">
-                      {totalDue}
-                    </strong>{' '}
-                    كارت مستنيينك تراجعهم النهاردة من{' '}
-                    <strong className="text-white font-bold">
-                      {subjectsCount}
-                    </strong>{' '}
-                    مواد دراسية 📚
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                    5 دقائق بس كافية تثبت أصعب المصطلحات الطبية واللآلئ السريرية في الذاكرة الدائمة! تحب تراجعهم سوا دلوقتي؟ 😉🩺
-                  </p>
-                </>
-              )}
+              <div className="space-y-1.5 flex-1">
+                <h3 className="text-lg sm:text-xl font-black leading-tight text-white">
+                  عندك{' '}
+                  <strong className="text-teal-400 font-mono text-2xl sm:text-3xl">
+                    {totalDue}
+                  </strong>{' '}
+                  كارت مستنيينك تراجعهم النهاردة من{' '}
+                  <strong className="text-white font-bold">
+                    {subjectsCount}
+                  </strong>{' '}
+                  {subjectsCount === 1 ? 'مادة دراسية' : 'مواد دراسية'} 📚
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                  5 دقائق بس كافية تثبت أصعب المصطلحات الطبية واللآلئ السريرية في الذاكرة الدائمة! تحب تراجعهم سوا دلوقتي؟ 😉🩺
+                </p>
+              </div>
+            </div>
 
-              {/* Subject Breakdown Pills if cards available */}
-              {!isCompletedToday && queueData?.subjectsBreakdown && queueData.subjectsBreakdown.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {queueData.subjectsBreakdown.map((sb) => (
-                    <span
-                      key={sb.subjectId}
-                      className="px-2.5 py-0.5 rounded-lg bg-slate-800/80 text-[11px] font-bold text-slate-300 border border-slate-700"
-                    >
-                      {sb.subjectTitle} ({sb.count})
-                    </span>
-                  ))}
+            {/* Subject Breakdown Pills if available */}
+            {queueData?.subjectsBreakdown && queueData.subjectsBreakdown.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-6 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 pl-1">
+                  <BookOpen className="w-3.5 h-3.5 text-teal-400" />
+                  <span>المواد:</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Left action button section: 2 Choices */}
-          <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-stretch gap-2.5 flex-shrink-0">
-            {!isCompletedToday ? (
-              <div className="flex flex-col sm:flex-row md:flex-col gap-2.5">
-                {/* الخيار الأول: اشطا، يلا بينا */}
-                <button
-                  type="button"
-                  onClick={handleStartReview}
-                  className="py-3 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group whitespace-nowrap"
-                >
-                  <Play className="w-4 h-4 text-white fill-white transition group-hover:scale-110" />
-                  <span>اشطا، يلا بينا 🚀</span>
-                </button>
-
-                {/* الخيار الثاني: مش فاضي دلوقتي -> مسح كامل فوري */}
-                <button
-                  type="button"
-                  onClick={handleDismiss}
-                  className="py-3 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 font-bold text-xs transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap shadow-sm"
-                  title="إغلاق ومسح الكارت فوراً"
-                >
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>مش فاضي دلوقتي ⏳</span>
-                </button>
+                {queueData.subjectsBreakdown.map((sb) => (
+                  <span
+                    key={sb.subjectId}
+                    className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-[11px] font-bold text-slate-200 border border-slate-700"
+                  >
+                    {sb.subjectTitle} ({sb.count})
+                  </span>
+                ))}
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleStartReview}
-                className="py-3 px-5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-black text-xs shadow-sm transition flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4 text-emerald-600" />
-                <span>مراجعة إضافية اختيارية 🔁</span>
-              </button>
             )}
 
-            {!isLoggedIn && (
+            {/* Two Action Buttons */}
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+              {/* خيار 2: مش فاضي دلوقتي -> مسح فوري من قدام الطالب */}
               <button
                 type="button"
-                onClick={() => openAuthModal('login')}
-                className="text-[11px] text-teal-400 hover:underline text-center font-bold pt-1"
+                onClick={handleDismiss}
+                className="flex-1 py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 font-bold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
               >
-                سجّل دخولك لحفظ الاستمرارية سحابياً 🔐
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span>مش فاضي دلوقتي ⏳</span>
               </button>
+
+              {/* خيار 1: اشطا، يلا بينا */}
+              <button
+                type="button"
+                onClick={handleAcceptReview}
+                className="flex-[1.3] py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Play className="w-4 h-4 text-white fill-white transition group-hover:scale-110" />
+                <span>اشطا، يلا بينا 🚀</span>
+              </button>
+            </div>
+
+            {/* Guest note if not logged in */}
+            {!isLoggedIn && (
+              <div className="pt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDismiss();
+                    openAuthModal('login');
+                  }}
+                  className="text-[11px] text-teal-400 hover:underline font-bold"
+                >
+                  سجّل حسابك لحفظ تكرارات SM-2 واستمراريتك سحابياً 🔐
+                </button>
+              </div>
             )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Review Session Modal */}
       <DailyReviewSessionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isSessionModalOpen}
+        onClose={() => setIsSessionModalOpen(false)}
         cards={dueCards}
         currentStreak={streak.currentStreak}
         onSessionCompleted={handleSessionCompleted}
