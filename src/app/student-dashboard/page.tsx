@@ -1,10 +1,9 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { SUBJECTS } from '@/lib/mock-data';
 import { useStudentAuth } from '@/context/StudentAuthContext';
 import DailyReviewQueueCard from '@/components/DailyReviewQueueCard';
 import {
@@ -15,6 +14,8 @@ import {
   SpacedRepetitionSubjectGroup,
   SpacedRepetitionLectureGroup,
   PlatformFeaturesConfig,
+  SubjectStudyProgress,
+  StudentUser,
 } from '@/lib/types';
 import {
   GraduationCap,
@@ -63,8 +64,71 @@ import {
   FolderTree,
 } from 'lucide-react';
 
+
+function createZeroSummary(student: StudentUser | null): StudentActivitySummary {
+  const targetYearId = student?.yearId || '1';
+  const defaultSubjects = SUBJECTS.filter((s) => s.yearId === targetYearId);
+  const subjectProgress: SubjectStudyProgress[] = defaultSubjects.map((s) => ({
+    subjectId: s.id,
+    subjectTitle: s.title,
+    totalLectures: s.totalLectures || 0,
+    openedLecturesCount: 0,
+    percent: 0,
+    totalDurationSeconds: 0,
+  }));
+
+  return {
+    studentId: student?.id || student?.phone || '',
+    studentName: student?.name || 'طالب',
+    studentPhone: student?.phone || '',
+    university: student?.university || '',
+    yearId: targetYearId,
+    totalStudySeconds: 0,
+    totalSessions: 0,
+    byTypeBreakdown: {},
+    recentLogs: [],
+    subjectProgress,
+    quizStats: {
+      totalQuizzesTaken: 0,
+      averageScorePercent: 0,
+      quizzes: [],
+    },
+    flashcardsStats: {
+      totalSessions: 0,
+      totalDurationSeconds: 0,
+    },
+    flashcardMemory: {
+      totalReviewed: 0,
+      masteredCount: 0,
+      rememberedThenForgotCount: 0,
+      misunderstoodCount: 0,
+      forgotCount: 0,
+      needsPracticeCount: 0,
+      masteryPercentage: 0,
+      rememberedThenForgotPercentage: 0,
+      misunderstoodPercentage: 0,
+      forgotPercentage: 0,
+      byLecture: [],
+      forgottenCards: [],
+      misunderstoodCards: [],
+      repeatedCards: [],
+      spacedRepetition: {
+        totalRepeatedCards: 0,
+        totalReviewsAcrossRepeated: 0,
+        improvedCardsCount: 0,
+        declinedCardsCount: 0,
+        stableMasteredCount: 0,
+        strugglingCount: 0,
+        mostRepeatedCards: [],
+        hierarchyBySubject: [],
+      },
+    },
+    devicesUsed: [],
+  };
+}
+
 export default function StudentDashboardPage() {
-  const { student, isLoggedIn, openAuthModal } = useStudentAuth();
+  const { student, isLoggedIn, openAuthModal, isLoading: authLoading } = useStudentAuth();
   const [summary, setSummary] = useState<StudentActivitySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -87,6 +151,31 @@ export default function StudentDashboardPage() {
   const [expandedCardHistory, setExpandedCardHistory] = useState<Record<string, boolean>>({});
   const [revealedSpacedAnswers, setRevealedSpacedAnswers] = useState<Record<string, boolean>>({});
   const [platformFeatures, setPlatformFeatures] = useState<PlatformFeaturesConfig | null>(null);
+
+  const activeSummary = summary || createZeroSummary(student);
+  const targetYearId = student?.yearId || '1';
+  const defaultYearSubjects = SUBJECTS.filter((s) => s.yearId === targetYearId).map((s) => ({
+    subjectId: s.id,
+    subjectTitle: s.title,
+    totalLectures: s.totalLectures || 0,
+    openedLecturesCount: 0,
+    percent: 0,
+    totalDurationSeconds: 0,
+  }));
+  const effectiveSubjectProgress: SubjectStudyProgress[] =
+    (activeSummary.subjectProgress && activeSummary.subjectProgress.length > 0)
+      ? activeSummary.subjectProgress
+      : defaultYearSubjects.length > 0
+      ? defaultYearSubjects
+      : SUBJECTS.slice(0, 3).map((s) => ({
+          subjectId: s.id,
+          subjectTitle: s.title,
+          totalLectures: s.totalLectures || 0,
+          openedLecturesCount: 0,
+          percent: 0,
+          totalDurationSeconds: 0,
+        }));
+
 
   useEffect(() => {
     if (!isLoggedIn || !student) {
@@ -286,8 +375,8 @@ export default function StudentDashboardPage() {
   };
 
   const handleExportSpacedSummary = () => {
-    if (!summary?.flashcardMemory?.spacedRepetition) return;
-    const sp = summary.flashcardMemory.spacedRepetition;
+    if (!activeSummary.flashcardMemory?.spacedRepetition) return;
+    const sp = activeSummary.flashcardMemory.spacedRepetition;
 
     let text = `📋 تقرير تحليلات تكرار المراجعة (Spaced Repetition Analytics)\n`;
     text += `👤 الطالب: ${student?.name || 'غير معروف'} (${student?.phone || ''})\n`;
@@ -349,7 +438,7 @@ export default function StudentDashboardPage() {
   };
 
   const filteredSpacedHierarchy = (() => {
-    const sp = summary?.flashcardMemory?.spacedRepetition;
+    const sp = activeSummary.flashcardMemory?.spacedRepetition;
     if (!sp || !sp.hierarchyBySubject || sp.hierarchyBySubject.length === 0) return [];
 
     const now = Date.now();
@@ -425,7 +514,7 @@ export default function StudentDashboardPage() {
   );
 
   const availableSpacedSubjects = (() => {
-    const sp = summary?.flashcardMemory?.spacedRepetition;
+    const sp = activeSummary.flashcardMemory?.spacedRepetition;
     if (!sp || !sp.hierarchyBySubject) return [];
     return sp.hierarchyBySubject.map((s) => ({
       id: s.subjectId,
@@ -433,6 +522,17 @@ export default function StudentDashboardPage() {
       count: s.totalCards,
     }));
   })();
+
+    if (authLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4 py-12" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-bold text-slate-500">جاري فحص الحساب الأكاديمي...</p>
+        </div>
+      </div>
+    );
+  }
 
   // NOT LOGGED IN STATE
   if (!isLoggedIn || !student) {
@@ -463,7 +563,7 @@ export default function StudentDashboardPage() {
     );
   }
 
-  const filteredLogs = (summary?.recentLogs || []).filter((log) => {
+  const filteredLogs = (activeSummary.recentLogs || []).filter((log) => {
     if (selectedFilter === 'all') return true;
     return log.targetType === selectedFilter;
   });
@@ -518,13 +618,28 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-bold text-slate-500">جاري جمع وتحليل بيانات نشاطك الأكاديمي...</p>
+      {/* Subtle sync indicators */}
+      {loading && !summary && (
+        <div className="flex items-center gap-2 p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-bold animate-pulse">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          <span>جاري مزامنة أحدث إحصائياتك من السيرفر الأكاديمي...</span>
         </div>
-      ) : summary ? (
-        <>
+      )}
+      {errorMessage && (
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>يتم عرض البيانات التأسيسية الآن، اضغط تحديث للمزامنة المباشرة.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className="px-2.5 py-1 rounded-xl bg-amber-600 text-white text-[11px] hover:bg-amber-700 transition"
+          >
+            تحديث الآن
+          </button>
+        </div>
+      )}
           {/* 🧠 Daily Spaced Repetition Review Queue Card */}
           {platformFeatures?.dailyReviewDose !== false && <DailyReviewQueueCard yearId={student?.yearId} />}
 
@@ -555,9 +670,9 @@ export default function StudentDashboardPage() {
               >
                 <Layers className="w-4 h-4" />
                 <span>كروت الاستذكار والذاكرة 🎴</span>
-                {summary.flashcardMemory?.forgottenCards && summary.flashcardMemory.forgottenCards.length > 0 && (
+                {activeSummary.flashcardMemory?.forgottenCards && activeSummary.flashcardMemory.forgottenCards.length > 0 && (
                   <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold">
-                    {summary.flashcardMemory.forgottenCards.length}
+                    {activeSummary.flashcardMemory.forgottenCards.length}
                   </span>
                 )}
               </button>
@@ -594,7 +709,7 @@ export default function StudentDashboardPage() {
                   <div>
                     <span className="text-[11px] font-bold text-slate-400 block">وقت المذاكرة الفعلي</span>
                     <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                      {formatStudyDurationArabic(summary.totalStudySeconds)}
+                      {formatStudyDurationArabic(activeSummary.totalStudySeconds)}
                     </span>
                   </div>
                   <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold block">
@@ -610,7 +725,7 @@ export default function StudentDashboardPage() {
                   <div>
                     <span className="text-[11px] font-bold text-slate-400 block">المحتويات المذاكرة</span>
                     <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                      {summary.totalSessions}
+                      {activeSummary.totalSessions}
                     </span>
                   </div>
                   <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold block">
@@ -627,27 +742,27 @@ export default function StudentDashboardPage() {
                     <span className="text-[11px] font-bold text-slate-400 block">كروت الاستذكار والذاكرة</span>
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                        {summary.flashcardMemory?.totalReviewed || summary.byTypeBreakdown?.flashcards?.count || 0}
+                        {activeSummary.flashcardMemory?.totalReviewed || activeSummary.byTypeBreakdown?.flashcards?.count || 0}
                       </span>
-                      {summary.flashcardMemory?.masteryPercentage !== undefined ? (
+                      {activeSummary.flashcardMemory?.masteryPercentage !== undefined ? (
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          ({summary.flashcardMemory.masteryPercentage}% إتقان)
+                          ({activeSummary.flashcardMemory.masteryPercentage}% إتقان)
                         </span>
                       ) : null}
                     </div>
                   </div>
-                  {summary.flashcardMemory && summary.flashcardMemory.totalReviewed > 0 ? (
+                  {activeSummary.flashcardMemory && activeSummary.flashcardMemory.totalReviewed > 0 ? (
                     <div className="pt-1 text-[10px] space-y-1.5">
                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
-                        <div className="bg-emerald-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.masteryPercentage}%` }} title={`متقنة: ${summary.flashcardMemory.masteryPercentage}%`} />
-                        <div className="bg-amber-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.rememberedThenForgotPercentage}%` }} title={`فاكرها ونسيت: ${summary.flashcardMemory.rememberedThenForgotPercentage}%`} />
-                        <div className="bg-indigo-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.misunderstoodPercentage}%` }} title={`وصلت غلط: ${summary.flashcardMemory.misunderstoodPercentage}%`} />
-                        <div className="bg-rose-500 h-full transition-all" style={{ width: `${summary.flashcardMemory.forgotPercentage}%` }} title={`منسية: ${summary.flashcardMemory.forgotPercentage}%`} />
+                        <div className="bg-emerald-500 h-full transition-all" style={{ width: `${activeSummary.flashcardMemory.masteryPercentage}%` }} title={`متقنة: ${activeSummary.flashcardMemory.masteryPercentage}%`} />
+                        <div className="bg-amber-500 h-full transition-all" style={{ width: `${activeSummary.flashcardMemory.rememberedThenForgotPercentage}%` }} title={`فاكرها ونسيت: ${activeSummary.flashcardMemory.rememberedThenForgotPercentage}%`} />
+                        <div className="bg-indigo-500 h-full transition-all" style={{ width: `${activeSummary.flashcardMemory.misunderstoodPercentage}%` }} title={`وصلت غلط: ${activeSummary.flashcardMemory.misunderstoodPercentage}%`} />
+                        <div className="bg-rose-500 h-full transition-all" style={{ width: `${activeSummary.flashcardMemory.forgotPercentage}%` }} title={`منسية: ${activeSummary.flashcardMemory.forgotPercentage}%`} />
                       </div>
                       <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                        <span className="text-emerald-600 dark:text-emerald-400">🟢 {summary.flashcardMemory.masteredCount} متقن</span>
-                        <span className="text-indigo-600 dark:text-indigo-400">🩺 {summary.flashcardMemory.misunderstoodCount} تصحيح</span>
-                        <span className="text-rose-600 dark:text-rose-400">🔴 {summary.flashcardMemory.forgotCount} منسي</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">🟢 {activeSummary.flashcardMemory.masteredCount} متقن</span>
+                        <span className="text-indigo-600 dark:text-indigo-400">🩺 {activeSummary.flashcardMemory.misunderstoodCount} تصحيح</span>
+                        <span className="text-rose-600 dark:text-rose-400">🔴 {activeSummary.flashcardMemory.forgotCount} منسي</span>
                       </div>
                     </div>
                   ) : (
@@ -666,11 +781,11 @@ export default function StudentDashboardPage() {
                     <span className="text-[11px] font-bold text-slate-400 block">الكويزات والامتحانات</span>
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                        {summary.quizStats?.totalQuizzesTaken || 0}
+                        {activeSummary.quizStats?.totalQuizzesTaken || 0}
                       </span>
-                      {summary.quizStats?.averageScorePercent ? (
+                      {activeSummary.quizStats?.averageScorePercent ? (
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          (متوسط {summary.quizStats.averageScorePercent}%)
+                          (متوسط {activeSummary.quizStats.averageScorePercent}%)
                         </span>
                       ) : null}
                     </div>
@@ -682,7 +797,7 @@ export default function StudentDashboardPage() {
               </div>
 
               {/* Subject Progress Breakdown */}
-              {summary.subjectProgress && summary.subjectProgress.length > 0 && (
+              {effectiveSubjectProgress && effectiveSubjectProgress.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -697,7 +812,7 @@ export default function StudentDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {summary.subjectProgress.map((sub) => (
+                    {effectiveSubjectProgress.map((sub) => (
                       <Link
                         key={sub.subjectId}
                         href={`/subject/${sub.subjectId}`}
@@ -735,7 +850,7 @@ export default function StudentDashboardPage() {
               )}
 
               {/* Quiz Performance History */}
-              {summary.quizStats && summary.quizStats.quizzes.length > 0 && (
+              {activeSummary.quizStats && activeSummary.quizStats.quizzes.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -750,7 +865,7 @@ export default function StudentDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {summary.quizStats.quizzes.map((quiz) => {
+                    {activeSummary.quizStats.quizzes.map((quiz) => {
                       const pct = quiz.percentage ?? 0;
                       const isHigh = pct >= 80;
                       const isMid = pct >= 60 && pct < 80;
@@ -798,7 +913,7 @@ export default function StudentDashboardPage() {
               )}
 
               {/* Devices Used Info */}
-              {summary.devicesUsed && summary.devicesUsed.length > 0 && (
+              {activeSummary.devicesUsed && activeSummary.devicesUsed.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-teal-600" />
@@ -811,7 +926,7 @@ export default function StudentDashboardPage() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {summary.devicesUsed.map((dev, idx) => (
+                    {activeSummary.devicesUsed.map((dev, idx) => (
                       <div
                         key={dev.deviceId || idx}
                         className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
@@ -867,7 +982,7 @@ export default function StudentDashboardPage() {
                   <div className="text-left sm:text-right bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
                     <span className="text-[11px] text-amber-200 block">إجمالي كروت المنهج المراجعة:</span>
                     <div className="text-3xl font-black font-mono text-yellow-300">
-                      {summary.flashcardMemory?.totalReviewed || 0} <span className="text-sm font-normal text-amber-100">كارت</span>
+                      {activeSummary.flashcardMemory?.totalReviewed || 0} <span className="text-sm font-normal text-amber-100">كارت</span>
                     </div>
                   </div>
                 </div>
@@ -881,7 +996,7 @@ export default function StudentDashboardPage() {
                         <Award className="w-4 h-4" />
                       </span>
                       <span className="text-2xl font-black font-mono text-emerald-300">
-                        {summary.flashcardMemory?.masteryPercentage || 0}%
+                        {activeSummary.flashcardMemory?.masteryPercentage || 0}%
                       </span>
                     </div>
                     <div>
@@ -893,7 +1008,7 @@ export default function StudentDashboardPage() {
                     </div>
                     <div className="pt-2 border-t border-emerald-400/20 flex items-center justify-between text-xs text-emerald-100">
                       <span>العدد الفعلي:</span>
-                      <strong className="font-mono font-black text-emerald-300">{summary.flashcardMemory?.masteredCount || 0} كارت</strong>
+                      <strong className="font-mono font-black text-emerald-300">{activeSummary.flashcardMemory?.masteredCount || 0} كارت</strong>
                     </div>
                   </div>
 
@@ -904,7 +1019,7 @@ export default function StudentDashboardPage() {
                         <Lightbulb className="w-4 h-4" />
                       </span>
                       <span className="text-2xl font-black font-mono text-amber-300">
-                        {summary.flashcardMemory?.rememberedThenForgotPercentage || 0}%
+                        {activeSummary.flashcardMemory?.rememberedThenForgotPercentage || 0}%
                       </span>
                     </div>
                     <div>
@@ -916,7 +1031,7 @@ export default function StudentDashboardPage() {
                     </div>
                     <div className="pt-2 border-t border-amber-400/20 flex items-center justify-between text-xs text-amber-100">
                       <span>العدد الفعلي:</span>
-                      <strong className="font-mono font-black text-amber-300">{summary.flashcardMemory?.rememberedThenForgotCount || 0} كارت</strong>
+                      <strong className="font-mono font-black text-amber-300">{activeSummary.flashcardMemory?.rememberedThenForgotCount || 0} كارت</strong>
                     </div>
                   </div>
 
@@ -927,7 +1042,7 @@ export default function StudentDashboardPage() {
                         <Stethoscope className="w-4 h-4" />
                       </span>
                       <span className="text-2xl font-black font-mono text-indigo-200">
-                        {summary.flashcardMemory?.misunderstoodPercentage || 0}%
+                        {activeSummary.flashcardMemory?.misunderstoodPercentage || 0}%
                       </span>
                     </div>
                     <div>
@@ -941,7 +1056,7 @@ export default function StudentDashboardPage() {
                     </div>
                     <div className="pt-2 border-t border-indigo-400/20 flex items-center justify-between text-xs text-indigo-100">
                       <span>العدد الفعلي:</span>
-                      <strong className="font-mono font-black text-indigo-200">{summary.flashcardMemory?.misunderstoodCount || 0} كارت</strong>
+                      <strong className="font-mono font-black text-indigo-200">{activeSummary.flashcardMemory?.misunderstoodCount || 0} كارت</strong>
                     </div>
                   </div>
 
@@ -952,7 +1067,7 @@ export default function StudentDashboardPage() {
                         <RotateCw className="w-4 h-4" />
                       </span>
                       <span className="text-2xl font-black font-mono text-rose-300">
-                        {summary.flashcardMemory?.forgotPercentage || 0}%
+                        {activeSummary.flashcardMemory?.forgotPercentage || 0}%
                       </span>
                     </div>
                     <div>
@@ -964,7 +1079,7 @@ export default function StudentDashboardPage() {
                     </div>
                     <div className="pt-2 border-t border-rose-400/20 flex items-center justify-between text-xs text-rose-100">
                       <span>العدد الفعلي:</span>
-                      <strong className="font-mono font-black text-rose-300">{summary.flashcardMemory?.forgotCount || 0} كارت</strong>
+                      <strong className="font-mono font-black text-rose-300">{activeSummary.flashcardMemory?.forgotCount || 0} كارت</strong>
                     </div>
                   </div>
                 </div>
@@ -980,49 +1095,49 @@ export default function StudentDashboardPage() {
                     </h3>
                   </div>
                   <span className="text-xs text-slate-400">
-                    مبني على تقييمك الحقيقي لـ {summary.flashcardMemory?.totalReviewed || 0} كارت
+                    مبني على تقييمك الحقيقي لـ {activeSummary.flashcardMemory?.totalReviewed || 0} كارت
                   </span>
                 </div>
 
                 {/* Stacked Proportional Bar */}
                 <div className="space-y-2">
                   <div className="w-full bg-slate-100 dark:bg-slate-800 h-5 rounded-2xl overflow-hidden flex p-0.5 shadow-inner">
-                    {summary.flashcardMemory && summary.flashcardMemory.totalReviewed > 0 ? (
+                    {activeSummary.flashcardMemory && activeSummary.flashcardMemory.totalReviewed > 0 ? (
                       <>
-                        {summary.flashcardMemory.masteryPercentage > 0 && (
+                        {activeSummary.flashcardMemory.masteryPercentage > 0 && (
                           <div
                             className="bg-emerald-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
-                            style={{ width: `${summary.flashcardMemory.masteryPercentage}%` }}
-                            title={`متقنة: ${summary.flashcardMemory.masteryPercentage}%`}
+                            style={{ width: `${activeSummary.flashcardMemory.masteryPercentage}%` }}
+                            title={`متقنة: ${activeSummary.flashcardMemory.masteryPercentage}%`}
                           >
-                            {summary.flashcardMemory.masteryPercentage >= 10 ? `${summary.flashcardMemory.masteryPercentage}%` : ''}
+                            {activeSummary.flashcardMemory.masteryPercentage >= 10 ? `${activeSummary.flashcardMemory.masteryPercentage}%` : ''}
                           </div>
                         )}
-                        {summary.flashcardMemory.rememberedThenForgotPercentage > 0 && (
+                        {activeSummary.flashcardMemory.rememberedThenForgotPercentage > 0 && (
                           <div
                             className="bg-amber-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
-                            style={{ width: `${summary.flashcardMemory.rememberedThenForgotPercentage}%` }}
-                            title={`كنت فاكرها ونسيت: ${summary.flashcardMemory.rememberedThenForgotPercentage}%`}
+                            style={{ width: `${activeSummary.flashcardMemory.rememberedThenForgotPercentage}%` }}
+                            title={`كنت فاكرها ونسيت: ${activeSummary.flashcardMemory.rememberedThenForgotPercentage}%`}
                           >
-                            {summary.flashcardMemory.rememberedThenForgotPercentage >= 10 ? `${summary.flashcardMemory.rememberedThenForgotPercentage}%` : ''}
+                            {activeSummary.flashcardMemory.rememberedThenForgotPercentage >= 10 ? `${activeSummary.flashcardMemory.rememberedThenForgotPercentage}%` : ''}
                           </div>
                         )}
-                        {summary.flashcardMemory.misunderstoodPercentage > 0 && (
+                        {activeSummary.flashcardMemory.misunderstoodPercentage > 0 && (
                           <div
                             className="bg-indigo-600 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
-                            style={{ width: `${summary.flashcardMemory.misunderstoodPercentage}%` }}
-                            title={`المعلومة وصلت غلط: ${summary.flashcardMemory.misunderstoodPercentage}%`}
+                            style={{ width: `${activeSummary.flashcardMemory.misunderstoodPercentage}%` }}
+                            title={`المعلومة وصلت غلط: ${activeSummary.flashcardMemory.misunderstoodPercentage}%`}
                           >
-                            {summary.flashcardMemory.misunderstoodPercentage >= 10 ? `${summary.flashcardMemory.misunderstoodPercentage}%` : ''}
+                            {activeSummary.flashcardMemory.misunderstoodPercentage >= 10 ? `${activeSummary.flashcardMemory.misunderstoodPercentage}%` : ''}
                           </div>
                         )}
-                        {summary.flashcardMemory.forgotPercentage > 0 && (
+                        {activeSummary.flashcardMemory.forgotPercentage > 0 && (
                           <div
                             className="bg-rose-500 h-full rounded-xl transition-all duration-700 flex items-center justify-center text-[10px] text-white font-bold font-mono px-1 truncate"
-                            style={{ width: `${summary.flashcardMemory.forgotPercentage}%` }}
-                            title={`منسية / صعبة: ${summary.flashcardMemory.forgotPercentage}%`}
+                            style={{ width: `${activeSummary.flashcardMemory.forgotPercentage}%` }}
+                            title={`منسية / صعبة: ${activeSummary.flashcardMemory.forgotPercentage}%`}
                           >
-                            {summary.flashcardMemory.forgotPercentage >= 10 ? `${summary.flashcardMemory.forgotPercentage}%` : ''}
+                            {activeSummary.flashcardMemory.forgotPercentage >= 10 ? `${activeSummary.flashcardMemory.forgotPercentage}%` : ''}
                           </div>
                         )}
                       </>
@@ -1041,7 +1156,7 @@ export default function StudentDashboardPage() {
                         <span className="font-bold text-emerald-900 dark:text-emerald-200">متقنة ومحفوظة</span>
                       </div>
                       <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">
-                        {summary.flashcardMemory?.masteryPercentage || 0}% ({summary.flashcardMemory?.masteredCount || 0})
+                        {activeSummary.flashcardMemory?.masteryPercentage || 0}% ({activeSummary.flashcardMemory?.masteredCount || 0})
                       </span>
                     </div>
 
@@ -1051,7 +1166,7 @@ export default function StudentDashboardPage() {
                         <span className="font-bold text-amber-900 dark:text-amber-200">كنت فاكرها ونسيت</span>
                       </div>
                       <span className="font-mono font-black text-amber-700 dark:text-amber-400">
-                        {summary.flashcardMemory?.rememberedThenForgotPercentage || 0}% ({summary.flashcardMemory?.rememberedThenForgotCount || 0})
+                        {activeSummary.flashcardMemory?.rememberedThenForgotPercentage || 0}% ({activeSummary.flashcardMemory?.rememberedThenForgotCount || 0})
                       </span>
                     </div>
 
@@ -1061,7 +1176,7 @@ export default function StudentDashboardPage() {
                         <span className="font-bold text-indigo-900 dark:text-indigo-200">وصلتلي غلط</span>
                       </div>
                       <span className="font-mono font-black text-indigo-700 dark:text-indigo-400">
-                        {summary.flashcardMemory?.misunderstoodPercentage || 0}% ({summary.flashcardMemory?.misunderstoodCount || 0})
+                        {activeSummary.flashcardMemory?.misunderstoodPercentage || 0}% ({activeSummary.flashcardMemory?.misunderstoodCount || 0})
                       </span>
                     </div>
 
@@ -1071,7 +1186,7 @@ export default function StudentDashboardPage() {
                         <span className="font-bold text-rose-900 dark:text-rose-200">منسية / صعبة</span>
                       </div>
                       <span className="font-mono font-black text-rose-700 dark:text-rose-400">
-                        {summary.flashcardMemory?.forgotPercentage || 0}% ({summary.flashcardMemory?.forgotCount || 0})
+                        {activeSummary.flashcardMemory?.forgotPercentage || 0}% ({activeSummary.flashcardMemory?.forgotCount || 0})
                       </span>
                     </div>
                   </div>
@@ -1079,7 +1194,7 @@ export default function StudentDashboardPage() {
               </div>
 
               {/* Section 1: Breakdown By Lecture (نسبة الحفظ لكل محاضرة) */}
-              {summary.flashcardMemory?.byLecture && summary.flashcardMemory.byLecture.length > 0 ? (
+              {activeSummary.flashcardMemory?.byLecture && activeSummary.flashcardMemory.byLecture.length > 0 ? (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1089,12 +1204,12 @@ export default function StudentDashboardPage() {
                       </h3>
                     </div>
                     <span className="text-xs text-slate-400">
-                      {summary.flashcardMemory.byLecture.length} محاضرة تمت مراجعة كروتها
+                      {activeSummary.flashcardMemory.byLecture.length} محاضرة تمت مراجعة كروتها
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {summary.flashcardMemory.byLecture.map((lec) => (
+                    {activeSummary.flashcardMemory.byLecture.map((lec) => (
                       <div
                         key={lec.lectureId}
                         className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-3 hover:border-amber-400 dark:hover:border-amber-600 transition group"
@@ -1157,7 +1272,7 @@ export default function StudentDashboardPage() {
                   </div>
 
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 self-start sm:self-auto">
-                    {summary.flashcardMemory?.forgottenCards?.length || 0} كارت يحتاج تثبيت
+                    {activeSummary.flashcardMemory?.forgottenCards?.length || 0} كارت يحتاج تثبيت
                   </span>
                 </div>
 
@@ -1178,10 +1293,10 @@ export default function StudentDashboardPage() {
                   {/* State filter buttons */}
                   <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
                     {[
-                      { id: 'all', label: `الكل (${(summary.flashcardMemory?.forgottenCards || []).length})` },
-                      { id: 'remembered_then_forgot', label: `💡 كنت فاكرها (${summary.flashcardMemory?.rememberedThenForgotCount || 0})` },
-                      { id: 'misunderstood', label: `🩺 وصلت غلط (${summary.flashcardMemory?.misunderstoodCount || 0})` },
-                      { id: 'forgot', label: `🔄 منسية كلياً (${summary.flashcardMemory?.forgotCount || 0})` },
+                      { id: 'all', label: `الكل (${(activeSummary.flashcardMemory?.forgottenCards || []).length})` },
+                      { id: 'remembered_then_forgot', label: `💡 كنت فاكرها (${activeSummary.flashcardMemory?.rememberedThenForgotCount || 0})` },
+                      { id: 'misunderstood', label: `🩺 وصلت غلط (${activeSummary.flashcardMemory?.misunderstoodCount || 0})` },
+                      { id: 'forgot', label: `🔄 منسية كلياً (${activeSummary.flashcardMemory?.forgotCount || 0})` },
                     ].map((st) => (
                       <button
                         key={st.id}
@@ -1201,7 +1316,7 @@ export default function StudentDashboardPage() {
 
                 {/* Forgotten Cards List */}
                 {(() => {
-                  const forgotten = (summary.flashcardMemory?.forgottenCards || []).filter((card) => {
+                  const forgotten = (activeSummary.flashcardMemory?.forgottenCards || []).filter((card) => {
                     if (cardStateFilter !== 'all' && card.state !== cardStateFilter) return false;
                     if (cardSearchQuery.trim()) {
                       const q = cardSearchQuery.toLowerCase();
@@ -1326,7 +1441,7 @@ export default function StudentDashboardPage() {
                           تحليلات تكرار المراجعة (Spaced Repetition Analytics) 🔁
                         </h3>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                          {summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0} كارت مكرر
+                          {activeSummary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0} كارت مكرر
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -1340,7 +1455,7 @@ export default function StudentDashboardPage() {
                     <button
                       type="button"
                       onClick={handleExportSpacedSummary}
-                      disabled={!summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards}
+                      disabled={!activeSummary.flashcardMemory?.spacedRepetition?.totalRepeatedCards}
                       className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer"
                       title="نسخ وتنزيل تقرير نصي شامل بالكروت الأكثر تكراراً"
                     >
@@ -1364,17 +1479,17 @@ export default function StudentDashboardPage() {
                   <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-right space-y-1">
                     <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 block">الكروت المكررة (مرات &gt; 1)</span>
                     <div className="text-2xl font-black font-mono text-amber-900 dark:text-amber-200">
-                      {summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0}
+                      {activeSummary.flashcardMemory?.spacedRepetition?.totalRepeatedCards || 0}
                     </div>
                     <span className="text-[10px] text-amber-600 dark:text-amber-400/80 block">
-                      إجمالي {summary.flashcardMemory?.spacedRepetition?.totalReviewsAcrossRepeated || 0} جلسة تكرار
+                      إجمالي {activeSummary.flashcardMemory?.spacedRepetition?.totalReviewsAcrossRepeated || 0} جلسة تكرار
                     </span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 text-right space-y-1">
                     <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 block">شهدت تحسناً ملحوظاً 📈</span>
                     <div className="text-2xl font-black font-mono text-emerald-900 dark:text-emerald-200">
-                      {summary.flashcardMemory?.spacedRepetition?.improvedCardsCount || 0}
+                      {activeSummary.flashcardMemory?.spacedRepetition?.improvedCardsCount || 0}
                     </div>
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400/80 block">
                       ارتقاء إلى الإتقان بعد النسيان
@@ -1384,7 +1499,7 @@ export default function StudentDashboardPage() {
                   <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-right space-y-1">
                     <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 block">إتقان راسخ وثابت 🛡️</span>
                     <div className="text-2xl font-black font-mono text-blue-900 dark:text-blue-200">
-                      {summary.flashcardMemory?.spacedRepetition?.stableMasteredCount || 0}
+                      {activeSummary.flashcardMemory?.spacedRepetition?.stableMasteredCount || 0}
                     </div>
                     <span className="text-[10px] text-blue-600 dark:text-blue-400/80 block">
                       مستقر في الذاكرة طويلة المدى
@@ -1394,8 +1509,8 @@ export default function StudentDashboardPage() {
                   <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-right space-y-1">
                     <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 block">تراجع أو صعوبة مستمرة 🔄</span>
                     <div className="text-2xl font-black font-mono text-rose-900 dark:text-rose-200">
-                      {(summary.flashcardMemory?.spacedRepetition?.declinedCardsCount || 0) +
-                        (summary.flashcardMemory?.spacedRepetition?.strugglingCount || 0)}
+                      {(activeSummary.flashcardMemory?.spacedRepetition?.declinedCardsCount || 0) +
+                        (activeSummary.flashcardMemory?.spacedRepetition?.strugglingCount || 0)}
                     </div>
                     <span className="text-[10px] text-rose-600 dark:text-rose-400/80 block">
                       نقاط تركيز تحتاج تثبيت وإعادة شرح
@@ -1488,7 +1603,7 @@ export default function StudentDashboardPage() {
 
                 {/* Hierarchical Breakdown List (Subject ➡️ Lecture ➡️ Cards) */}
                 {(() => {
-                  if (!summary.flashcardMemory?.spacedRepetition?.totalRepeatedCards) {
+                  if (!activeSummary.flashcardMemory?.spacedRepetition?.totalRepeatedCards) {
                     return (
                       <div className="py-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 p-8 space-y-4">
                         <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 mx-auto flex items-center justify-center">
@@ -1931,7 +2046,7 @@ export default function StudentDashboardPage() {
               </div>
 
               {/* Devices Used Info */}
-              {summary.devicesUsed && summary.devicesUsed.length > 0 && (
+              {activeSummary.devicesUsed && activeSummary.devicesUsed.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-teal-600" />
@@ -1944,7 +2059,7 @@ export default function StudentDashboardPage() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {summary.devicesUsed.map((dev, idx) => (
+                    {activeSummary.devicesUsed.map((dev, idx) => (
                       <div
                         key={dev.deviceId || idx}
                         className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
@@ -1976,36 +2091,6 @@ export default function StudentDashboardPage() {
               )}
             </div>
           )}
-        </>
-      ) : (
-        <div className="py-16 text-center space-y-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm my-6">
-          <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto shadow-inner">
-            <BarChart3 className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-            أهلاً بك يا {student?.name || 'بطل'} في لوحة إحصائياتك الأكاديمية 🩺
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-            {errorMessage || 'لم نتمكن من جلب ملخص النشاط الآن، أو لم تبدأ بعد بجلسات المذاكرة وحل الكويزات لحساب الإحصائيات.'}
-          </p>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setRefreshKey((k) => k + 1)}
-              className="py-2.5 px-5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20 active:scale-95 transition flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>إعادة المحاولة الآن</span>
-            </button>
-            <Link
-              href="/"
-              className="py-2.5 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-            >
-              تصفح المحاضرات 📚
-            </Link>
-          </div>
         </div>
-      )}
-    </div>
   );
 }
