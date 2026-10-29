@@ -293,6 +293,7 @@ export interface StudentFlashcardProgressRecord {
   cardId: number | string;
   cardFront?: string;
   cardBack?: string;
+  clinicalPearl?: string;
   lectureId: string;
   lectureTitle?: string;
   subjectId?: string;
@@ -301,6 +302,48 @@ export interface StudentFlashcardProgressRecord {
   reviewedAt: string;
   reviewCount: number;
   history?: FlashcardReviewHistoryItem[];
+  // SM-2 Spaced Repetition
+  intervalDays?: number;
+  repetitions?: number;
+  easeFactor?: number;
+  nextReviewDate?: string; // YYYY-MM-DD
+  lastRating?: FlashcardReviewState;
+}
+
+export interface StudentStudyStreak {
+  currentStreak: number;
+  lastStreakDate?: string; // YYYY-MM-DD
+  longestStreak?: number;
+}
+
+export interface DailyReviewQueueItem {
+  cardId: number | string;
+  front: string;
+  back: string;
+  clinicalPearl?: string;
+  lectureId: string;
+  lectureTitle: string;
+  subjectId: string;
+  subjectTitle: string;
+  state?: FlashcardReviewState;
+  intervalDays: number;
+  repetitions: number;
+  easeFactor: number;
+  nextReviewDate: string;
+  lastReviewedAt?: string;
+  isDue: boolean;
+  isNewCard?: boolean;
+}
+
+export interface DailyReviewQueueResponse {
+  success: boolean;
+  dueCards: DailyReviewQueueItem[];
+  totalDue: number;
+  subjectsCount: number;
+  subjectsBreakdown: Array<{ subjectId: string; subjectTitle: string; count: number }>;
+  streak: StudentStudyStreak;
+  isCompletedToday: boolean;
+  message?: string;
 }
 
 export interface SpacedRepetitionCardItem extends StudentFlashcardProgressRecord {
@@ -435,6 +478,7 @@ export interface StudentUser {
   totalStudySeconds?: number;
   lastActiveAt?: string;
   lastActiveTarget?: string;
+  studyStreak?: StudentStudyStreak;
 }
 
 export interface StudentActivityLog {

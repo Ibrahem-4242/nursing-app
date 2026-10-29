@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Bookmark,
   BarChart3,
+  Flame,
 } from 'lucide-react';
 
 interface StudentNavbarPillProps {
@@ -81,6 +82,12 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
             <div>
               <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1">
                 <span>{student.name}</span>
+                {student.studyStreak && student.studyStreak.currentStreak > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-black flex items-center gap-0.5 border border-amber-300 dark:border-amber-800">
+                    <Flame className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
+                    <span>{student.studyStreak.currentStreak}</span>
+                  </span>
+                )}
                 <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">({student.university})</span>
               </div>
               <div className="text-[10px] text-slate-500 font-mono" dir="ltr">
@@ -152,7 +159,15 @@ export default function StudentNavbarPill({ isMobile = false, onNavigate }: Stud
           {student.name.charAt(0)}
         </div>
         <div className="flex flex-col text-right">
-          <span className="leading-tight truncate max-w-[110px]">{student.name}</span>
+          <div className="flex items-center gap-1">
+            <span className="leading-tight truncate max-w-[100px]">{student.name}</span>
+            {student.studyStreak && student.studyStreak.currentStreak > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-black flex items-center gap-0.5 border border-amber-300 dark:border-amber-800" title={`مراجع لـ ${student.studyStreak.currentStreak} أيام متتالية!`}>
+                <Flame className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
+                <span>{student.studyStreak.currentStreak}</span>
+              </span>
+            )}
+          </div>
           <span className="text-[10px] text-teal-600 dark:text-teal-400 font-normal leading-tight truncate max-w-[110px]">
             {student.university}
           </span>

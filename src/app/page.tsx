@@ -24,6 +24,7 @@ import { cookies } from 'next/headers';
 import { CmsService } from '@/lib/cms-db';
 import SemesterSubjectsBrowser from '@/components/SemesterSubjectsBrowser';
 import ShakibRakibBanner from '@/components/ShakibRakibBanner';
+import DailyReviewQueueCard from '@/components/DailyReviewQueueCard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -152,6 +153,9 @@ export default async function HomePage({
       {/* 2. Top AdSense Placement */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdSenseBanner position="header" slotId="9876543210" label="إعلان ممول - منصة ملخصات تمريض" />
+
+        {/* 🧠 Daily Spaced Repetition Review Queue Card (جرعة المراجعة اليومية الذكية) */}
+        <DailyReviewQueueCard />
 
         {/* 🚀 Shakib Rakib Golden Banner (باقة شاكب راكب الشهرية الشاملة) */}
         {platformFeatures.shakibRakib && shakibConfig.isEnabled !== false && (

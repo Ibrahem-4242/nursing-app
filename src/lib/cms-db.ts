@@ -34,7 +34,18 @@ import {
   SpacedRepetitionLectureGroup,
   SpacedRepetitionSubjectGroup,
   SpacedRepetitionAnalyticsSummary,
+  DailyReviewQueueItem,
+  DailyReviewQueueResponse,
+  StudentStudyStreak,
 } from './types';
+import {
+  calculateNextSpacedReview,
+  isCardDue,
+  evaluateStudyStreak,
+  getCairoDateString,
+  addDaysToDate,
+  isStreakActive,
+} from './spaced-repetition';
 import { MOCK_SUBJECTS } from './mock-data';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import { PanicEngine } from './panic-engine';
@@ -886,6 +897,9 @@ async function getFreshStore(): Promise<CmsStore> {
               flashcardReviews: mergedReviews,
               lastActiveAt: localTs >= cloudTs ? localS.lastActiveAt : s.lastActiveAt,
               lastActiveTarget: localTs >= cloudTs ? localS.lastActiveTarget : s.lastActiveTarget,
+              studyStreak: (localS.studyStreak && (!s.studyStreak || (localS.studyStreak.lastStreakDate || '') >= (s.studyStreak.lastStreakDate || '')))
+                ? localS.studyStreak
+                : (s.studyStreak || localS.studyStreak),
             });
           } else {
             existingStuMap.set(s.id, s);
@@ -3292,10 +3306,13 @@ export const CmsService = {
       { state: review.state, reviewedAt: nowIso },
     ];
 
+    const spaced = calculateNextSpacedReview(existing, review.state);
+
     const updatedRecord: StudentFlashcardProgressRecord = {
       cardId: review.cardId,
       cardFront: review.cardFront || existing?.cardFront || '',
       cardBack: review.cardBack || existing?.cardBack || '',
+      clinicalPearl: (review as any).clinicalPearl || existing?.clinicalPearl || '',
       lectureId: review.lectureId,
       lectureTitle: review.lectureTitle || existing?.lectureTitle || '',
       subjectId: review.subjectId || existing?.subjectId || '',
@@ -3304,6 +3321,11 @@ export const CmsService = {
       reviewedAt: nowIso,
       reviewCount: Math.max(updatedHistory.length, (existing?.reviewCount || 0) + 1),
       history: updatedHistory,
+      intervalDays: spaced.intervalDays,
+      repetitions: spaced.repetitions,
+      easeFactor: spaced.easeFactor,
+      nextReviewDate: spaced.nextReviewDate,
+      lastRating: spaced.lastRating,
     };
 
     student.flashcardReviews[reviewKey] = updatedRecord;
@@ -3368,10 +3390,13 @@ export const CmsService = {
         { state: review.state, reviewedAt: nowIso },
       ];
 
+      const spaced = calculateNextSpacedReview(existing, review.state);
+
       student.flashcardReviews[reviewKey] = {
         cardId: review.cardId,
         cardFront: review.cardFront || existing?.cardFront || '',
         cardBack: review.cardBack || existing?.cardBack || '',
+        clinicalPearl: (review as any).clinicalPearl || existing?.clinicalPearl || '',
         lectureId: review.lectureId,
         lectureTitle: review.lectureTitle || existing?.lectureTitle || '',
         subjectId: review.subjectId || existing?.subjectId || '',
@@ -3380,6 +3405,11 @@ export const CmsService = {
         reviewedAt: nowIso,
         reviewCount: Math.max(updatedHistory.length, (existing?.reviewCount || 0) + 1),
         history: updatedHistory,
+        intervalDays: spaced.intervalDays,
+        repetitions: spaced.repetitions,
+        easeFactor: spaced.easeFactor,
+        nextReviewDate: spaced.nextReviewDate,
+        lastRating: spaced.lastRating,
       };
       updatedCount++;
     }
@@ -3730,6 +3760,170 @@ export const CmsService = {
       misunderstoodCards,
       repeatedCards,
       spacedRepetition,
+    };
+  },
+
+  async getStudentDailyReviewQueue(studentId: string): Promise<DailyReviewQueueResponse> {
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    const todayStr = getCairoDateString();
+
+    if (!student) {
+      return {
+        success: false,
+        dueCards: [],
+        totalDue: 0,
+        subjectsCount: 0,
+        subjectsBreakdown: [],
+        streak: { currentStreak: 0, longestStreak: 0 },
+        isCompletedToday: false,
+        message: 'طالب غير موجود',
+      };
+    }
+
+    const streak: StudentStudyStreak = student.studyStreak || { currentStreak: 0, longestStreak: 0 };
+    const allLectures = await this.getAllLectures();
+    const lectureMap = new Map<string, Lecture>(allLectures.map((l) => [l.id, l]));
+
+    const reviews = student.flashcardReviews ? Object.values(student.flashcardReviews) : [];
+    const dueCardsMap = new Map<string, DailyReviewQueueItem>();
+
+    // 1. Gather all existing cards that are due for review today or overdue
+    for (const r of reviews) {
+      const isCardDueForReview = isCardDue(r, todayStr);
+      if (isCardDueForReview) {
+        const lec = lectureMap.get(r.lectureId);
+        const lCard = (lec?.flashcards || []).find((c) => String(c.id) === String(r.cardId));
+
+        const item: DailyReviewQueueItem = {
+          cardId: r.cardId,
+          front: r.cardFront || lCard?.front || `كارت رقم ${r.cardId}`,
+          back: r.cardBack || lCard?.back || '',
+          clinicalPearl: r.clinicalPearl || lCard?.clinicalPearl || '',
+          lectureId: r.lectureId,
+          lectureTitle: r.lectureTitle || lec?.title || `محاضرة (${r.lectureId})`,
+          subjectId: r.subjectId || lec?.subjectId || 'general_subject',
+          subjectTitle: r.subjectTitle || lec?.subjectTitle || 'مواد عامة',
+          state: r.state,
+          intervalDays: r.intervalDays || 1,
+          repetitions: r.repetitions || 0,
+          easeFactor: r.easeFactor || 2.5,
+          nextReviewDate: r.nextReviewDate || todayStr,
+          lastReviewedAt: r.reviewedAt,
+          isDue: true,
+          isNewCard: false,
+        };
+
+        dueCardsMap.set(`${r.lectureId}_${r.cardId}`, item);
+      }
+    }
+
+    // 2. If student has fewer than 15 cards, introduce fresh unreviewed cards from their accessible lectures
+    if (dueCardsMap.size < 15) {
+      const userPurchased = new Set(student.purchasedLectureIds || []);
+      const hasShakib = Boolean(student.shakibRakibSubscription?.isActive);
+
+      for (const lec of allLectures) {
+        if (dueCardsMap.size >= 15) break;
+        const isAccessible = lec.isFree || hasShakib || userPurchased.has(lec.id);
+        if (!isAccessible) continue;
+
+        for (const card of (lec.flashcards || [])) {
+          if (dueCardsMap.size >= 15) break;
+          const key = `${lec.id}_${card.id}`;
+          if (student.flashcardReviews && student.flashcardReviews[key]) {
+            continue; // already reviewed/scheduled
+          }
+          if (dueCardsMap.has(key)) continue;
+
+          dueCardsMap.set(key, {
+            cardId: card.id,
+            front: card.front,
+            back: card.back,
+            clinicalPearl: card.clinicalPearl,
+            lectureId: lec.id,
+            lectureTitle: lec.title,
+            subjectId: lec.subjectId,
+            subjectTitle: lec.subjectTitle,
+            intervalDays: 1,
+            repetitions: 0,
+            easeFactor: 2.5,
+            nextReviewDate: todayStr,
+            isDue: true,
+            isNewCard: true,
+          });
+        }
+      }
+    }
+
+    const dueCards = Array.from(dueCardsMap.values());
+
+    // Subjects breakdown
+    const subjectCounts = new Map<string, { title: string; count: number }>();
+    dueCards.forEach((c) => {
+      const prev = subjectCounts.get(c.subjectId) || { title: c.subjectTitle, count: 0 };
+      prev.count++;
+      subjectCounts.set(c.subjectId, prev);
+    });
+
+    const subjectsBreakdown = Array.from(subjectCounts.entries()).map(([subjectId, val]) => ({
+      subjectId,
+      subjectTitle: val.title,
+      count: val.count,
+    }));
+
+    const isCompletedToday = Boolean(
+      streak.lastStreakDate === todayStr && dueCards.length === 0
+    );
+
+    return {
+      success: true,
+      dueCards,
+      totalDue: dueCards.length,
+      subjectsCount: subjectsBreakdown.length,
+      subjectsBreakdown,
+      streak,
+      isCompletedToday,
+    };
+  },
+
+  async completeDailyReviewSession(studentId: string, customToken?: string): Promise<{
+    success: boolean;
+    streak: StudentStudyStreak;
+    isNewStreakDay: boolean;
+    message: string;
+  }> {
+    const store = await getFreshStore();
+    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) {
+      return {
+        success: false,
+        streak: { currentStreak: 0 },
+        isNewStreakDay: false,
+        message: 'طالب غير موجود',
+      };
+    }
+
+    const todayStr = getCairoDateString();
+    const evalRes = evaluateStudyStreak(student.studyStreak, todayStr);
+
+    student.studyStreak = {
+      currentStreak: evalRes.currentStreak,
+      lastStreakDate: evalRes.lastStreakDate,
+      longestStreak: evalRes.longestStreak,
+    };
+
+    student.lastActiveAt = new Date().toISOString();
+    student.lastActiveTarget = 'إتمام جرعة المراجعة اليومية 🧠';
+
+    memoryStore = store;
+    persistStore(store, customToken);
+
+    return {
+      success: true,
+      streak: student.studyStreak,
+      isNewStreakDay: evalRes.isNewStreakDay,
+      message: 'أبطال التمريض لا يكلّون! أنهيت مراجعة اليوم كاملة بنجاح 🩺✨، استرح الآن وموعدنا غداً',
     };
   },
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStudentAuth } from '@/context/StudentAuthContext';
+import DailyReviewQueueCard from '@/components/DailyReviewQueueCard';
 import {
   StudentActivitySummary,
   StudentActivityLog,
@@ -475,6 +476,9 @@ export default function StudentDashboardPage() {
         </div>
       ) : summary ? (
         <>
+          {/* 🧠 Daily Spaced Repetition Review Queue Card */}
+          <DailyReviewQueueCard />
+
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto scrollbar-none">
             <button
