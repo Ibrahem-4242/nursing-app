@@ -14,8 +14,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 
-const POPUP_TRACKER_KEY = 'nursing_daily_review_popup_v1';
-const POPUP_SESSION_DISMISS_KEY = 'nursing_daily_review_popup_dismissed_session';
+const POPUP_TRACKER_KEY = 'nursing_daily_review_popup_v2';
+const POPUP_SESSION_DISMISS_KEY = 'nursing_daily_review_popup_dismissed_session_v2';
 
 /**
  * Returns today's date string in Cairo timezone (YYYY-MM-DD)
@@ -193,137 +193,142 @@ export default function DailyReviewQueueCard({
 
   return (
     <>
-      {/* 🧠 Centered Pop-up Modal (بوب اب في نص الشاشة) */}
+      {/* 🧠 Lightbox Modal Pop-up centered in screen (نفس فكرة البوب اب بالظبط) */}
       {isPopupOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
           dir="rtl"
           onClick={(e) => {
-            // Dismiss if clicked on outer backdrop
+            // Dismiss if clicked on outer dimmed backdrop
             if (e.target === e.currentTarget) {
               handleDismiss();
             }
           }}
         >
-          {/* Modal Container */}
-          <div className="relative w-full max-w-lg sm:max-w-xl bg-gradient-to-br from-teal-950/95 via-slate-900/98 to-slate-950 border-2 border-teal-500/40 rounded-3xl shadow-2xl p-6 sm:p-8 text-white overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Subtle decorative glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+          {/* Centered Modal Card Box */}
+          <div className="relative w-full max-w-md bg-gradient-to-b from-[#111827] via-[#0B0F19] to-[#070A12] border border-teal-500/30 rounded-3xl shadow-2xl p-6 sm:p-8 text-white text-center overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Subtle radial ambient light */}
+            <div className="absolute top-0 right-1/2 translate-x-1/2 w-48 h-48 bg-teal-500/15 rounded-full blur-3xl pointer-events-none -mt-24" />
 
-            {/* 'X' Close Button on Top (علامة غلط من فوق) */}
+            {/* 'X' Close Button on Top Corner (علامة غلط من فوق) */}
             <button
               type="button"
               onClick={handleDismiss}
-              className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition border border-white/15 shadow-sm active:scale-95 z-20"
+              className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white flex items-center justify-center transition border border-white/10 active:scale-95 z-20 shadow-sm"
               title="إغلاق ومسح الكارت"
               aria-label="إغلاق"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            {/* Badges Bar */}
-            <div className="flex flex-wrap items-center gap-2 mb-4 pr-1">
+            {/* Header Badge */}
+            <div className="flex items-center justify-center gap-2 mb-3">
               <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-black border border-teal-500/40 flex items-center gap-1.5 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-teal-400" />
                 <span>جرعة المراجعة اليومية 🧠</span>
               </span>
 
-              {/* Academic Year Badge */}
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[11px] font-bold border border-slate-700">
-                {effectiveYearId === '1'
-                  ? 'السنة الأولى 🩺'
-                  : effectiveYearId === '2'
-                  ? 'السنة الثانية 🩺'
-                  : effectiveYearId === '3'
-                  ? 'السنة الثالثة 🩺'
-                  : `السنة ${effectiveYearId} 🩺`}
-              </span>
-
-              {/* Study Streak Badge */}
               {streak.currentStreak > 0 && (
-                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black border border-amber-500/40 flex items-center gap-1.5 shadow-xs">
-                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />
-                  <span>مستمر لـ {streak.currentStreak} أيام! 🔥</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-black border border-amber-500/40 flex items-center gap-1 shadow-xs">
+                  <Flame className="w-3 h-3 text-amber-400 fill-amber-400 animate-pulse" />
+                  <span>{streak.currentStreak} أيام! 🔥</span>
                 </span>
               )}
             </div>
 
-            {/* Content Body */}
-            <div className="flex items-start gap-4 mb-5">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-teal-500/25 ring-4 ring-teal-900/50">
-                <Brain className="w-8 h-8 text-white" />
+            {/* Big Catchy Title */}
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide leading-tight mb-1">
+              جاهز لتنشيط ذاكرتك الطبية؟ 🩺
+            </h2>
+
+            {/* Academic Year Tag */}
+            <div className="text-xs font-bold text-slate-400 mb-4">
+              {effectiveYearId === '1'
+                ? 'مقررات السنة الأولى 📚'
+                : effectiveYearId === '2'
+                ? 'مقررات السنة الثانية 📚'
+                : effectiveYearId === '3'
+                ? 'مقررات السنة الثالثة 📚'
+                : `مقررات السنة ${effectiveYearId} 📚`}
+            </div>
+
+            {/* Visual 3-Column Slot/Counter Box (نفس التقسيمة في الصورة المعروضة) */}
+            <div className="my-4 py-3.5 px-2 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-around text-center shadow-inner">
+              {/* Box 1: Due Cards */}
+              <div className="flex-1 px-1">
+                <div className="text-3xl sm:text-4xl font-black text-teal-400 font-mono tracking-tight">
+                  {totalDue}
+                </div>
+                <div className="text-[11px] font-bold text-slate-300 mt-0.5">
+                  كروت مستحقة 🎴
+                </div>
               </div>
 
-              <div className="space-y-1.5 flex-1">
-                <h3 className="text-lg sm:text-xl font-black leading-tight text-white">
-                  عندك{' '}
-                  <strong className="text-teal-400 font-mono text-2xl sm:text-3xl">
-                    {totalDue}
-                  </strong>{' '}
-                  كارت مستنيينك تراجعهم النهاردة من{' '}
-                  <strong className="text-white font-bold">
-                    {subjectsCount}
-                  </strong>{' '}
+              {/* Divider */}
+              <div className="w-px h-10 bg-white/10" />
+
+              {/* Box 2: Subjects */}
+              <div className="flex-1 px-1">
+                <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight">
+                  {subjectsCount}
+                </div>
+                <div className="text-[11px] font-bold text-slate-300 mt-0.5">
                   {subjectsCount === 1 ? 'مادة دراسية' : 'مواد دراسية'} 📚
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                  5 دقائق بس كافية تثبت أصعب المصطلحات الطبية واللآلئ السريرية في الذاكرة الدائمة! تحب تراجعهم سوا دلوقتي؟ 😉🩺
-                </p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-10 bg-white/10" />
+
+              {/* Box 3: Time */}
+              <div className="flex-1 px-1">
+                <div className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight">
+                  ~5
+                </div>
+                <div className="text-[11px] font-bold text-slate-300 mt-0.5">
+                  دقائق بس ⏱️
+                </div>
               </div>
             </div>
 
-            {/* Subject Breakdown Pills if available */}
-            {queueData?.subjectsBreakdown && queueData.subjectsBreakdown.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mb-6 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 pl-1">
-                  <BookOpen className="w-3.5 h-3.5 text-teal-400" />
-                  <span>المواد:</span>
-                </div>
-                {queueData.subjectsBreakdown.map((sb) => (
-                  <span
-                    key={sb.subjectId}
-                    className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-[11px] font-bold text-slate-200 border border-slate-700"
-                  >
-                    {sb.subjectTitle} ({sb.count})
-                  </span>
-                ))}
-              </div>
-            )}
+            {/* Egyptian Prompt Text */}
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium mb-6 px-1">
+              5 دقائق بس كافية تثبت أصعب المصطلحات الطبية واللآلئ السريرية في الذاكرة الدائمة! تحب تراجعهم سوا دلوقتي؟ 😉🩺
+            </p>
 
-            {/* Two Action Buttons */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-              {/* خيار 2: مش فاضي دلوقتي -> مسح فوري من قدام الطالب */}
-              <button
-                type="button"
-                onClick={handleDismiss}
-                className="flex-1 py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 font-bold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
-              >
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>مش فاضي دلوقتي ⏳</span>
-              </button>
-
-              {/* خيار 1: اشطا، يلا بينا */}
+            {/* Action Buttons: Primary prominent button + dismiss button */}
+            <div className="space-y-2">
+              {/* خيار 1: اشطا يلا بينا (Prominent Action Button) */}
               <button
                 type="button"
                 onClick={handleAcceptReview}
-                className="flex-[1.3] py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-sm sm:text-base shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group"
               >
                 <Play className="w-4 h-4 text-white fill-white transition group-hover:scale-110" />
                 <span>اشطا، يلا بينا 🚀</span>
+              </button>
+
+              {/* خيار 2: مش فاضي دلوقتي (مسح فوري من الشاشة) */}
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="w-full py-2.5 px-4 rounded-xl text-slate-400 hover:text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 hover:bg-white/5 active:scale-95"
+              >
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>مش فاضي دلوقتي ⏳</span>
               </button>
             </div>
 
             {/* Guest note if not logged in */}
             {!isLoggedIn && (
-              <div className="pt-4 text-center">
+              <div className="pt-3">
                 <button
                   type="button"
                   onClick={() => {
                     handleDismiss();
                     openAuthModal('login');
                   }}
-                  className="text-[11px] text-teal-400 hover:underline font-bold"
+                  className="text-[11px] text-teal-400/80 hover:text-teal-300 hover:underline font-bold"
                 >
                   سجّل حسابك لحفظ تكرارات SM-2 واستمراريتك سحابياً 🔐
                 </button>

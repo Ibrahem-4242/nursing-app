@@ -139,7 +139,7 @@ export default function DailyReviewSessionModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
       dir="rtl"
     >
       {/* Confetti for top scores / finished session */}
