@@ -125,11 +125,16 @@ export async function GET(req: NextRequest) {
 
     // Non-admin authorization guard
     if (!isAdmin) {
-      if (isLive || isStats || !sessionStudentId) {
+      if (isLive || isStats || (!sessionStudentId && !studentId)) {
         return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 });
       }
-      // If student is querying their own data, lock query to their session ID
-      studentId = sessionStudentId;
+      // If student is querying their own data, lock query to their session ID or authenticated ID
+      studentId = sessionStudentId || studentId;
+    } else {
+      // If admin and no explicit studentId was passed in query, fallback to current logged-in student session
+      if (!studentId && sessionStudentId) {
+        studentId = sessionStudentId;
+      }
     }
 
     if (isStats && isAdmin) {

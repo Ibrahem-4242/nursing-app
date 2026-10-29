@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير الصحي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
+  "overview": "الالتهاب الحاد وهو رد فعل سريع ومفاجئ يظهر بعد الإصابة مباشرة مثل الجروح ��و العدوى، ويزول عادةً خلال أيام بمجرد شفاء الأنسجة. أما النوع الثاني فهو الالتهاب المزمن، ويحدث عندما تستمر هذه الاستجابة المناعية لفترات طويلة تصل لأشهر أو سنوات، مما قد يؤدي إلى تلف تدريجي في خلايا الجسم السليمة. يرتبط الالتهاب المزمن بشكل وثيق بنمط الحياة غير ال��حي والإجهاد، ويعد عاملاً رئيسياً في تطور أمراض خطيرة مثل السكري، أمراض القلب، والسرطان. تشمل أعراض الالتهاب الحاد الظاهرة الاحمرار، والتورم، والألم، والحرارة في مكان الإصابة. بينما الالتهاب المزمن قد يكون صامتاً وداخلياً دون أعراض واضحة حتى يتسبب في مشكلة صحية أكبر. يعتمد علاج الحاد على الراحة والمضادات، بينما يتطلب المزمن تغيير نمط الحياة والتغ��ية الصحية",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -35,7 +35,7 @@
     },
     {
       "id": 3,
-      "front": "What five types comprise acute non-suppurative inflammation (التهاب حاد غير صديدي)?",
+      "front": "What five types comprise acute non-suppurative inflammation (التهاب حاد غير صد��دي)?",
       "back": "The types are catarrhal, fibrinous, membranous, allergic, and necrotizing/hemorrhagic inflammation.",
       "category": "كروت استذكار",
       "clinicalPearl": "الالتهاب غير الصديدي (Non-Suppurative Inflammation)"
@@ -254,7 +254,7 @@
       "id": 34,
       "front": "In systemic pyemia (قيام الدم الجهازي), which organ is most frequently affected by metastatic abscesses?",
       "back": "The lungs (الرئتان) are the primary organ affected.",
-      "category": "كروت استذكار",
+      "category": "كروت اس��ذكار",
       "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
@@ -275,7 +275,7 @@
       "id": 37,
       "front": "Through which vascular route do septic emboli travel in systemic pyemia (قيام الدم الجهازي)?",
       "back": "They travel through the systemic venous circulation returning to the right side of the heart and entering pulmonary capillaries.",
-      "category": "كروت استذكار",
+      "category": "ك��وت استذكار",
       "clinicalPearl": "انتشار العدوى بالدم (Bacteremia, Septicemia & Pyemia)"
     },
     {

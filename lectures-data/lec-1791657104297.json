@@ -13,7 +13,7 @@
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
-  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل الأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
+  "overview": "الاتجاهات التشريحية (Anatomical Directions) هي حجر الأساس في علم التشريح لأنها توفر لغة عالمية موحدة ومحددة بين الأطباء والعلماء حول العالم، مما يمنع أي لبس أو خطأ عند وصف أجزاء الجسم. تُستخدم هذه الاتجاهات لتحديد المواقع النسبية للأعضاء والأنسجة بدقة متناهية بناءً على \"الوضع التشريحي القياسي\" للجسم. بفضلها، يستطيع الطبيب تحديد مكان الألم، أو وصف موقع الإصابة، أو توجيه المشرط الجراحي بدقة بالغة أثناء العمليات الحساسة. كما تلعب دوراً محورياً في قراءة وفحص الصور الطبية مثل ��لأشعة السينية والرنين المغناطيسي لضمان التشخيص الصحيح. بدون هذه المصطلحات، يصبح من المستحيل كتابة تقارير طبية دقيقة أو تبادل المعلومات الطبية بين الفرق الرعاية الصحية بشكل ��من. باختصار، هي الخريطة المرشدة التي تضمن سلامة المرضى وتسهل فهم ودراسة تركيب جسم الإنسان المعقد",
   "concepts": [],
   "terminology": [],
   "interventions": [],
@@ -70,7 +70,7 @@
     },
     {
       "id": 8,
-      "front": "What vascular mechanism causes Redness (الحمرة) in acute inflammation?",
+      "front": "What vascular mechanism causes Redness (الح��رة) in acute inflammation?",
       "back": "Redness (الحمرة) is caused by Vasodilation (اتساع الأوعية الدموية).",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
@@ -91,7 +91,7 @@
     },
     {
       "id": 11,
-      "front": "What is Chemotaxis (الانجذاب الكيميائي)?",
+      "front": "What is Chemotaxis (الانجذاب ال��يميائي)?",
       "back": "Chemotaxis (الانجذاب الكيميائي) is the directional movement of white blood cells toward microbes or injury sites along a chemical gradient.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتها�� (Pathology & Inflammation)"
@@ -176,7 +176,7 @@
     {
       "id": 23,
       "front": "What is the Complement System (جهاز المتممة)?",
-      "back": "The Complement System (ج��از ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
+      "back": "The Complement System (جهاز ��لمتممة) is a part of the immune system consisting of small plasma proteins that circulate in inactive forms.",
       "category": "كروت استذكار",
       "clinicalPearl": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },

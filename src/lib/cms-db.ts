@@ -938,6 +938,20 @@ async function getFreshStore(): Promise<CmsStore> {
       );
     }
 
+    // Safely merge studentActivityLogs from cloudStore
+    if (cloudStore.studentActivityLogs && Array.isArray(cloudStore.studentActivityLogs)) {
+      const activityMap = new Map<string, StudentActivityLog>();
+      (cloudStore.studentActivityLogs || []).forEach((log) => {
+        if (log && log.id) activityMap.set(log.id, log);
+      });
+      (store.studentActivityLogs || []).forEach((log) => {
+        if (log && log.id) activityMap.set(log.id, log);
+      });
+      store.studentActivityLogs = Array.from(activityMap.values())
+        .sort((a, b) => new Date(b.lastHeartbeatAt || b.startedAt).getTime() - new Date(a.lastHeartbeatAt || a.startedAt).getTime())
+        .slice(0, 3000);
+    }
+
     // Safely merge telemetry counters and daily maps
     store.cumulativeVisitors = Math.max(store.cumulativeVisitors || 0, cloudStore.cumulativeVisitors || 0);
     store.cumulativeDownloads = Math.max(store.cumulativeDownloads || 0, cloudStore.cumulativeDownloads || 0);
@@ -3445,7 +3459,15 @@ export const CmsService = {
 
   async getStudentFlashcardMemory(studentId: string): Promise<StudentFlashcardsMemorySummary | null> {
     const store = await getFreshStore();
-    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    const cleanId = String(studentId || '').trim();
+    const numericClean = cleanId.replace(/[^0-9]/g, '');
+    const student = (store.students || []).find((s) => {
+      if (!s) return false;
+      if (s.id === cleanId) return true;
+      if (s.phone === cleanId) return true;
+      if (numericClean && s.phone && s.phone.replace(/[^0-9]/g, '') === numericClean) return true;
+      return false;
+    });
     if (!student) return null;
 
     const reviews = student.flashcardReviews ? Object.values(student.flashcardReviews) : [];
@@ -3986,7 +4008,15 @@ export const CmsService = {
 
   async getStudentStudySummary(studentId: string): Promise<StudentActivitySummary | null> {
     const store = await getFreshStore();
-    const student = (store.students || []).find((s) => s.id === studentId || s.phone === studentId);
+    const cleanId = String(studentId || '').trim();
+    const numericClean = cleanId.replace(/[^0-9]/g, '');
+    const student = (store.students || []).find((s) => {
+      if (!s) return false;
+      if (s.id === cleanId) return true;
+      if (s.phone === cleanId) return true;
+      if (numericClean && s.phone && s.phone.replace(/[^0-9]/g, '') === numericClean) return true;
+      return false;
+    });
     if (!student) return null;
 
     const studentLogs = (store.studentActivityLogs || []).filter(

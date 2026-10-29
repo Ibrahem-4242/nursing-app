@@ -93,8 +93,11 @@ export default function StudentDashboardPage() {
     let isMounted = true;
     setLoading(true);
 
+    const targetStudentId = student.id || student.phone;
+    const queryUrl = `/api/student/activity?summary=true&studentId=${encodeURIComponent(targetStudentId)}&t=${Date.now()}`;
+
     Promise.all([
-      fetch(`/api/student/activity?summary=true&t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()),
+      fetch(queryUrl, { cache: 'no-store' }).then((r) => r.json()),
       fetch(`/api/features?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
     ])
       .then(([activityData, featData]) => {
@@ -1934,7 +1937,35 @@ export default function StudentDashboardPage() {
             </div>
           )}
         </>
-      ) : null}
+      ) : (
+        <div className="py-16 text-center space-y-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm my-6">
+          <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto shadow-inner">
+            <BarChart3 className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+            أهلاً بك يا {student?.name || 'بطل'} في لوحة إحصائياتك الأكاديمية 🩺
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            لم نتمكن من جلب ملخص النشاط الآن، أو لم تبدأ بعد بجلسات المذاكرة وحل الكويزات لحساب الإحصائيات.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setRefreshKey((k) => k + 1)}
+              className="py-2.5 px-5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20 active:scale-95 transition flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>إعادة المحاولة الآن</span>
+            </button>
+            <Link
+              href="/"
+              className="py-2.5 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            >
+              تصفح المحاضرات 📚
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
