@@ -11,12 +11,7 @@ import {
   CheckCircle2,
   Play,
   RotateCcw,
-  BookOpen,
-  Calendar,
-  Layers,
-  Award,
   Clock,
-  ChevronDown,
 } from 'lucide-react';
 
 export default function DailyReviewQueueCard({
@@ -30,7 +25,16 @@ export default function DailyReviewQueueCard({
   const [queueData, setQueueData] = useState<DailyReviewQueueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSnoozed, setIsSnoozed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  // Check if previously dismissed in this browser session
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('daily_queue_dismissed') === 'true') {
+        setIsDismissed(true);
+      }
+    } catch {}
+  }, []);
 
   // Determine effective academic year
   const effectiveYearId = yearId || student?.yearId || '1';
@@ -67,8 +71,14 @@ export default function DailyReviewQueueCard({
     }
   };
 
-  const handleSnooze = () => {
-    setIsSnoozed(true);
+  // When student says "مش فاضي دلوقتي", wipe it completely from in front of them
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('daily_queue_dismissed', 'true');
+      }
+    } catch {}
   };
 
   const handleSessionCompleted = (newStreak: StudentStudyStreak) => {
@@ -85,10 +95,15 @@ export default function DailyReviewQueueCard({
     );
   };
 
+  // If dismissed by user, wiped from page completely
+  if (isDismissed) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div
-        className={`w-full p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-500/5 via-emerald-500/5 to-teal-500/5 border border-slate-200/80 dark:border-slate-800 animate-pulse my-6 ${className}`}
+        className={`w-full max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-500/5 via-emerald-500/5 to-teal-500/5 border border-slate-200/80 dark:border-slate-800 animate-pulse my-6 ${className}`}
         dir="rtl"
       >
         <div className="flex items-center gap-3">
@@ -106,57 +121,18 @@ export default function DailyReviewQueueCard({
     return null;
   }
 
-  // Snoozed State: Compact and polite Egyptian prompt
-  if (isSnoozed && !isCompletedToday && totalDue > 0) {
-    return (
-      <div
-        className={`relative overflow-hidden rounded-2xl border border-teal-400/40 dark:border-teal-700/50 bg-white/90 dark:bg-slate-900/90 p-4 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs my-4 animate-in fade-in duration-300 ${className}`}
-        dir="rtl"
-      >
-        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-          <span className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex-shrink-0">
-            <Brain className="w-4 h-4" />
-          </span>
-          <span className="font-medium leading-relaxed">
-            تمام يا بطل، براحتك خالص! عندك{' '}
-            <strong className="text-teal-600 dark:text-teal-400 font-bold">
-              {totalDue} كارت
-            </strong>{' '}
-            مستنيينك في أي وقت النهاردة علشان متضيعش استمراريتك 🔥
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSnoozed(false);
-              handleStartReview();
-            }}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
-          >
-            <Play className="w-3.5 h-3.5 fill-white" />
-            <span>اشطا، يلا بينا نراجع دلوقتي 🚀</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsSnoozed(false)}
-            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1 text-[11px] font-bold"
-          >
-            عرض التفاصيل
-          </button>
-        </div>
-      </div>
-    );
+  // If there are no due cards and not completed today, hide silently
+  if (!isCompletedToday && dueCards.length === 0) {
+    return null;
   }
 
   return (
     <>
       <div
-        className={`relative overflow-hidden rounded-3xl border transition-all duration-300 my-6 shadow-xl ${
+        className={`w-full max-w-4xl mx-auto relative overflow-hidden rounded-3xl border transition-all duration-300 my-6 sm:my-8 shadow-2xl ${
           isCompletedToday
             ? 'bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-950 border-emerald-300/80 dark:border-emerald-800/60 shadow-emerald-600/10'
-            : 'bg-gradient-to-br from-teal-950/40 via-slate-900/90 to-slate-950 border-teal-500/30 dark:border-teal-600/40 shadow-teal-900/20 text-white'
+            : 'bg-gradient-to-br from-teal-950/50 via-slate-900/95 to-slate-950 border-teal-500/40 dark:border-teal-600/40 shadow-teal-950/30 text-white'
         } ${className}`}
         dir="rtl"
       >
@@ -164,7 +140,7 @@ export default function DailyReviewQueueCard({
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
 
-        <div className="relative p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6">
           {/* Right info section */}
           <div className="flex items-start gap-4 flex-1">
             <div
@@ -256,7 +232,7 @@ export default function DailyReviewQueueCard({
             </div>
           </div>
 
-          {/* Left action button section: 2 Distinct Interactive Choices */}
+          {/* Left action button section: 2 Choices */}
           <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-stretch gap-2.5 flex-shrink-0">
             {!isCompletedToday ? (
               <div className="flex flex-col sm:flex-row md:flex-col gap-2.5">
@@ -264,17 +240,18 @@ export default function DailyReviewQueueCard({
                 <button
                   type="button"
                   onClick={handleStartReview}
-                  className="py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group whitespace-nowrap"
+                  className="py-3 px-6 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-white font-black text-xs sm:text-sm shadow-xl shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 group whitespace-nowrap"
                 >
                   <Play className="w-4 h-4 text-white fill-white transition group-hover:scale-110" />
                   <span>اشطا، يلا بينا 🚀</span>
                 </button>
 
-                {/* الخيار الثاني: مش فاضي دلوقتي */}
+                {/* الخيار الثاني: مش فاضي دلوقتي -> مسح كامل فوري */}
                 <button
                   type="button"
-                  onClick={handleSnooze}
+                  onClick={handleDismiss}
                   className="py-3 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 font-bold text-xs transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap shadow-sm"
+                  title="إغلاق ومسح الكارت فوراً"
                 >
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
                   <span>مش فاضي دلوقتي ⏳</span>
