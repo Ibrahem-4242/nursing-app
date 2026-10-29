@@ -84,7 +84,7 @@ export default function Navbar({
 
           {platformFeatures?.notifications !== false && <NotificationBell />}
           <ThemeToggle />
-          <StudentNavbarPill />
+          <StudentNavbarPill allowStreak={platformFeatures?.studyStreak !== false} />
 
           {platformFeatures?.whatsappButton !== false && (
             <a
@@ -158,7 +158,7 @@ export default function Navbar({
 
           {/* Mobile Student Account Pill */}
           <div className="pb-1">
-            <StudentNavbarPill isMobile onNavigate={() => setMobileMenuOpen(false)} />
+            <StudentNavbarPill isMobile onNavigate={() => setMobileMenuOpen(false)} allowStreak={platformFeatures?.studyStreak !== false} />
           </div>
 
           <Link

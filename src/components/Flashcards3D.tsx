@@ -54,6 +54,7 @@ interface Flashcards3DProps {
   subjectTitle?: string;
   lectureTitle?: string;
   lectureId?: string;
+  navigationLock?: boolean;
 }
 
 interface StoredProgress {
@@ -69,6 +70,7 @@ export default function Flashcards3D({
   subjectTitle = 'مقرر التمريض',
   lectureTitle,
   lectureId,
+  navigationLock = true,
 }: Flashcards3DProps) {
   const { student } = useStudentAuth();
 
@@ -296,7 +298,7 @@ export default function Flashcards3D({
     if (!currentCard) return;
 
     // Strict constraint: Do not allow advancing without evaluating current card
-    if (!evaluations[currentCard.id]) {
+    if (navigationLock && !evaluations[currentCard.id]) {
       if (!isFlipped) {
         setIsFlipped(true);
       }
@@ -341,7 +343,7 @@ export default function Flashcards3D({
     if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY)) {
       // In RTL: swiping Left (diffX < 0) advances to Next Card
       if (diffX < 0) {
-        if (currentCard && !evaluations[currentCard.id]) {
+        if (navigationLock && currentCard && !evaluations[currentCard.id]) {
           if (!isFlipped) setIsFlipped(true);
           triggerEvaluationPrompt();
         } else {
@@ -426,7 +428,7 @@ export default function Flashcards3D({
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         // In RTL: ArrowLeft attempts to advance to Next card
-        if (currentCard && !evaluations[currentCard.id]) {
+        if (navigationLock && currentCard && !evaluations[currentCard.id]) {
           if (!isFlipped) setIsFlipped(true);
           triggerEvaluationPrompt();
         } else {

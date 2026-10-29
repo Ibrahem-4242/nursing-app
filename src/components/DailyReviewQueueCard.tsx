@@ -89,6 +89,10 @@ export default function DailyReviewQueueCard({
     );
   }
 
+  if ((queueData as any)?.disabled) {
+    return null;
+  }
+
   return (
     <>
       <div

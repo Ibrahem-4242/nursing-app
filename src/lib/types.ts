@@ -630,6 +630,16 @@ export interface PlatformFeaturesConfig {
   powerpointPpt: boolean;     // عروض البوربوينت PPT
   flashcards: boolean;        // كروت الاستذكار Flashcards
   statsBar: boolean;          // شريط إحصائيات وأرقام المنصة
+  dailyReviewDose?: boolean;  // جرعة المراجعة اليومية الذكية (SM-2)
+  interactiveQuiz?: boolean;  // الكويز التجريبي التفاعلي داخل المحاضرات
+  activeDevicesLimit?: boolean;// نظام تقييد الأجهزة النشطة (حد أقصى جهازين)
+  studentActivityTracking?: boolean;// تتبع وقت المذاكرة والنشاط الفعلي
+  spacedRepetitionAnalytics?: boolean;// قسم تحليلات تكرار المراجعة
+  studyStreak?: boolean;      // عداد استمرارية المذاكرة اليومية (Streak)
+  flashcardNavigationLock?: boolean;// قفل التنقل الإجباري في الفلاش كاردز
+  pwaInstall?: boolean;       // شريط وأزرار تثبيت التطبيق PWA
+  threeDModels?: boolean;     // عارض النماذج الطبية ثلاثية الأبعاد
+  reportBrokenLinks?: boolean;// زر الإبلاغ عن الروابط التالفة
   updatedAt?: string;
 }
 

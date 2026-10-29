@@ -11,6 +11,21 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 
 export async function GET(req: NextRequest) {
   try {
+    const features = await CmsService.getPlatformFeatures();
+    if (features.dailyReviewDose === false) {
+      return NextResponse.json({
+        success: false,
+        disabled: true,
+        dueCards: [],
+        totalDue: 0,
+        subjectsCount: 0,
+        subjectsBreakdown: [],
+        streak: { currentStreak: 0, longestStreak: 0 },
+        isCompletedToday: false,
+        message: 'ميزة جرعة المراجعة اليومية معطلة حالياً من قبل الإدارة',
+      });
+    }
+
     const cookieStore = cookies();
     const sessionVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
 

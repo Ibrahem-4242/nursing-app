@@ -510,7 +510,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
         )}
 
         {/* Interactive Quiz with Question Bookmarks */}
-        {platformFeatures.subjectQuizzes !== false && lecture.quiz && lecture.quiz.length > 0 && (
+        {platformFeatures.interactiveQuiz !== false && platformFeatures.subjectQuizzes !== false && lecture.quiz && lecture.quiz.length > 0 && (
           <InteractiveQuiz
             questions={lecture.quiz}
             lectureTitle={lecture.title}

@@ -729,16 +729,18 @@ export default function LectureContentTabs({
             )}
 
             {/* Report Broken Link Button */}
-            <div className="flex justify-center pt-1">
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(true)}
-                className="text-xs text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 inline-flex items-center gap-1.5 transition-colors py-1 px-3 rounded-full hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-transparent hover:border-amber-200/50"
-              >
-                <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                <span>هل الرابط لا يعمل؟ أبلغنا فوراً لنصلحه ⚠️</span>
-              </button>
-            </div>
+            {platformFeatures?.reportBrokenLinks !== false && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="text-xs text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 inline-flex items-center gap-1.5 transition-colors py-1 px-3 rounded-full hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-transparent hover:border-amber-200/50"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                  <span>هل الرابط لا يعمل؟ أبلغنا فوراً لنصلحه ⚠️</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -751,6 +753,7 @@ export default function LectureContentTabs({
               subjectTitle={subjectTitle}
               lectureTitle={lectureTitle}
               lectureId={lectureId}
+              navigationLock={platformFeatures?.flashcardNavigationLock !== false}
             />
         ) : (
           <div className="p-8 sm:p-10 rounded-3xl bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300/80 dark:border-amber-700/80 text-center space-y-4 shadow-lg">

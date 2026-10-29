@@ -11,6 +11,7 @@ import {
   SpacedRepetitionCardItem,
   SpacedRepetitionSubjectGroup,
   SpacedRepetitionLectureGroup,
+  PlatformFeaturesConfig,
 } from '@/lib/types';
 import {
   GraduationCap,
@@ -81,6 +82,7 @@ export default function StudentDashboardPage() {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [expandedCardHistory, setExpandedCardHistory] = useState<Record<string, boolean>>({});
   const [revealedSpacedAnswers, setRevealedSpacedAnswers] = useState<Record<string, boolean>>({});
+  const [platformFeatures, setPlatformFeatures] = useState<PlatformFeaturesConfig | null>(null);
 
   useEffect(() => {
     if (!isLoggedIn || !student) {
@@ -91,17 +93,21 @@ export default function StudentDashboardPage() {
     let isMounted = true;
     setLoading(true);
 
-    fetch(`/api/student/activity?summary=true&t=${Date.now()}`, {
-      cache: 'no-store',
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted && data.success && data.summary) {
-          setSummary(data.summary);
+    Promise.all([
+      fetch(`/api/student/activity?summary=true&t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()),
+      fetch(`/api/features?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
+    ])
+      .then(([activityData, featData]) => {
+        if (!isMounted) return;
+        if (activityData && activityData.success && activityData.summary) {
+          setSummary(activityData.summary);
+        }
+        if (featData && featData.success && featData.features) {
+          setPlatformFeatures(featData.features);
         }
       })
       .catch((err) => {
-        console.warn('Failed to fetch student study summary:', err);
+        console.warn('Failed to fetch student study summary or features:', err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -477,7 +483,7 @@ export default function StudentDashboardPage() {
       ) : summary ? (
         <>
           {/* 🧠 Daily Spaced Repetition Review Queue Card */}
-          <DailyReviewQueueCard />
+          {platformFeatures?.dailyReviewDose !== false && <DailyReviewQueueCard />}
 
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto scrollbar-none">
@@ -494,36 +500,40 @@ export default function StudentDashboardPage() {
               <span>نظرة عامة والنشاط 📊</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('flashcards')}
-              className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'flashcards'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>كروت الاستذكار والذاكرة 🎴</span>
-              {summary.flashcardMemory?.forgottenCards && summary.flashcardMemory.forgottenCards.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold">
-                  {summary.flashcardMemory.forgottenCards.length}
-                </span>
-              )}
-            </button>
+            {platformFeatures?.flashcards !== false && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('flashcards')}
+                className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'flashcards'
+                    ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>كروت الاستذكار والذاكرة 🎴</span>
+                {summary.flashcardMemory?.forgottenCards && summary.flashcardMemory.forgottenCards.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold">
+                    {summary.flashcardMemory.forgottenCards.length}
+                  </span>
+                )}
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('timeline')}
-              className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'timeline'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>سجل النشاط الزمني (Timeline) ⏱️</span>
-            </button>
+            {platformFeatures?.studentActivityTracking !== false && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('timeline')}
+                className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'timeline'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                <span>سجل النشاط الزمني (Timeline) ⏱️</span>
+              </button>
+            )}
           </div>
 
           {/* ========================================================================= */}
@@ -794,7 +804,7 @@ export default function StudentDashboardPage() {
           {/* ========================================================================= */}
           {/* TAB 2: FLASHCARDS & MEMORY PERSISTENCE */}
           {/* ========================================================================= */}
-          {activeTab === 'flashcards' && (
+          {activeTab === 'flashcards' && platformFeatures?.flashcards !== false && (
             <div className="space-y-6">
               {/* Header Hero Card */}
               <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-5">
@@ -1259,7 +1269,8 @@ export default function StudentDashboardPage() {
               {/* ========================================================================= */}
               {/* SECTION 3: SPACED REPETITION ANALYTICS (تحليلات تكرار المراجعة المتقدمة) */}
               {/* ========================================================================= */}
-              <div id="spaced-repetition" className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
+              {platformFeatures?.spacedRepetitionAnalytics !== false && (
+                <div id="spaced-repetition" className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
                 {/* Header with Title and Export Button */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
                   <div className="flex items-center gap-3">
@@ -1742,13 +1753,14 @@ export default function StudentDashboardPage() {
                   );
                 })()}
               </div>
+              )}
             </div>
           )}
 
           {/* ========================================================================= */}
           {/* TAB 3: TIMELINE & ACTIVITY LOG */}
           {/* ========================================================================= */}
-          {activeTab === 'timeline' && (
+          {activeTab === 'timeline' && platformFeatures?.studentActivityTracking !== false && (
             <div className="space-y-8">
               {/* Chronological Timeline */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">

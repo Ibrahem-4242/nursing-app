@@ -122,6 +122,16 @@ export const DEFAULT_PLATFORM_FEATURES: PlatformFeaturesConfig = {
   powerpointPpt: true,
   flashcards: true,
   statsBar: true,
+  dailyReviewDose: true,
+  interactiveQuiz: true,
+  activeDevicesLimit: true,
+  studentActivityTracking: true,
+  spacedRepetitionAnalytics: true,
+  studyStreak: true,
+  flashcardNavigationLock: true,
+  pwaInstall: true,
+  threeDModels: true,
+  reportBrokenLinks: true,
 };
 
 
@@ -2077,7 +2087,8 @@ export const CmsService = {
         student.activeDevices[existingIdx].deviceLabel = label;
       } else {
         // New device attempting to log in: check if account already has 2 active devices
-        if (student.activeDevices.length >= 2) {
+        const features = await this.getPlatformFeatures();
+        if (features.activeDevicesLimit !== false && student.activeDevices.length >= 2) {
           return {
             success: false,
             code: 'DEVICE_LIMIT_REACHED',
@@ -2171,6 +2182,12 @@ export const CmsService = {
     const student = store.students.find((s) => s.id === studentId);
     if (!student) return { isValid: false, reason: 'NOT_FOUND' };
     if (student.isSuspended) return { isValid: false, reason: 'SUSPENDED' };
+
+    // Check if device limits are active in platform features
+    const features = await this.getPlatformFeatures();
+    if (features.activeDevicesLimit === false) {
+      return { isValid: true, student };
+    }
 
     // Strict 2-devices concurrency validation:
     if (student.activeDevices && student.activeDevices.length > 0) {
@@ -3168,7 +3185,7 @@ export const CmsService = {
       deviceId?: string;
     },
     customToken?: string
-  ): Promise<{ success: boolean; totalStudySeconds?: number; isSuspended?: boolean; sessionTerminated?: boolean }> {
+  ): Promise<{ success: boolean; totalStudySeconds?: number; isSuspended?: boolean; sessionTerminated?: boolean; trackingDisabled?: boolean }> {
     // 1. Camouflage / Panic Mode check
     const panicMode = await PanicEngine.getPanicMode();
     if (panicMode.isEnabled) {
@@ -3180,6 +3197,11 @@ export const CmsService = {
     if (!store.studentActivityLogs) store.studentActivityLogs = [];
 
     // Find student
+    const features = await this.getPlatformFeatures();
+    if (features.studentActivityTracking === false) {
+      return { success: true, trackingDisabled: true };
+    }
+
     const student = store.students.find(
       (s) => s.id === payload.studentId || (payload.studentPhone && s.phone === payload.studentPhone)
     );
@@ -3189,7 +3211,7 @@ export const CmsService = {
     }
 
     // Verify that this device is still authorized among activeDevices
-    if (student && student.activeDevices && student.activeDevices.length > 0 && payload.deviceId) {
+    if (features.activeDevicesLimit !== false && student && student.activeDevices && student.activeDevices.length > 0 && payload.deviceId) {
       const isDeviceActive = student.activeDevices.some((d) => d.deviceId === payload.deviceId);
       if (!isDeviceActive) {
         return { success: false, sessionTerminated: true };

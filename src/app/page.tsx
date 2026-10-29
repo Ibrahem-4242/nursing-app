@@ -144,7 +144,14 @@ export default async function HomePage({
 
             {/* Right Column: Real Interactive 3D Stethoscope Canvas (No clutter!) */}
             <div className="lg:col-span-5">
-              <StethoscopeHero />
+              {platformFeatures.threeDModels !== false ? (
+                <StethoscopeHero />
+              ) : (
+                <div className="w-full h-64 sm:h-80 rounded-3xl bg-teal-500/10 border border-teal-500/20 flex flex-col items-center justify-center text-teal-600 gap-3">
+                  <Stethoscope className="w-16 h-16 opacity-60" />
+                  <span className="text-xs font-bold text-teal-700 dark:text-teal-300">منصة ملخصات تمريض الرقمية 🩺</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -155,7 +162,7 @@ export default async function HomePage({
         <AdSenseBanner position="header" slotId="9876543210" label="إعلان ممول - منصة ملخصات تمريض" />
 
         {/* 🧠 Daily Spaced Repetition Review Queue Card (جرعة المراجعة اليومية الذكية) */}
-        <DailyReviewQueueCard />
+        {platformFeatures.dailyReviewDose !== false && <DailyReviewQueueCard />}
 
         {/* 🚀 Shakib Rakib Golden Banner (باقة شاكب راكب الشهرية الشاملة) */}
         {platformFeatures.shakibRakib && shakibConfig.isEnabled !== false && (

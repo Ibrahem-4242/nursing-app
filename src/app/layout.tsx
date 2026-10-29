@@ -256,7 +256,7 @@ export default async function RootLayout({
           <StudentAuthProvider>
             <BookmarksProvider>
               <StudentAuthModal />
-              <PWAInstallBanner />
+              {platformFeatures.pwaInstall !== false && <PWAInstallBanner />}
               <MaintenanceWrapper maintenanceConfig={maintenanceConfig} isAdmin={isAdmin}>
                 {platformFeatures.announcementBar && <AnnouncementBar />}
                 <Navbar activeYears={activeYears} platformFeatures={platformFeatures} />
