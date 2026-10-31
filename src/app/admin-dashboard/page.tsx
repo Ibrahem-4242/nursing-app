@@ -1848,8 +1848,8 @@ export default function AdminDashboardPage() {
 
   // Helper to extract video duration from File via hidden video element
   const handleSelectVideoFile = (f: File) => {
-    if (f.size > 25 * 1024 * 1024) {
-      alert(`⚠️ تنبيه: حجم هذا الفيديو (${(f.size / (1024 * 1024)).toFixed(1)} MB). ملفات الفيديو الكبيرة يُرجى وضع رابطها عبر Google Drive؛ حيث توفر المنصة مشغل فيديو سريع ومحمي بدون قيود على الحجم وبدون استهلاك لسيرفر الموقع.`);
+    if (f.size > 150 * 1024 * 1024) {
+      alert(`⚠️ تنبيه: حجم هذا الفيديو (${(f.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به للرفع المباشر (150 MB). يرجى استخدام خيار رابط Google Drive لرفعه بدون قيود.`);
       setVideoUploadMode('link');
       return;
     }
@@ -2195,8 +2195,8 @@ export default function AdminDashboardPage() {
       let resolvedVideoUrl = '';
       let resolvedVideoSize = '';
       if (videoUploadMode === 'file' && videoFile) {
-        if (videoFile.size > 25 * 1024 * 1024) {
-          throw new Error(`حجم ملف الفيديو (${(videoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى التبديل لخيار "رابط Google Drive" للبث فائق السرعة وبدون قيود.`);
+        if (videoFile.size > 150 * 1024 * 1024) {
+          throw new Error(`حجم ملف الفيديو (${(videoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (150 MB). يرجى التبديل لخيار "رابط Google Drive".`);
         }
         setIsUploadingVideo(true);
         try {
@@ -2473,8 +2473,8 @@ export default function AdminDashboardPage() {
 
       // Handle video upload: If file is provided
       if (videoFileToSend) {
-        if (videoFileToSend.size > 25 * 1024 * 1024) {
-          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام "رابط Google Drive".`);
+        if (videoFileToSend.size > 150 * 1024 * 1024) {
+          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (150 MB). يرجى استخدام "رابط Google Drive".`);
         }
         setQuizIsUploadingVideo(true);
         setQuizVideoProgress(0);
@@ -2869,8 +2869,8 @@ export default function AdminDashboardPage() {
       let videoFileToSend: File | null = editQuizVideoFile;
 
       if (videoFileToSend) {
-        if (videoFileToSend.size > 25 * 1024 * 1024) {
-          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام رابط Google Drive.`);
+        if (videoFileToSend.size > 150 * 1024 * 1024) {
+          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (150 MB). يرجى استخدام رابط Google Drive.`);
         }
         setEditIsUploadingQuizVideo(true);
         setEditQuizVideoProgress(0);
@@ -3610,8 +3610,8 @@ export default function AdminDashboardPage() {
       let resolvedVideoUrl = editVideoUrl.trim();
       let resolvedVideoSize = '';
       if (editVideoFile) {
-        if (editVideoFile.size > 25 * 1024 * 1024) {
-          throw new Error(`حجم ملف الفيديو (${(editVideoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام رابط Google Drive.`);
+        if (editVideoFile.size > 150 * 1024 * 1024) {
+          throw new Error(`حجم ملف الفيديو (${(editVideoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (150 MB). يرجى استخدام رابط Google Drive.`);
         }
         setEditIsUploadingVideo(true);
         try {
@@ -5341,7 +5341,7 @@ export default function AdminDashboardPage() {
                         }`}
                       >
                         <FileUp className="w-3 h-3" />
-                        <span>رفع فيديو مباشر (&le; 25 MB)</span>
+                        <span>رفع فيديو مجزأ (حتى 150 MB) 🎬</span>
                       </button>
                     </div>
 
@@ -5375,7 +5375,7 @@ export default function AdminDashboardPage() {
                           ) : (
                             <>
                               <Video className="w-3.5 h-3.5" />
-                              <span>اختر ملف فيديو خفيف (&le; 25 MB) 🎬</span>
+                              <span>اختر ملف فيديو (يقبل حتى 150 MB بتقسيم مباشر) 🎬</span>
                             </>
                           )}
                         </button>
