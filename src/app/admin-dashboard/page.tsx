@@ -1889,7 +1889,7 @@ export default function AdminDashboardPage() {
     label = 'الملف',
     customDuration = ''
   ): Promise<{ fileId: string; url: string; sizeFormatted: string }> => {
-    const CHUNK_SIZE = 2.5 * 1024 * 1024; // 2.5 MB chunks (well within Vercel's 4.5 MB request limit)
+    const CHUNK_SIZE = 3.5 * 1024 * 1024; // 3.5 MB chunks (optimal speed, safely under Vercel's 4.5 MB limit)
     const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
 
     const initRes = await fetch('/api/admin/upload-chunk', {
@@ -1990,7 +1990,7 @@ export default function AdminDashboardPage() {
         percent: 100,
         speed: '',
         eta: '',
-        status: `جاري تجميع وحفظ ${label} على الخادم...`,
+        status: `جاري تجميع وحفظ ${label} على السحابة الدائمة...`,
       });
     }
 

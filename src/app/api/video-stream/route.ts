@@ -200,8 +200,6 @@ export async function GET(req: NextRequest) {
         const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
         const token = process.env.GITHUB_SYNC_TOKEN || builtinToken;
         const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
-        const ghRawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeId)}`;
-
         const upstreamHeaders: Record<string, string> = {
           'User-Agent': 'NursingStudyHubApp',
         };
@@ -213,10 +211,21 @@ export async function GET(req: NextRequest) {
           upstreamHeaders['Range'] = rangeHeader;
         }
 
-        const ghRes = await fetch(ghRawUrl, {
+        // 1. Try GitHub Release Asset CDN first (Fast CDN, 2GB capacity, byte-range streaming)
+        const ghReleaseUrl = `https://github.com/${repo}/releases/download/v-media-storage/${encodeURIComponent(safeId)}`;
+        let ghRes = await fetch(ghReleaseUrl, {
           headers: upstreamHeaders,
           cache: 'no-store',
         });
+
+        // 2. Fallback to raw GitHub repo contents if not found in release
+        if (!ghRes.ok && ghRes.status !== 206) {
+          const ghRawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeId)}`;
+          ghRes = await fetch(ghRawUrl, {
+            headers: upstreamHeaders,
+            cache: 'no-store',
+          });
+        }
 
         if (ghRes.ok || ghRes.status === 206) {
           const ext = path.extname(safeId).toLowerCase();

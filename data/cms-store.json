@@ -6912,123 +6912,6 @@
   "complaints": [],
   "visitors": [
     {
-      "deviceType": "موبايل أندرويد (Android)",
-      "page": "/subject/physiology",
-      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-      "isDailyUnique": false,
-      "id": "vis-1793090999351-biwx",
-      "timestamp": "2026-10-27T08:49:59.351Z",
-      "dateStr": "2026-10-27"
-    },
-    {
-      "deviceType": "موبايل أندرويد (Android)",
-      "page": "/lecture/lec-1791657971769",
-      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-      "isDailyUnique": false,
-      "id": "vis-1793091008206-gwng",
-      "timestamp": "2026-10-27T08:50:08.206Z",
-      "dateStr": "2026-10-27"
-    },
-    {
-      "deviceType": "موبايل أندرويد (Android)",
-      "page": "/lecture/lec-1791657971769",
-      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-      "isDailyUnique": false,
-      "id": "vis-1793100236645-9mz6",
-      "timestamp": "2026-10-27T11:23:56.645Z",
-      "dateStr": "2026-10-27"
-    },
-    {
-      "deviceType": "موبايل أندرويد (Android)",
-      "page": "/lecture/lec-1791657971769",
-      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)",
-      "isDailyUnique": true,
-      "id": "vis-1793100239413-77y8",
-      "timestamp": "2026-10-27T11:23:59.413Z",
-      "dateStr": "2026-10-27"
-    },
-    {
-      "deviceType": "موبايل أندرويد (Android)",
-      "page": "/",
-      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
-      "isDailyUnique": true,
-      "id": "vis-1793138894482-35ta",
-      "timestamp": "2026-10-27T22:08:14.482Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبي��تر / لابتوب (Desktop)",
-      "page": "/",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793157698451-d1uw",
-      "timestamp": "2026-10-28T03:21:38.451Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793157709836-n2eg",
-      "timestamp": "2026-10-28T03:21:49.836Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793157979581-omu4",
-      "timestamp": "2026-10-28T03:26:19.581Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793158124309-k12x",
-      "timestamp": "2026-10-28T03:28:44.309Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/about",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793158134867-dypw",
-      "timestamp": "2026-10-28T03:28:54.867Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/bookmarks",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793158384865-96xb",
-      "timestamp": "2026-10-28T03:33:04.865Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/contact",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793158563094-r04n",
-      "timestamp": "2026-10-28T03:36:03.094Z",
-      "dateStr": "2026-10-28"
-    },
-    {
-      "deviceType": "كمبيوتر / لابتوب (Desktop)",
-      "page": "/privacy-policy",
-      "userAgent": "Mediapartners-Google",
-      "isDailyUnique": true,
-      "id": "vis-1793158761051-1rtp",
-      "timestamp": "2026-10-28T03:39:21.051Z",
-      "dateStr": "2026-10-28"
-    },
-    {
       "deviceType": "كمبيوتر / لابتوب (Desktop)",
       "page": "/subject/anatomy",
       "userAgent": "Mediapartners-Google",
@@ -8710,6 +8593,123 @@
       "id": "vis-1793451061623-dajb",
       "timestamp": "2026-10-31T12:51:01.623Z",
       "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793453279135-7k3f",
+      "timestamp": "2026-10-31T13:27:59.135Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793453345812-ned0",
+      "timestamp": "2026-10-31T13:29:05.812Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793453452091-sbt0",
+      "timestamp": "2026-10-31T13:30:52.091Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793453453229-jjky",
+      "timestamp": "2026-10-31T13:30:53.229Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793453509346-c1i6",
+      "timestamp": "2026-10-31T13:31:49.346Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793453564854-rb82",
+      "timestamp": "2026-10-31T13:32:44.854Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793453803452-w731",
+      "timestamp": "2026-10-31T13:36:43.452Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793453959136-gfe4",
+      "timestamp": "2026-10-31T13:39:19.136Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793454217968-4wm0",
+      "timestamp": "2026-10-31T13:43:37.968Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/lecture/lec-1793450253639",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "isDailyUnique": false,
+      "id": "vis-1793454370576-vxva",
+      "timestamp": "2026-10-31T13:46:10.576Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793454870914-ua0m",
+      "timestamp": "2026-10-31T13:54:30.914Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793454871832-zqf9",
+      "timestamp": "2026-10-31T13:54:31.832Z",
+      "dateStr": "2026-10-31"
+    },
+    {
+      "deviceType": "كمبيوتر / لابتوب (Desktop)",
+      "page": "/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+      "isDailyUnique": true,
+      "id": "vis-1793455018629-td7d",
+      "timestamp": "2026-10-31T13:56:58.629Z",
+      "dateStr": "2026-10-31"
     }
   ],
   "downloads": [
@@ -9661,7 +9661,7 @@
     {
       "lectureTitle": "المحاضرة التانية",
       "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
-      "fileType": "��لخص PDF",
+      "fileType": "ملخص PDF",
       "fileName": "المحاضرة التانية",
       "id": "dl-1792453478182-uq7b",
       "timestamp": "2026-10-19T23:44:38.182Z",
@@ -10398,7 +10398,7 @@
     },
     {
       "lectureTitle": "أسئلة وتمارين المحاضرة - المحاضرة الاولي",
-      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "subjectTitle": "وظائف الأعضاء (��يسيولوجي)",
       "fileType": "أسئلة وتدريبات المحاضرة ❓",
       "fileName": "أسئلة وتمارين المحاضرة - المحاضرة الاولي",
       "id": "dl-1792875298866-cfqk",
@@ -10716,9 +10716,9 @@
         "dev_mvc6dcmd_sr7qivu",
         "dev_mvl7zh0l_u48h96f"
       ],
-      "totalStudySeconds": 4827,
-      "lastActiveAt": "2026-10-31T12:51:46.161Z",
-      "lastActiveTarget": "المحاضرة الخامسة (ملف التلخيص PDF 📄)",
+      "totalStudySeconds": 4939,
+      "lastActiveAt": "2026-10-31T13:46:14.463Z",
+      "lastActiveTarget": "المحاضرة الخامسة",
       "deviceLogins": [
         {
           "deviceId": "dev_mvl7zh0l_u48h96f",
@@ -10745,7 +10745,7 @@
           "deviceLabel": "كمبيوتر ويندوز (Chrome)",
           "ip": "156.195.10.68",
           "loginAt": "2026-10-29T06:40:44.774Z",
-          "lastActiveAt": "2026-10-31T12:51:46.161Z"
+          "lastActiveAt": "2026-10-31T13:46:14.463Z"
         }
       ],
       "flashcardReviews": {
@@ -10977,9 +10977,9 @@
     "stu-1792158253065-frt3",
     "stu-1792158370476-f2t4"
   ],
-  "cumulativeVisitors": 758,
+  "cumulativeVisitors": 765,
   "cumulativeDownloads": 369,
-  "cumulativePageViews": 1550,
+  "cumulativePageViews": 1564,
   "dailyVisitorsMap": {
     "2026-10-16": 6,
     "2026-10-17": 60,
@@ -10996,7 +10996,7 @@
     "2026-10-28": 40,
     "2026-10-29": 15,
     "2026-10-30": 3,
-    "2026-10-31": 8
+    "2026-10-31": 12
   },
   "dailyDownloadsMap": {
     "2026-10-16": 1,
@@ -11056,6 +11056,187 @@
     "updatedAt": "2026-10-19T07:04:11.879Z"
   },
   "studentActivityLogs": [
+    {
+      "id": "act_1793454370010_n0mbt",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:46:14.463Z",
+      "lastHeartbeatAt": "2026-10-31T13:46:14.463Z",
+      "durationSeconds": 1
+    },
+    {
+      "id": "act_1793454216820_5ewwq",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:43:54.436Z",
+      "lastHeartbeatAt": "2026-10-31T13:46:09.889Z",
+      "durationSeconds": 51
+    },
+    {
+      "id": "act_1793454216825_mo063",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "pdf",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "resourceTitle": "ملف التلخيص PDF 📄",
+      "startedAt": "2026-10-31T13:43:54.485Z",
+      "lastHeartbeatAt": "2026-10-31T13:46:08.833Z",
+      "durationSeconds": 33
+    },
+    {
+      "id": "act_1793453562920_a0xqk",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:33:06.628Z",
+      "lastHeartbeatAt": "2026-10-31T13:38:06.479Z",
+      "durationSeconds": 10
+    },
+    {
+      "id": "act_1793453562926_7w7m4",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "pdf",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "resourceTitle": "ملف التلخيص PDF 📄",
+      "startedAt": "2026-10-31T13:33:07.357Z",
+      "lastHeartbeatAt": "2026-10-31T13:37:12.685Z",
+      "durationSeconds": 5
+    },
+    {
+      "id": "act_1793453507511_ydjpa",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "pdf",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "resourceTitle": "ملف التلخيص PDF 📄",
+      "startedAt": "2026-10-31T13:32:53.638Z",
+      "lastHeartbeatAt": "2026-10-31T13:32:53.638Z",
+      "durationSeconds": 2
+    },
+    {
+      "id": "act_1793453507503_l7q81",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:32:53.453Z",
+      "lastHeartbeatAt": "2026-10-31T13:32:53.490Z",
+      "durationSeconds": 3
+    },
+    {
+      "id": "act_1793453345365_v2k7q",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:29:16.733Z",
+      "lastHeartbeatAt": "2026-10-31T13:29:16.733Z",
+      "durationSeconds": 10
+    },
+    {
+      "id": "act_1793453345370_36nrj",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "pdf",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "resourceTitle": "ملف التلخيص PDF 📄",
+      "startedAt": "2026-10-31T13:29:16.700Z",
+      "lastHeartbeatAt": "2026-10-31T13:29:16.700Z",
+      "durationSeconds": 10
+    },
+    {
+      "id": "act_1793453278604_lb0gy",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "pdf",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "resourceTitle": "ملف التلخيص PDF 📄",
+      "startedAt": "2026-10-31T13:28:01.983Z",
+      "lastHeartbeatAt": "2026-10-31T13:28:56.208Z",
+      "durationSeconds": 3
+    },
+    {
+      "id": "act_1793453278601_dmaux",
+      "studentId": "stu-1792163247540-b3ms",
+      "studentName": "ابراهيم هاشم",
+      "studentPhone": "01098814278",
+      "university": "تمريض ماست",
+      "yearId": "",
+      "deviceId": "dev_mvb3q3pf_ljjxzg3",
+      "targetType": "lecture",
+      "targetId": "lec-1793450253639",
+      "targetTitle": "المحاضرة الخامسة",
+      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "startedAt": "2026-10-31T13:28:55.705Z",
+      "lastHeartbeatAt": "2026-10-31T13:28:55.705Z",
+      "durationSeconds": 2
+    },
     {
       "id": "act_1793451068504_vp7rr",
       "studentId": "stu-1792163247540-b3ms",
@@ -11283,7 +11464,7 @@
       "targetType": "flashcards",
       "targetId": "lec-1791657971769",
       "targetTitle": "ا��محاضرة الاول��",
-      "subjectTitle": "وظائف الأعضاء (فيسيولوجي)",
+      "subjectTitle": "وظا��ف الأعضاء (فيسيولوجي)",
       "resourceTitle": "كروت الاستذكار الذكية 🎴",
       "startedAt": "2026-10-27T08:51:09.776Z",
       "lastHeartbeatAt": "2026-10-27T09:59:39.816Z",

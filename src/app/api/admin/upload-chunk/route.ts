@@ -54,7 +54,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await saveUploadChunk(rawUploadId, chunkIndex, bytes);
+      const cookieStore = cookies();
+      const customToken =
+        req.headers.get('x-github-token') ||
+        cookieStore.get('nursing_sync_token')?.value ||
+        '';
+
+      await saveUploadChunk(rawUploadId, chunkIndex, bytes, customToken);
 
       return NextResponse.json({
         success: true,
@@ -121,8 +127,13 @@ export async function POST(req: NextRequest) {
 
       if (action === 'abort') {
         const { uploadId } = body;
+        const cookieStore = cookies();
+        const customToken =
+          req.headers.get('x-github-token') ||
+          cookieStore.get('nursing_sync_token')?.value ||
+          '';
         if (uploadId) {
-          cleanupChunks(uploadId);
+          cleanupChunks(uploadId, customToken);
         }
         return NextResponse.json({ success: true, message: 'تم إلغاء الرفع وتنظيف الأجزاء' });
       }
@@ -148,7 +159,13 @@ export async function POST(req: NextRequest) {
       const arrayBuf = await chunkFile.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);
 
-      await saveUploadChunk(uploadId, chunkIndex, bytes);
+      const cookieStore = cookies();
+      const customToken =
+        req.headers.get('x-github-token') ||
+        cookieStore.get('nursing_sync_token')?.value ||
+        '';
+
+      await saveUploadChunk(uploadId, chunkIndex, bytes, customToken);
 
       return NextResponse.json({
         success: true,

@@ -1,5 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import {
+  uploadReleaseAsset,
+  fetchReleaseAssetBuffer,
+  cleanupUploadParts,
+  MEDIA_RELEASE_TAG,
+  getGitHubStorageToken,
+  getGitHubStorageRepo,
+} from './github-release-storage';
 
 // Global in-memory cache to guarantee persistence across requests in serverless runtimes
 const globalFileStorage: Map<string, { buffer: Buffer; filename: string; contentType: string }> =
@@ -241,13 +249,26 @@ export async function getUploadedFileAsync(
   const ext = path.extname(originalName).toLowerCase();
   const contentType = getContentTypeForExt(ext);
 
-  // 2. Fetch from GitHub repository server-side (invisible to client/inspect)
+  // 2. Fetch from GitHub permanent release storage or repository
   try {
-    const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
-    const token = process.env.GITHUB_SYNC_TOKEN || builtinToken;
-    const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
+    const token = getGitHubStorageToken();
+    const repo = getGitHubStorageRepo();
 
-    // Fetch raw content with auth token (works for both public and private repos)
+    // 2a. Try GitHub Release Asset CDN first (permanent, supports up to 2GB)
+    const releaseUrl = `https://github.com/${repo}/releases/download/${MEDIA_RELEASE_TAG}/${encodeURIComponent(safeName)}`;
+    const relHeaders: Record<string, string> = { 'User-Agent': 'NursingStudyHubApp' };
+    if (token) relHeaders['Authorization'] = `token ${token}`;
+
+    const relRes = await fetch(releaseUrl, { headers: relHeaders, cache: 'no-store' });
+    if (relRes.ok) {
+      const arrayBuf = await relRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+      const result = { buffer, filename: originalName, contentType };
+      globalFileStorage.set(safeName, result);
+      return result;
+    }
+
+    // 2b. Fallback to raw GitHub repo contents
     const rawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeName)}`;
     const headers: Record<string, string> = {
       'User-Agent': 'NursingStudyHubApp',
@@ -328,7 +349,8 @@ export function initChunkedUpload(
 export async function saveUploadChunk(
   uploadId: string,
   chunkIndex: number,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  customToken?: string
 ): Promise<{ success: boolean; chunkIndex: number }> {
   const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
   const dir = path.join(getChunksDirectory(), safeId);
@@ -337,6 +359,16 @@ export async function saveUploadChunk(
   }
   const chunkPath = path.join(dir, `chunk_${chunkIndex}`);
   fs.writeFileSync(chunkPath, Buffer.from(bytes));
+
+  // Multi-container resilient backup: Upload part to GitHub Release Assets
+  // so ANY serverless container can retrieve it during assembly
+  try {
+    const partName = `${safeId}_part_${chunkIndex}`;
+    await uploadReleaseAsset(partName, Buffer.from(bytes), 'application/octet-stream', customToken);
+  } catch (cloudErr) {
+    console.warn(`[saveUploadChunk] Notice: Part backup to cloud returned:`, cloudErr);
+  }
+
   return { success: true, chunkIndex };
 }
 
@@ -355,7 +387,24 @@ export async function assembleChunkedUpload(
   const safeName = `${fileId}_${cleanFilename}`;
   const targetPath = path.join(targetDir, safeName);
 
-  // Validate all chunks exist
+  // 1. Validate chunks exist locally; if any chunk landed on a different container, fetch it from cloud!
+  for (let i = 0; i < totalChunks; i++) {
+    const chunkPath = path.join(chunkDir, `chunk_${i}`);
+    if (!fs.existsSync(chunkPath)) {
+      console.log(`[AssembleChunked] Chunk ${i} missing from local container. Fetching from cloud...`);
+      const partName = `${safeId}_part_${i}`;
+      const cloudBuf = await fetchReleaseAssetBuffer(partName, customToken);
+      if (cloudBuf && cloudBuf.length > 0) {
+        if (!fs.existsSync(chunkDir)) {
+          fs.mkdirSync(chunkDir, { recursive: true });
+        }
+        fs.writeFileSync(chunkPath, cloudBuf);
+        console.log(`[AssembleChunked] Successfully restored chunk ${i} (${cloudBuf.length} bytes) from cloud!`);
+      }
+    }
+  }
+
+  // 2. Final verification of all chunks
   for (let i = 0; i < totalChunks; i++) {
     const chunkPath = path.join(chunkDir, `chunk_${i}`);
     if (!fs.existsSync(chunkPath)) {
@@ -390,7 +439,7 @@ export async function assembleChunkedUpload(
       ? `${(sizeMb / 1024).toFixed(2)} GB`
       : `${sizeMb.toFixed(1)} MB`;
 
-  // Clean up chunks
+  // Clean up local chunks
   try {
     for (let i = 0; i < totalChunks; i++) {
       const chunkPath = path.join(chunkDir, `chunk_${i}`);
@@ -402,6 +451,9 @@ export async function assembleChunkedUpload(
   } catch (cleanErr) {
     console.warn('[AssembleChunked] Non-blocking cleanup notice:', cleanErr);
   }
+
+  // Also clean up temporary cloud parts asynchronously
+  cleanupUploadParts(uploadId, customToken).catch(() => {});
 
   // Also mirror to /tmp/nursing-uploads if target was different
   try {
@@ -415,43 +467,48 @@ export async function assembleChunkedUpload(
     }
   } catch {}
 
-  // Permanent Cloud Storage: Upload to GitHub repo contents via API so the video persists across serverless container restarts
-  try {
-    const builtinToken = '6rkXF1hc8quy6JG86qdvm8ejZZdcURng6SXM_ohg'.split('').reverse().join('');
-    const token = customToken || process.env.GITHUB_SYNC_TOKEN || builtinToken;
-    const repo = process.env.GITHUB_REPO || 'Ibrahem-4242/nursing-app';
-
-    if (token && totalBytes <= 100 * 1024 * 1024 && fs.existsSync(targetPath)) {
-      const fileBuffer = fs.readFileSync(targetPath);
-      const base64Content = fileBuffer.toString('base64');
-      const ghRes = await fetch(
-        `https://api.github.com/repos/${repo}/contents/public/uploads/${encodeURIComponent(safeName)}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `token ${token}`,
-            'User-Agent': 'NursingStudyHubApp',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: `Upload video ${cleanFilename} (${sizeFormatted}) via admin`,
-            content: base64Content,
-          }),
-        }
-      );
-      if (ghRes.ok) {
-        console.log(`[AssembleChunked] Successfully uploaded ${safeName} (${sizeFormatted}) to GitHub cloud repo!`);
-      } else {
-        const ghErrText = await ghRes.text();
-        console.warn('[AssembleChunked] GitHub upload response not ok:', ghRes.status, ghErrText);
-      }
-    }
-  } catch (ghErr) {
-    console.warn('[AssembleChunked] GitHub contents upload notice:', ghErr);
-  }
-
   const ext = path.extname(cleanFilename).toLowerCase();
   const isVideo = ['.mp4', '.m4v', '.webm', '.mkv', '.mov', '.avi'].includes(ext);
+  const contentType = getContentTypeForExt(ext);
+
+  // Permanent Cloud Storage: Upload to GitHub Release Asset (Fast CDN, 2GB capacity, byte-range streaming!)
+  try {
+    if (fs.existsSync(targetPath)) {
+      const fileBuffer = fs.readFileSync(targetPath);
+      const upRes = await uploadReleaseAsset(safeName, fileBuffer, contentType, customToken);
+      if (upRes && upRes.downloadUrl) {
+        console.log(`[AssembleChunked] Successfully uploaded ${safeName} (${sizeFormatted}) to GitHub permanent release storage!`);
+      }
+    }
+  } catch (upErr) {
+    console.warn('[AssembleChunked] Release asset upload notice:', upErr);
+
+    // Fallback to git repo contents if under 25MB
+    if (totalBytes <= 24 * 1024 * 1024 && fs.existsSync(targetPath)) {
+      try {
+        const token = getGitHubStorageToken(customToken);
+        const repo = getGitHubStorageRepo();
+        const fileBuffer = fs.readFileSync(targetPath);
+        const base64Content = fileBuffer.toString('base64');
+        await fetch(
+          `https://api.github.com/repos/${repo}/contents/public/uploads/${encodeURIComponent(safeName)}`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `token ${token}`,
+              'User-Agent': 'NursingStudyHubApp',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: `Upload ${cleanFilename} (${sizeFormatted}) via admin`,
+              content: base64Content,
+            }),
+          }
+        );
+      } catch {}
+    }
+  }
+
   const streamUrl = isVideo
     ? `/api/video-stream?fileId=${encodeURIComponent(safeName)}`
     : `/api/files/${encodeURIComponent(safeName)}`;
@@ -462,7 +519,6 @@ export async function assembleChunkedUpload(
     if (supabase) {
       try {
         const fileBuf = fs.readFileSync(targetPath);
-        const contentType = getContentTypeForExt(ext);
         const { error } = await supabase.storage
           .from('lecture-pdfs')
           .upload(safeName, fileBuf, { contentType, upsert: true });
@@ -495,7 +551,7 @@ export async function assembleChunkedUpload(
   };
 }
 
-export function cleanupChunks(uploadId: string): void {
+export function cleanupChunks(uploadId: string, customToken?: string): void {
   try {
     const safeId = uploadId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const chunkDir = path.join(getChunksDirectory(), safeId);
@@ -506,6 +562,7 @@ export function cleanupChunks(uploadId: string): void {
       }
       try { fs.rmdirSync(chunkDir); } catch {}
     }
+    cleanupUploadParts(uploadId, customToken).catch(() => {});
   } catch {}
 }
 
