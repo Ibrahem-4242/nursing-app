@@ -627,16 +627,6 @@ export default function LectureContentTabs({
             </p>
           )}
 
-          {/* Admin Note if available */}
-          {adminNote && (
-            <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/40 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold block mb-0.5">توجيهات المذاكرة:</span>
-                <p className="leading-relaxed">{adminNote}</p>
-              </div>
-            </div>
-          )}
 
           {/* THE "حملها دلوقتي" (Download Now) BIG BUTTON OR PURCHASE PROMPT */}
           <div className="pt-2 space-y-3">

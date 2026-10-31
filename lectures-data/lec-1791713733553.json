@@ -267,7 +267,7 @@
     {
       "id": 36,
       "front": "ما هما المصطلحان المستخدمان لوصف السطحين السفلي والأعلا للقدم؟",
-      "back": "• أخمصي (Plantar) = السطح السفلي للقدم (ق��ع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
+      "back": "• أخمصي (Plantar) = السطح السفلي للقدم (قاع القدم).\n• ظهري (Dorsal) = السطح العلوي لظهر القدم.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -322,7 +322,7 @@
     },
     {
       "id": 44,
-      "front": "��ذا تحرك الدم أو النبض العصبي باتجاه القدمين (Towards the feet)، فما هو الاتجاه التشريحي لهذه الحركة؟",
+      "front": "إذا تحرك الدم أو النبض العصبي باتجاه القدمين (Towards the feet)، فما هو الاتجاه التشريحي لهذه الحركة؟",
       "back": "تعتبر حركة سفليّة / ذنبية (Inferior / Caudal movement).",
       "category": "كروت استذكار",
       "clinicalPearl": "الجهاز العصبي (Nervous System)"
@@ -381,7 +381,7 @@
       "front": "ما هي الرؤية التي توفرها المستويات الإكليلية (Coronal planes) أثناء الفحص الشعاعي؟",
       "back": "تسمى أيضاً بالرؤية الجبهية (Frontal view) حيث تُفحص المنطقة كشرائح من الأمام نحو الخلف.",
       "category": "كروت استذكار",
-      "clinicalPearl": "ال��شريح العام (General Anatomy)"
+      "clinicalPearl": "التشريح العام (General Anatomy)"
     },
     {
       "id": 53,
@@ -400,7 +400,7 @@
     {
       "id": 55,
       "front": "ما هي الحالتان المرضيتان أو الإصابيتان اللتان يساعد التصوير بالمستويات التشريحية في تحديدهما وفقاً للنص؟",
-      "back": "1. الإصابات المرضية (Pathological diseases) مثل السر��ان أو العدوى.\n2. الإصابات الرضية (Traumatic insults) مثل كسور العظام (Bone fractures) وخلع المفاصل (Joint dislocations).",
+      "back": "1. الإصابات المرضية (Pathological diseases) مثل السرطان أو العدوى.\n2. الإصابات الرضية (Traumatic insults) مثل كسور العظام (Bone fractures) وخلع المفاصل (Joint dislocations).",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -448,7 +448,7 @@
     },
     {
       "id": 62,
-      "front": "ما العضو القياسي المرجعي لتحديد الاتجاه القريب (Proximal) والبعيد (Distal) د��خل الصدر والبطن؟",
+      "front": "ما العضو القياسي المرجعي لتحديد الاتجاه القريب (Proximal) والبعيد (Distal) داخل الصدر والبطن؟",
       "back": "القلب (Heart)؛ حيث يُعتبر الأقرب إليه قريباً (Proximal) والأبعد عنه بعيداً (Distal).",
       "category": "كروت استذكار",
       "clinicalPearl": "التجاويف والأغشية التشريحية (Body Cavities & Membranes)"
@@ -484,7 +484,7 @@
     {
       "id": 67,
       "front": "ما الذي يُسهله فهم الحقائق العلمية الموحدة ل��وضعيات التشريحية بين أفراد الفريق الطبي؟",
-      "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن م��قع كل فرد في الفريق.",
+      "back": "تسهيل التحدث بلغة علمية مشتركة (Common scientific language) والوصول لأرضية فهم واحدة بغض النظر عن موقع كل فرد في الفريق.",
       "category": "كروت استذكار",
       "clinicalPearl": "التشريح العام (General Anatomy)"
     },
@@ -571,7 +571,7 @@
     {
       "type": "pdf",
       "title": "المحاضرة الاولي والتانية (الاتجاهات)",
-      "fileSize": "رابط ��حابي 🌐",
+      "fileSize": "رابط سحابي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1ccPYB4vGlvzpq1G8KokJdkJHMG39CsnL/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
       "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
@@ -592,7 +592,7 @@
       "fileSize": "رابط درايف 🌐",
       "downloadUrl": "https://drive.google.com/file/d/15Y3DFsPXl2h9AIybdJn4O--pXvf_lKlv/view?usp=sharing",
       "pageCount": "خريطة ذهنية عالية الدقة",
-      "updatedAt": "١١‏/١��‏/٢٠٢٦، ١:١٥ م",
+      "updatedAt": "١١‏/١٠‏/٢٠٢٦، ١:١٥ م",
       "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر"
     }
   ],
