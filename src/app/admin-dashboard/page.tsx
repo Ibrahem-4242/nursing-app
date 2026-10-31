@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
   const [quizMindmapDriveUrl, setQuizMindmapDriveUrl] = useState('');
   const [quizMindmapTitle, setQuizMindmapTitle] = useState('');
 
-  const [quizVideoUploadMode, setQuizVideoUploadMode] = useState<'file' | 'link'>('file');
+  const [quizVideoUploadMode, setQuizVideoUploadMode] = useState<'file' | 'link'>('link');
   const [quizVideoFile, setQuizVideoFile] = useState<File | null>(null);
   const [quizVideoDriveUrl, setQuizVideoDriveUrl] = useState('');
   const [quizVideoTitle, setQuizVideoTitle] = useState('');
@@ -228,7 +228,7 @@ export default function AdminDashboardPage() {
   const [questionsUploadMode, setQuestionsUploadMode] = useState<'file' | 'link'>('file');
   const [questionsFile, setQuestionsFile] = useState<File | null>(null);
   const [externalQuestionsUrl, setExternalQuestionsUrl] = useState('');
-  const [videoUploadMode, setVideoUploadMode] = useState<'file' | 'link'>('file');
+  const [videoUploadMode, setVideoUploadMode] = useState<'file' | 'link'>('link');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [externalVideoUrl, setExternalVideoUrl] = useState('');
   const [videoDuration, setVideoDuration] = useState('');
@@ -1848,6 +1848,11 @@ export default function AdminDashboardPage() {
 
   // Helper to extract video duration from File via hidden video element
   const handleSelectVideoFile = (f: File) => {
+    if (f.size > 25 * 1024 * 1024) {
+      alert(`⚠️ تنبيه: حجم هذا الفيديو (${(f.size / (1024 * 1024)).toFixed(1)} MB). ملفات الفيديو الكبيرة يُرجى وضع رابطها عبر Google Drive؛ حيث توفر المنصة مشغل فيديو سريع ومحمي بدون قيود على الحجم وبدون استهلاك لسيرفر الموقع.`);
+      setVideoUploadMode('link');
+      return;
+    }
     setVideoFile(f);
     setPreUploadedVideoUrl(null);
     setPreUploadedVideoSize(null);
@@ -2190,16 +2195,28 @@ export default function AdminDashboardPage() {
       let resolvedVideoUrl = '';
       let resolvedVideoSize = '';
       if (videoUploadMode === 'file' && videoFile) {
+        if (videoFile.size > 25 * 1024 * 1024) {
+          throw new Error(`حجم ملف الفيديو (${(videoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى التبديل لخيار "رابط Google Drive" للبث فائق السرعة وبدون قيود.`);
+        }
         setIsUploadingVideo(true);
         try {
-          const chunkRes = await uploadVideoInChunks(videoFile, (p) => {
-            setVideoUploadProgress(p.percent);
-            setVideoUploadSpeed(p.speed);
-            setVideoUploadEta(p.eta);
-            setVideoUploadStatus(p.status);
-          });
-          resolvedVideoUrl = chunkRes.url;
-          resolvedVideoSize = chunkRes.sizeFormatted;
+          let directUploaded = null;
+          if (videoFile.size <= 18 * 1024 * 1024) {
+            directUploaded = await uploadFileDirectlyToCloud(videoFile);
+          }
+          if (directUploaded) {
+            resolvedVideoUrl = directUploaded.url;
+            resolvedVideoSize = directUploaded.sizeFormatted;
+          } else {
+            const chunkRes = await uploadVideoInChunks(videoFile, (p) => {
+              setVideoUploadProgress(p.percent);
+              setVideoUploadSpeed(p.speed);
+              setVideoUploadEta(p.eta);
+              setVideoUploadStatus(p.status);
+            });
+            resolvedVideoUrl = chunkRes.url;
+            resolvedVideoSize = chunkRes.sizeFormatted;
+          }
         } finally {
           setIsUploadingVideo(false);
         }
@@ -2454,19 +2471,31 @@ export default function AdminDashboardPage() {
       let resolvedVideoUrl = quizVideoUploadMode === 'link' ? quizVideoDriveUrl.trim() : '';
       let videoFileToSend: File | null = quizVideoUploadMode === 'file' ? quizVideoFile : null;
 
-      // Handle video upload: If file is provided, upload in chunks using uploadVideoInChunks
+      // Handle video upload: If file is provided
       if (videoFileToSend) {
+        if (videoFileToSend.size > 25 * 1024 * 1024) {
+          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام "رابط Google Drive".`);
+        }
         setQuizIsUploadingVideo(true);
         setQuizVideoProgress(0);
-        setQuizVideoUploadStatus('جاري بدء رفع الفيديو المقسم...');
+        setQuizVideoUploadStatus('جاري رفع الفيديو...');
         try {
-          const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
-            setQuizVideoProgress(p.percent);
-            setQuizVideoUploadStatus(p.status);
-          });
-          if (chunkedRes && chunkedRes.url) {
-            resolvedVideoUrl = chunkedRes.url;
-            videoFileToSend = null; // Successfully assembled on server!
+          let directUploaded = null;
+          if (videoFileToSend.size <= 18 * 1024 * 1024) {
+            directUploaded = await uploadFileDirectlyToCloud(videoFileToSend);
+          }
+          if (directUploaded) {
+            resolvedVideoUrl = directUploaded.url;
+            videoFileToSend = null;
+          } else {
+            const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
+              setQuizVideoProgress(p.percent);
+              setQuizVideoUploadStatus(p.status);
+            });
+            if (chunkedRes && chunkedRes.url) {
+              resolvedVideoUrl = chunkedRes.url;
+              videoFileToSend = null;
+            }
           }
         } catch (vidErr: any) {
           setQuizIsUploadingVideo(false);
@@ -2840,17 +2869,29 @@ export default function AdminDashboardPage() {
       let videoFileToSend: File | null = editQuizVideoFile;
 
       if (videoFileToSend) {
+        if (videoFileToSend.size > 25 * 1024 * 1024) {
+          throw new Error(`حجم فيديو الكويز (${(videoFileToSend.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام رابط Google Drive.`);
+        }
         setEditIsUploadingQuizVideo(true);
         setEditQuizVideoProgress(0);
-        setEditQuizVideoUploadStatus('جاري رفع الفيديو المقسم...');
+        setEditQuizVideoUploadStatus('جاري رفع الفيديو...');
         try {
-          const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
-            setEditQuizVideoProgress(p.percent);
-            setEditQuizVideoUploadStatus(p.status);
-          });
-          if (chunkedRes && chunkedRes.url) {
-            resolvedVideoUrl = chunkedRes.url;
+          let directUploaded = null;
+          if (videoFileToSend.size <= 18 * 1024 * 1024) {
+            directUploaded = await uploadFileDirectlyToCloud(videoFileToSend);
+          }
+          if (directUploaded) {
+            resolvedVideoUrl = directUploaded.url;
             videoFileToSend = null;
+          } else {
+            const chunkedRes = await uploadVideoInChunks(videoFileToSend, (p) => {
+              setEditQuizVideoProgress(p.percent);
+              setEditQuizVideoUploadStatus(p.status);
+            });
+            if (chunkedRes && chunkedRes.url) {
+              resolvedVideoUrl = chunkedRes.url;
+              videoFileToSend = null;
+            }
           }
         } catch (vidErr: any) {
           setEditIsUploadingQuizVideo(false);
@@ -3569,13 +3610,25 @@ export default function AdminDashboardPage() {
       let resolvedVideoUrl = editVideoUrl.trim();
       let resolvedVideoSize = '';
       if (editVideoFile) {
+        if (editVideoFile.size > 25 * 1024 * 1024) {
+          throw new Error(`حجم ملف الفيديو (${(editVideoFile.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح للرفع المباشر (25 MB). يرجى استخدام رابط Google Drive.`);
+        }
         setEditIsUploadingVideo(true);
         try {
-          const chunkRes = await uploadVideoInChunks(editVideoFile, (p) => {
-            setEditVideoUploadProgress(p.percent);
-          });
-          resolvedVideoUrl = chunkRes.url;
-          resolvedVideoSize = chunkRes.sizeFormatted;
+          let directUploaded = null;
+          if (editVideoFile.size <= 18 * 1024 * 1024) {
+            directUploaded = await uploadFileDirectlyToCloud(editVideoFile);
+          }
+          if (directUploaded) {
+            resolvedVideoUrl = directUploaded.url;
+            resolvedVideoSize = directUploaded.sizeFormatted;
+          } else {
+            const chunkRes = await uploadVideoInChunks(editVideoFile, (p) => {
+              setEditVideoUploadProgress(p.percent);
+            });
+            resolvedVideoUrl = chunkRes.url;
+            resolvedVideoSize = chunkRes.sizeFormatted;
+          }
         } finally {
           setEditIsUploadingVideo(false);
         }
@@ -5268,27 +5321,27 @@ export default function AdminDashboardPage() {
                     <div className="flex rounded-xl bg-indigo-100/70 dark:bg-indigo-950 p-1 gap-1">
                       <button
                         type="button"
-                        onClick={() => setVideoUploadMode('file')}
-                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
-                          videoUploadMode === 'file'
-                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
-                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
-                        }`}
-                      >
-                        <FileUp className="w-3 h-3" />
-                        <span>رفع فيديو (مجزأ - أي حجم)</span>
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setVideoUploadMode('link')}
-                        className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                           videoUploadMode === 'link'
                             ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
                             : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
                         }`}
                       >
                         <ExternalLink className="w-3 h-3" />
-                        <span>رابط درايف</span>
+                        <span>رابط Google Drive (الموصى به 🚀)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoUploadMode('file')}
+                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                          videoUploadMode === 'file'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-900 dark:text-white shadow-sm'
+                            : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800'
+                        }`}
+                      >
+                        <FileUp className="w-3 h-3" />
+                        <span>رفع فيديو مباشر (&le; 25 MB)</span>
                       </button>
                     </div>
 
@@ -5322,7 +5375,7 @@ export default function AdminDashboardPage() {
                           ) : (
                             <>
                               <Video className="w-3.5 h-3.5" />
-                              <span>اختر ملف فيديو (يقبل أي حجم حتى عدة GB) 🎬</span>
+                              <span>اختر ملف فيديو خفيف (&le; 25 MB) 🎬</span>
                             </>
                           )}
                         </button>
