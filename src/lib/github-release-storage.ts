@@ -52,7 +52,17 @@ export interface ReleaseAssetItem {
   browser_download_url: string;
 }
 
-export async function listReleaseAssets(customToken?: string): Promise<ReleaseAssetItem[]> {
+let cachedAssets: { data: ReleaseAssetItem[]; timestamp: number } | null = null;
+
+export function invalidateReleaseAssetsCache(): void {
+  cachedAssets = null;
+}
+
+export async function listReleaseAssets(customToken?: string, forceRefresh = false): Promise<ReleaseAssetItem[]> {
+  if (!forceRefresh && cachedAssets && Date.now() - cachedAssets.timestamp < 30000) {
+    return cachedAssets.data;
+  }
+
   const token = getGitHubStorageToken(customToken);
   const repo = getGitHubStorageRepo();
   const releaseId = await getMediaReleaseId(customToken);
@@ -72,12 +82,14 @@ export async function listReleaseAssets(customToken?: string): Promise<ReleaseAs
     if (res.ok) {
       const items = await res.json();
       if (Array.isArray(items)) {
-        return items.map((a: any) => ({
+        const mapped = items.map((a: any) => ({
           id: a.id,
           name: a.name,
           size: a.size || 0,
           browser_download_url: a.browser_download_url,
         }));
+        cachedAssets = { data: mapped, timestamp: Date.now() };
+        return mapped;
       }
     }
   } catch (err) {
@@ -133,6 +145,7 @@ export async function uploadReleaseAsset(
   }
 
   if (res.ok) {
+    invalidateReleaseAssetsCache();
     const data = await res.json();
     return {
       success: true,

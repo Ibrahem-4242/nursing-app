@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
+import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
+import { listReleaseAssets } from '@/lib/github-release-storage';
 import { CmsService } from '@/lib/cms-db';
 
 export const dynamic = 'force-dynamic';
@@ -16,17 +17,62 @@ const STUDENT_COOKIE_NAME = 'nursing_student_session';
 async function verifyLectureAccess(
   lectureId?: string,
   quizId?: string,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  fileId?: string,
+  externalUrl?: string
 ): Promise<{ allowed: boolean; reason?: string }> {
+  // 1. Admin is always allowed
   if (isAdmin) return { allowed: true };
 
-  // 🛡️ STRICT SECURITY RULE: Video streaming requires an authenticated student account on the platform
+  const resolvedLectureId = lectureId && !lectureId.startsWith('quiz-') ? lectureId : undefined;
+  const resolvedQuizId = quizId || (lectureId && lectureId.startsWith('quiz-') ? lectureId.replace(/^quiz-/, '') : undefined);
+
+  // 2. Check if this is a FREE lecture (anyone can watch free educational lectures!)
+  if (resolvedLectureId) {
+    try {
+      const lecture = await CmsService.getLectureById(resolvedLectureId);
+      if (lecture && lecture.isFree) {
+        return { allowed: true };
+      }
+    } catch {}
+  }
+
+  // 3. Check if this is a FREE quiz
+  if (resolvedQuizId) {
+    try {
+      const allQuizzes = await CmsService.getAllSubjectQuizFilesList();
+      const quiz = allQuizzes.find((q) => q.id === resolvedQuizId || q.subjectId === resolvedQuizId);
+      if (quiz && quiz.isFree !== false) {
+        return { allowed: true };
+      }
+    } catch {}
+  }
+
+  // 4. If neither lectureId nor quizId passed directly, check if the video file belongs to ANY free lecture
+  if (fileId || externalUrl) {
+    try {
+      const targetQuery = fileId || externalUrl || '';
+      const prefix = fileId ? fileId.split('_')[0] : '';
+      const allLecs = await CmsService.getAllLectures();
+      const matchedLec = allLecs.find((l) =>
+        (l.videoUrl && l.videoUrl.includes(targetQuery)) ||
+        (prefix && l.videoUrl && l.videoUrl.includes(prefix)) ||
+        JSON.stringify(l).includes(targetQuery) ||
+        (prefix && JSON.stringify(l).includes(prefix))
+      );
+      if (matchedLec && matchedLec.isFree) {
+        return { allowed: true };
+      }
+    } catch {}
+  }
+
+  // 5. If not verified as free, enforce student session check
   const cookieStore = cookies();
   const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
   if (!rawVal) {
     return {
       allowed: false,
-      reason: 'مشاهدة الفيديوهات مخصصة فقط للطلاب المسجلين بالمنصة. يرجى تسجيل الدخول بحسابك أو إنشاء حساب مجاني 🔒',
+      reason: 'مشاهدة هذا الفيديو مخصصة فقط للطلاب المسجلين بالمنصة. يرجى تسجيل الدخول بحسابك أو إنشاء حساب مجاني 🔒',
     };
   }
 
@@ -44,16 +90,11 @@ async function verifyLectureAccess(
     return { allowed: false, reason: 'تم تعليق وتجميد الحساب من قبل الإدارة ⛔' };
   }
 
-  // Normalize quizId vs lectureId (e.g. if passed as lectureId="quiz-anatomy" or "quiz-123")
-  const resolvedQuizId = quizId || (lectureId && lectureId.startsWith('quiz-') ? lectureId.replace(/^quiz-/, '') : undefined);
-  const resolvedLectureId = lectureId && !lectureId.startsWith('quiz-') ? lectureId : undefined;
-
   // If lecture is provided and it is a PAID lecture:
   if (resolvedLectureId) {
     try {
       const lecture = await CmsService.getLectureById(resolvedLectureId);
       if (lecture && !lecture.isFree) {
-        // Check Shakib Rakib subscription
         if (student.shakibRakibSubscription?.isActive) {
           const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
           if (expires > Date.now()) {
@@ -64,7 +105,6 @@ async function verifyLectureAccess(
           }
         }
 
-        // Check individual purchase
         if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(resolvedLectureId)) {
           return { allowed: true };
         }
@@ -95,7 +135,6 @@ async function verifyLectureAccess(
     }
   }
 
-  // Student is authenticated & verified!
   return { allowed: true };
 }
 
@@ -122,7 +161,7 @@ export async function GET(req: NextRequest) {
     const quizId = searchParams.get('quizId') || undefined;
 
     // 2. Permissions check
-    const access = await verifyLectureAccess(lectureId, quizId, isAdmin);
+    const access = await verifyLectureAccess(lectureId, quizId, isAdmin, fileId || undefined, externalUrl || undefined);
     if (!access.allowed) {
       return new NextResponse(
         JSON.stringify({ error: access.reason || 'المحتوى مخصص للمشتركين فقط' }),
@@ -211,12 +250,28 @@ export async function GET(req: NextRequest) {
           upstreamHeaders['Range'] = rangeHeader;
         }
 
-        // 1. Try GitHub Release Asset CDN first (Fast CDN, 2GB capacity, byte-range streaming)
+        // 1a. Try GitHub Release Asset CDN directly
         const ghReleaseUrl = `https://github.com/${repo}/releases/download/v-media-storage/${encodeURIComponent(safeId)}`;
         let ghRes = await fetch(ghReleaseUrl, {
           headers: upstreamHeaders,
           cache: 'no-store',
         });
+
+        // 1b. If not found in release (e.g. non-ASCII Arabic characters converted to dots by GitHub Releases API),
+        // resolve asset by unique fileId prefix (e.g. "1793457581853-6810ut")
+        if (!ghRes.ok && ghRes.status !== 206) {
+          const prefix = safeId.split('_')[0];
+          if (prefix && prefix.length > 5) {
+            const assets = await listReleaseAssets(token);
+            const matching = assets.find((a) => a.name.startsWith(prefix));
+            if (matching?.browser_download_url) {
+              ghRes = await fetch(matching.browser_download_url, {
+                headers: upstreamHeaders,
+                cache: 'no-store',
+              });
+            }
+          }
+        }
 
         // 2. Fallback to raw GitHub repo contents if not found in release
         if (!ghRes.ok && ghRes.status !== 206) {

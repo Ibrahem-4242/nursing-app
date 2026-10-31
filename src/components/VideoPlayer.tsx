@@ -84,7 +84,10 @@ export default function VideoPlayer({
   const streamSrc = React.useMemo(() => {
     if (!videoUrl) return '';
     if (videoUrl.startsWith('/api/video-stream')) {
-      return lectureId ? `${videoUrl}&lectureId=${encodeURIComponent(lectureId)}` : videoUrl;
+      if (lectureId && !videoUrl.includes('lectureId=')) {
+        return `${videoUrl}${videoUrl.includes('?') ? '&' : '?'}lectureId=${encodeURIComponent(lectureId)}`;
+      }
+      return videoUrl;
     }
     if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
       return `/api/video-stream?url=${encodeURIComponent(videoUrl)}${
