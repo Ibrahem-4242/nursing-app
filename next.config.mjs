@@ -12,16 +12,6 @@ const nextConfig = {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;
   },
-  async headers() {
-    return [
-      {
-        source: '/api/((?!video-stream|audio-stream|files).*)',
-        headers: [
-          { key: 'Content-Type', value: 'application/json; charset=utf-8' },
-        ],
-      },
-    ];
-  },
 };
 
 export default nextConfig;

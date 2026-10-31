@@ -1877,10 +1877,12 @@ export default function AdminDashboardPage() {
     } catch {}
   };
 
-  // Resumable & Chunked Video Uploader (2.5MB per slice, 0% to 100% live progress, retries on fail)
-  const uploadVideoInChunks = async (
+  // Resumable & Chunked Media Uploader (2.5MB per slice, 0% to 100% live progress, retries on fail)
+  const uploadMediaInChunks = async (
     fileToUpload: File,
-    onProgressUpdate?: (p: { percent: number; speed: string; eta: string; status: string }) => void
+    onProgressUpdate?: (p: { percent: number; speed: string; eta: string; status: string }) => void,
+    label = 'الملف',
+    customDuration = ''
   ): Promise<{ fileId: string; url: string; sizeFormatted: string }> => {
     const CHUNK_SIZE = 2.5 * 1024 * 1024; // 2.5 MB chunks (well within Vercel's 4.5 MB request limit)
     const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
@@ -1898,12 +1900,13 @@ export default function AdminDashboardPage() {
 
     if (!initRes.ok) {
       const err = await initRes.json().catch(() => ({}));
-      throw new Error(err.message || 'فشل تهيئة جلسة رفع الفيديو المجزأ');
+      throw new Error(err.message || `فشل تهيئة جلسة رفع ${label} المجزأ`);
     }
 
     const { uploadId } = await initRes.json();
     const startTime = Date.now();
     let bytesUploadedSoFar = 0;
+    let lastErrorDetail = '';
 
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
@@ -1916,15 +1919,16 @@ export default function AdminDashboardPage() {
       while (!chunkSuccess && attempts < 3) {
         attempts++;
         try {
-          const formData = new FormData();
-          formData.append('uploadId', uploadId);
-          formData.append('chunkIndex', String(i));
-          formData.append('chunk', chunkBlob);
-
-          const chunkRes = await fetch('/api/admin/upload-chunk', {
+          // Direct binary stream with query parameters (immune to multipart parsing issues)
+          const chunkUrl = `/api/admin/upload-chunk?uploadId=${encodeURIComponent(uploadId)}&chunkIndex=${i}`;
+          const chunkRes = await fetch(chunkUrl, {
             method: 'POST',
-            headers: getAdminHeaders(),
-            body: formData,
+            headers: getAdminHeaders({
+              'x-upload-id': uploadId,
+              'x-chunk-index': String(i),
+              'Content-Type': 'application/octet-stream',
+            }),
+            body: chunkBlob,
           });
 
           if (chunkRes.ok) {
@@ -1954,10 +1958,13 @@ export default function AdminDashboardPage() {
               });
             }
           } else {
-            console.warn(`[ChunkUpload] Attempt ${attempts} failed for chunk ${i}:`, chunkRes.status);
+            const errJson = await chunkRes.json().catch(() => ({}));
+            lastErrorDetail = errJson.message || `رمز الخادم ${chunkRes.status}`;
+            console.warn(`[ChunkUpload] Attempt ${attempts} failed for chunk ${i}:`, chunkRes.status, lastErrorDetail);
             await new Promise((r) => setTimeout(r, 1000 * attempts));
           }
-        } catch (netErr) {
+        } catch (netErr: any) {
+          lastErrorDetail = netErr?.message || 'خطأ اتصال';
           console.warn(`[ChunkUpload] Network error attempt ${attempts} for chunk ${i}:`, netErr);
           await new Promise((r) => setTimeout(r, 1000 * attempts));
         }
@@ -1969,7 +1976,7 @@ export default function AdminDashboardPage() {
           headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ action: 'abort', uploadId }),
         }).catch(() => {});
-        throw new Error(`تعذر رفع الجزء ${i + 1} من الفيديو بعد 3 محاولات. يرجى التحقق من اتصال الإنترنت.`);
+        throw new Error(`تعذر رفع الجزء ${i + 1} من ${label} (${lastErrorDetail || 'يرجى التحقق من اتصال الإنترنت'}).`);
       }
     }
 
@@ -1978,7 +1985,7 @@ export default function AdminDashboardPage() {
         percent: 100,
         speed: '',
         eta: '',
-        status: 'جاري تجميع وحفظ الفيديو على الخادم...',
+        status: `جاري تجميع وحفظ ${label} على الخادم...`,
       });
     }
 
@@ -1990,13 +1997,13 @@ export default function AdminDashboardPage() {
         uploadId,
         filename: fileToUpload.name,
         totalChunks,
-        duration: videoDuration,
+        duration: customDuration,
       }),
     });
 
     if (!completeRes.ok) {
       const err = await completeRes.json().catch(() => ({}));
-      throw new Error(err.message || 'فشل تجميع أجزاء الفيديو');
+      throw new Error(err.message || `فشل تجميع أجزاء ${label}`);
     }
 
     const completeData = await completeRes.json();
@@ -2006,6 +2013,11 @@ export default function AdminDashboardPage() {
       sizeFormatted: completeData.sizeFormatted,
     };
   };
+
+  const uploadVideoInChunks = (
+    fileToUpload: File,
+    onProgressUpdate?: (p: { percent: number; speed: string; eta: string; status: string }) => void
+  ) => uploadMediaInChunks(fileToUpload, onProgressUpdate, 'الفيديو', videoDuration);
 
   // Upload lecture handler
   const handleUploadLecture = async (e: React.FormEvent) => {
@@ -2041,10 +2053,10 @@ export default function AdminDashboardPage() {
       { f: ankiFile, name: 'Anki' },
     ];
     for (const fc of fileChecks) {
-      if (fc.f && fc.f.size > 25 * 1024 * 1024) {
+      if (fc.f && fc.f.size > 150 * 1024 * 1024) {
         setUploadFeedback({
           type: 'error',
-          message: `حجم ملف ${fc.name} (${(fc.f.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به (25 MB). يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!`,
+          message: `حجم ملف ${fc.name} (${(fc.f.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به (150 MB). يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!`,
         });
         return;
       }
@@ -2070,55 +2082,81 @@ export default function AdminDashboardPage() {
       let resolvedQuestionsUrl = questionsUploadMode === 'link' ? externalQuestionsUrl.trim() : '';
       let questionsFileToSend: File | null = questionsUploadMode === 'file' ? questionsFile : null;
 
-      // Offload single files > 2.5 MB directly to GitHub Cloud from browser (bypasses Vercel 4.5 MB limit)
+      // Resilient uploader for files > 2.5 MB (Tries direct cloud, with automatic chunked uploader fallback)
       if (pdfFileToSend && pdfFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(pdfFileToSend);
+        let directUploaded = null;
+        if (pdfFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(pdfFileToSend);
+        }
         if (directUploaded) {
           resolvedPdfUrl = directUploaded.url;
           pdfFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الـ PDF الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(pdfFileToSend, undefined, 'ملف الـ PDF');
+          resolvedPdfUrl = chunkRes.url;
+          pdfFileToSend = null;
         }
       }
 
       if (pptFileToSend && pptFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        let directUploaded = null;
+        if (pptFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        }
         if (directUploaded) {
           resolvedPptUrl = directUploaded.url;
           pptFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف البوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(pptFileToSend, undefined, 'ملف البوربوينت');
+          resolvedPptUrl = chunkRes.url;
+          pptFileToSend = null;
         }
       }
 
       if (mmFileToSend && mmFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(mmFileToSend);
+        let directUploaded = null;
+        if (mmFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(mmFileToSend);
+        }
         if (directUploaded) {
           resolvedMmUrl = directUploaded.url;
           mmFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(mmFileToSend, undefined, 'ملف الخريطة الذهنية');
+          resolvedMmUrl = chunkRes.url;
+          mmFileToSend = null;
         }
       }
 
       if (audioFileToSend && audioFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        let directUploaded = null;
+        if (audioFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        }
         if (directUploaded) {
           resolvedAudioUrl = directUploaded.url;
           resolvedAudioSize = directUploaded.sizeFormatted;
           audioFileToSend = null;
         } else {
-          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(audioFileToSend, undefined, 'الملف الصوتي');
+          resolvedAudioUrl = chunkRes.url;
+          resolvedAudioSize = chunkRes.sizeFormatted;
+          audioFileToSend = null;
         }
       }
 
       if (questionsFileToSend && questionsFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(questionsFileToSend);
+        let directUploaded = null;
+        if (questionsFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(questionsFileToSend);
+        }
         if (directUploaded) {
           resolvedQuestionsUrl = directUploaded.url;
           questionsFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الأسئلة الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(questionsFileToSend, undefined, 'ملف الأسئلة');
+          resolvedQuestionsUrl = chunkRes.url;
+          questionsFileToSend = null;
         }
       }
 
@@ -2354,42 +2392,42 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    if (quizUploadMode === 'file' && quizFile && quizFile.size > 25 * 1024 * 1024) {
+    if (quizUploadMode === 'file' && quizFile && quizFile.size > 150 * 1024 * 1024) {
       setQuizUploadFeedback({
         type: 'error',
-        message: 'حجم ملف الكويز يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!',
+        message: 'حجم ملف الكويز يتجاوز 150 MB. يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!',
       });
       return;
     }
 
-    if (quizExplanationMode === 'file' && quizExplanationFile && quizExplanationFile.size > 25 * 1024 * 1024) {
+    if (quizExplanationMode === 'file' && quizExplanationFile && quizExplanationFile.size > 150 * 1024 * 1024) {
       setQuizUploadFeedback({
         type: 'error',
-        message: 'حجم ملف الشرح يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!',
+        message: 'حجم ملف الشرح يتجاوز 150 MB. يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود!',
       });
       return;
     }
 
-    if (quizPptUploadMode === 'file' && quizPptFile && quizPptFile.size > 25 * 1024 * 1024) {
+    if (quizPptUploadMode === 'file' && quizPptFile && quizPptFile.size > 150 * 1024 * 1024) {
       setQuizUploadFeedback({
         type: 'error',
-        message: 'حجم ملف الباوربوينت يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+        message: 'حجم ملف الباوربوينت يتجاوز 150 MB. يرجى استخدام رابط Google Drive مباشر.',
       });
       return;
     }
 
-    if (quizAudioUploadMode === 'file' && quizAudioFile && quizAudioFile.size > 25 * 1024 * 1024) {
+    if (quizAudioUploadMode === 'file' && quizAudioFile && quizAudioFile.size > 150 * 1024 * 1024) {
       setQuizUploadFeedback({
         type: 'error',
-        message: 'حجم الملف الصوتي يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+        message: 'حجم الملف الصوتي يتجاوز 150 MB. يرجى استخدام رابط Google Drive مباشر.',
       });
       return;
     }
 
-    if (quizMindmapUploadMode === 'file' && quizMindmapFile && quizMindmapFile.size > 25 * 1024 * 1024) {
+    if (quizMindmapUploadMode === 'file' && quizMindmapFile && quizMindmapFile.size > 150 * 1024 * 1024) {
       setQuizUploadFeedback({
         type: 'error',
-        message: 'حجم ملف الخريطة الذهنية يتجاوز 25 MB. يرجى استخدام رابط Google Drive مباشر.',
+        message: 'حجم ملف الخريطة الذهنية يتجاوز 150 MB. يرجى استخدام رابط Google Drive مباشر.',
       });
       return;
     }
@@ -2438,54 +2476,79 @@ export default function AdminDashboardPage() {
         }
       }
 
-      // Direct cloud offload for files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
+      // Direct cloud offload for files > 2.5 MB to bypass Vercel 4.5 MB serverless limit (with chunk fallback)
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(quizFileToSend);
+        let directUploaded = null;
+        if (quizFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(quizFileToSend);
+        }
         if (directUploaded) {
           resolvedDriveUrl = directUploaded.url;
           quizFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الكويز الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(quizFileToSend, undefined, 'ملف الكويز');
+          resolvedDriveUrl = chunkRes.url;
+          quizFileToSend = null;
         }
       }
 
       if (expFileToSend && expFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(expFileToSend);
+        let directUploaded = null;
+        if (expFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(expFileToSend);
+        }
         if (directUploaded) {
           resolvedExpUrl = directUploaded.url;
           expFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الشرح الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(expFileToSend, undefined, 'ملف الشرح');
+          resolvedExpUrl = chunkRes.url;
+          expFileToSend = null;
         }
       }
 
       if (pptFileToSend && pptFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        let directUploaded = null;
+        if (pptFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        }
         if (directUploaded) {
           resolvedPptUrl = directUploaded.url;
           pptFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الباوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(pptFileToSend, undefined, 'ملف الباوربوينت');
+          resolvedPptUrl = chunkRes.url;
+          pptFileToSend = null;
         }
       }
 
       if (audioFileToSend && audioFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        let directUploaded = null;
+        if (audioFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        }
         if (directUploaded) {
           resolvedAudioUrl = directUploaded.url;
           audioFileToSend = null;
         } else {
-          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(audioFileToSend, undefined, 'الملف الصوتي');
+          resolvedAudioUrl = chunkRes.url;
+          audioFileToSend = null;
         }
       }
 
       if (mindmapFileToSend && mindmapFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        let directUploaded = null;
+        if (mindmapFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        }
         if (directUploaded) {
           resolvedMindmapUrl = directUploaded.url;
           mindmapFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(mindmapFileToSend, undefined, 'ملف الخريطة الذهنية');
+          resolvedMindmapUrl = chunkRes.url;
+          mindmapFileToSend = null;
         }
       }
 
@@ -2710,28 +2773,28 @@ export default function AdminDashboardPage() {
     e.preventDefault();
     if (!editingQuiz) return;
 
-    if (editQuizFile && editQuizFile.size > 25 * 1024 * 1024) {
-      alert('حجم ملف الكويز الجديد أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+    if (editQuizFile && editQuizFile.size > 150 * 1024 * 1024) {
+      alert('حجم ملف الكويز الجديد أكبر من 150 MB. يرجى استخدام رابط Google Drive مباشر.');
       return;
     }
 
-    if (editQuizExplanationFile && editQuizExplanationFile.size > 25 * 1024 * 1024) {
-      alert('حجم ملف الشرح الجديد أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+    if (editQuizExplanationFile && editQuizExplanationFile.size > 150 * 1024 * 1024) {
+      alert('حجم ملف الشرح الجديد أكبر من 150 MB. يرجى استخدام رابط Google Drive مباشر.');
       return;
     }
 
-    if (editQuizPptFile && editQuizPptFile.size > 25 * 1024 * 1024) {
-      alert('حجم ملف الباوربوينت أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+    if (editQuizPptFile && editQuizPptFile.size > 150 * 1024 * 1024) {
+      alert('حجم ملف الباوربوينت أكبر من 150 MB. يرجى استخدام رابط Google Drive مباشر.');
       return;
     }
 
-    if (editQuizAudioFile && editQuizAudioFile.size > 25 * 1024 * 1024) {
-      alert('حجم الملف الصوتي أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+    if (editQuizAudioFile && editQuizAudioFile.size > 150 * 1024 * 1024) {
+      alert('حجم الملف الصوتي أكبر من 150 MB. يرجى استخدام رابط Google Drive مباشر.');
       return;
     }
 
-    if (editQuizMindmapFile && editQuizMindmapFile.size > 25 * 1024 * 1024) {
-      alert('حجم ملف الخريطة الذهنية أكبر من 25 MB. يرجى استخدام رابط Google Drive مباشر.');
+    if (editQuizMindmapFile && editQuizMindmapFile.size > 150 * 1024 * 1024) {
+      alert('حجم ملف الخريطة الذهنية أكبر من 150 MB. يرجى استخدام رابط Google Drive مباشر.');
       return;
     }
 
@@ -2797,54 +2860,79 @@ export default function AdminDashboardPage() {
         }
       }
 
-      // Direct cloud offload for large files > 2.5 MB to bypass Vercel 4.5 MB serverless limit
+      // Direct cloud offload for large files > 2.5 MB to bypass Vercel 4.5 MB serverless limit (with chunk fallback)
       if (quizFileToSend && quizFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(quizFileToSend);
+        let directUploaded = null;
+        if (quizFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(quizFileToSend);
+        }
         if (directUploaded) {
           resolvedQuizDriveUrl = directUploaded.url;
           quizFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الكويز الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(quizFileToSend, undefined, 'ملف الكويز');
+          resolvedQuizDriveUrl = chunkRes.url;
+          quizFileToSend = null;
         }
       }
 
       if (expFileToSend && expFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(expFileToSend);
+        let directUploaded = null;
+        if (expFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(expFileToSend);
+        }
         if (directUploaded) {
           resolvedExpUrl = directUploaded.url;
           expFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الشرح الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(expFileToSend, undefined, 'ملف الشرح');
+          resolvedExpUrl = chunkRes.url;
+          expFileToSend = null;
         }
       }
 
       if (pptFileToSend && pptFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        let directUploaded = null;
+        if (pptFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(pptFileToSend);
+        }
         if (directUploaded) {
           resolvedPptUrl = directUploaded.url;
           pptFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الباوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(pptFileToSend, undefined, 'ملف الباوربوينت');
+          resolvedPptUrl = chunkRes.url;
+          pptFileToSend = null;
         }
       }
 
       if (audioFileToSend && audioFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        let directUploaded = null;
+        if (audioFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(audioFileToSend);
+        }
         if (directUploaded) {
           resolvedAudioUrl = directUploaded.url;
           audioFileToSend = null;
         } else {
-          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(audioFileToSend, undefined, 'الملف الصوتي');
+          resolvedAudioUrl = chunkRes.url;
+          audioFileToSend = null;
         }
       }
 
       if (mindmapFileToSend && mindmapFileToSend.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        let directUploaded = null;
+        if (mindmapFileToSend.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(mindmapFileToSend);
+        }
         if (directUploaded) {
           resolvedMindmapUrl = directUploaded.url;
           mindmapFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(mindmapFileToSend, undefined, 'ملف الخريطة الذهنية');
+          resolvedMindmapUrl = chunkRes.url;
+          mindmapFileToSend = null;
         }
       }
 
@@ -3348,8 +3436,8 @@ export default function AdminDashboardPage() {
       { file: editAnkiFile, name: 'Anki' },
     ];
     for (const fc of fileChecks) {
-      if (fc.file && fc.file.size > 25 * 1024 * 1024) {
-        alert(`حجم ملف ${fc.name} (${(fc.file.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به (25 MB). يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود.`);
+      if (fc.file && fc.file.size > 150 * 1024 * 1024) {
+        alert(`حجم ملف ${fc.name} (${(fc.file.size / (1024 * 1024)).toFixed(1)} MB) يتجاوز الحد المسموح به (150 MB). يرجى استخدام رابط Google Drive مباشر لرفعه بدون قيود.`);
         return;
       }
     }
@@ -3373,55 +3461,81 @@ export default function AdminDashboardPage() {
       let resolvedQuestionsUrl = editQuestionsUrl.trim();
       let questionsFileToSend: File | null = editQuestionsFile;
 
-      // Direct-to-GitHub cloud upload for large files (> 2.5 MB) to bypass Vercel's 4.5 MB serverless limit
+      // Direct-to-GitHub cloud upload for large files (> 2.5 MB) to bypass Vercel's 4.5 MB serverless limit (with chunk fallback)
       if (editPdfFile && editPdfFile.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(editPdfFile);
+        let directUploaded = null;
+        if (editPdfFile.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(editPdfFile);
+        }
         if (directUploaded) {
           resolvedPdfUrl = directUploaded.url;
           pdfFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الـ PDF الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(editPdfFile, undefined, 'ملف الـ PDF');
+          resolvedPdfUrl = chunkRes.url;
+          pdfFileToSend = null;
         }
       }
 
       if (editPptFile && editPptFile.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(editPptFile);
+        let directUploaded = null;
+        if (editPptFile.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(editPptFile);
+        }
         if (directUploaded) {
           resolvedPptUrl = directUploaded.url;
           pptFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف البوربوينت الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(editPptFile, undefined, 'ملف البوربوينت');
+          resolvedPptUrl = chunkRes.url;
+          pptFileToSend = null;
         }
       }
 
       if (editMindmapFile && editMindmapFile.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(editMindmapFile);
+        let directUploaded = null;
+        if (editMindmapFile.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(editMindmapFile);
+        }
         if (directUploaded) {
           resolvedMmUrl = directUploaded.url;
           mmFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الخريطة الذهنية الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(editMindmapFile, undefined, 'ملف الخريطة الذهنية');
+          resolvedMmUrl = chunkRes.url;
+          mmFileToSend = null;
         }
       }
 
       if (editAudioFile && editAudioFile.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(editAudioFile);
+        let directUploaded = null;
+        if (editAudioFile.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(editAudioFile);
+        }
         if (directUploaded) {
           resolvedAudioUrl = directUploaded.url;
           resolvedAudioSize = directUploaded.sizeFormatted;
           audioFileToSend = null;
         } else {
-          throw new Error('تعذر رفع الملف الصوتي الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(editAudioFile, undefined, 'الملف الصوتي');
+          resolvedAudioUrl = chunkRes.url;
+          resolvedAudioSize = chunkRes.sizeFormatted;
+          audioFileToSend = null;
         }
       }
 
       if (editQuestionsFile && editQuestionsFile.size > 2.5 * 1024 * 1024) {
-        const directUploaded = await uploadFileDirectlyToCloud(editQuestionsFile);
+        let directUploaded = null;
+        if (editQuestionsFile.size <= 18 * 1024 * 1024) {
+          directUploaded = await uploadFileDirectlyToCloud(editQuestionsFile);
+        }
         if (directUploaded) {
           resolvedQuestionsUrl = directUploaded.url;
           questionsFileToSend = null;
         } else {
-          throw new Error('تعذر رفع ملف الأسئلة الكبير مباشرة. يرجى استخدام رابط Google Drive.');
+          const chunkRes = await uploadMediaInChunks(editQuestionsFile, undefined, 'ملف الأسئلة');
+          resolvedQuestionsUrl = chunkRes.url;
+          questionsFileToSend = null;
         }
       }
 

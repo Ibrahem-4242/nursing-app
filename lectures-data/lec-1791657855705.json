@@ -73,7 +73,7 @@
       "front": "Which inflammatory cell predominates within the pyogenic membrane (الغشاء المولد للصديد)?",
       "back": "Neutrophils (خلايا العدلات) predominate within the membrane.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالتهاب الصديدي والق�� (Suppurative Inflammation & Pus)"
+      "clinicalPearl": "الالتهاب الصديدي والقح (Suppurative Inflammation & Pus)"
     },
     {
       "id": 9,
@@ -227,7 +227,7 @@
       "front": "What is sepsis (الإنتان)?",
       "back": "Sepsis is a life-threatening systemic organ dysfunction caused by a dysregulated host response to infection.",
       "category": "كروت استذكار",
-      "clinicalPearl": "الالته��ب 2 - الأنواع والمضاعفات (Inflammation 2)"
+      "clinicalPearl": "الالتهاب 2 - الأنواع والمضاعفات (Inflammation 2)"
     },
     {
       "id": 31,
@@ -397,7 +397,7 @@
       "downloadUrl": "/api/files/1791657854522-okhpcm_المحاضرة_الثانية__باثولوجي__MindMap.pdf",
       "pageCount": "خريطة ذهنية عالية الدقة",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٤٤ م",
-      "customNote": "رسم تخطيطي وهي��لي لربط محاور المحاضرة وسرعة الاستذكار"
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة وسرعة الاستذكار"
     }
   ],
   "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة."

@@ -450,13 +450,18 @@ export async function assembleChunkedUpload(
     console.warn('[AssembleChunked] GitHub contents upload notice:', ghErr);
   }
 
+  const ext = path.extname(cleanFilename).toLowerCase();
+  const isVideo = ['.mp4', '.m4v', '.webm', '.mkv', '.mov', '.avi'].includes(ext);
+  const streamUrl = isVideo
+    ? `/api/video-stream?fileId=${encodeURIComponent(safeName)}`
+    : `/api/files/${encodeURIComponent(safeName)}`;
+
   // If Supabase is configured and file is under 50MB, upload to Supabase bucket
   if (isSupabaseConfigured && totalBytes < 50 * 1024 * 1024) {
     const supabase = getSupabase();
     if (supabase) {
       try {
         const fileBuf = fs.readFileSync(targetPath);
-        const ext = path.extname(cleanFilename).toLowerCase();
         const contentType = getContentTypeForExt(ext);
         const { error } = await supabase.storage
           .from('lecture-pdfs')
@@ -470,7 +475,7 @@ export async function assembleChunkedUpload(
           if (data?.publicUrl) {
             return {
               fileId: safeName,
-              url: `/api/video-stream?fileId=${encodeURIComponent(safeName)}`,
+              url: streamUrl,
               sizeFormatted,
               filePath: targetPath,
             };
@@ -484,7 +489,7 @@ export async function assembleChunkedUpload(
 
   return {
     fileId: safeName,
-    url: `/api/video-stream?fileId=${encodeURIComponent(safeName)}`,
+    url: streamUrl,
     sizeFormatted,
     filePath: targetPath,
   };

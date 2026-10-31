@@ -27,42 +27,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const externalDriveUrl = ((formData.get('externalDriveUrl') as string) || '').trim();
-    const explanationFile = formData.get('explanationFile') as File | null;
-    const externalExplanationUrl = ((formData.get('externalExplanationUrl') as string) || '').trim();
-    const explanationTitle = ((formData.get('explanationTitle') as string) || '').trim();
+    const contentType = req.headers.get('content-type') || '';
+    const isMultipart = contentType.includes('multipart/form-data');
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isMultipart) {
+      formData = await req.formData();
+    } else {
+      jsonBody = await req.json().catch(() => ({}));
+    }
+
+    const getString = (key: string): string => {
+      if (formData) return ((formData.get(key) as string) || '').trim();
+      return jsonBody?.[key] !== undefined ? String(jsonBody[key]).trim() : '';
+    };
+
+    const file = formData ? (formData.get('file') as File | null) : null;
+    const externalDriveUrl = getString('externalDriveUrl');
+    const explanationFile = formData ? (formData.get('explanationFile') as File | null) : null;
+    const externalExplanationUrl = getString('externalExplanationUrl');
+    const explanationTitle = getString('explanationTitle');
 
     // Multimedia attachments
-    const pptFile = formData.get('pptFile') as File | null;
-    const externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
-    const pptTitle = ((formData.get('pptTitle') as string) || '').trim();
+    const pptFile = formData ? (formData.get('pptFile') as File | null) : null;
+    const externalPptUrl = getString('externalPptUrl');
+    const pptTitle = getString('pptTitle');
 
-    const audioFile = formData.get('audioFile') as File | null;
-    const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
-    const audioTitle = ((formData.get('audioTitle') as string) || '').trim();
+    const audioFile = formData ? (formData.get('audioFile') as File | null) : null;
+    const externalAudioUrl = getString('externalAudioUrl');
+    const audioTitle = getString('audioTitle');
 
-    const videoFile = formData.get('videoFile') as File | null;
-    const externalVideoUrl = ((formData.get('externalVideoUrl') as string) || '').trim();
-    const videoTitle = ((formData.get('videoTitle') as string) || '').trim();
-    const videoDuration = ((formData.get('videoDuration') as string) || '').trim();
+    const videoFile = formData ? (formData.get('videoFile') as File | null) : null;
+    const externalVideoUrl = getString('externalVideoUrl');
+    const videoTitle = getString('videoTitle');
+    const videoDuration = getString('videoDuration');
 
-    const mindmapFile = formData.get('mindmapFile') as File | null;
-    const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
-    const mindmapTitle = ((formData.get('mindmapTitle') as string) || '').trim();
+    const mindmapFile = formData ? (formData.get('mindmapFile') as File | null) : null;
+    const externalMindmapUrl = getString('externalMindmapUrl');
+    const mindmapTitle = getString('mindmapTitle');
 
-    const ankiFile = formData.get('ankiFile') as File | null;
-    const flashcardsJson = ((formData.get('flashcardsJson') as string) || '').trim();
+    const ankiFile = formData ? (formData.get('ankiFile') as File | null) : null;
+    const flashcardsJson = formData ? ((formData.get('flashcardsJson') as string) || '').trim() : (jsonBody?.flashcardsJson ? JSON.stringify(jsonBody.flashcardsJson) : '');
 
-    const subjectId = (formData.get('subjectId') as string) || 'anatomy';
-    const rawSemester = ((formData.get('semester') as string) || '').trim();
+    const subjectId = getString('subjectId') || 'anatomy';
+    const rawSemester = getString('semester');
     const semester: '1' | '2' = rawSemester === '2' ? '2' : '1';
-    const customQuizTitle = ((formData.get('quizTitle') as string) || '').trim();
-    const questionsCount = Number(formData.get('questionsCount')) || 150;
-    const shouldWatermark = formData.get('watermark') !== 'false';
-    const isFree = formData.get('isFree') !== 'false';
-    const isLive = formData.get('isLive') !== 'false';
+    const customQuizTitle = getString('quizTitle');
+    const questionsCount = Number(getString('questionsCount')) || 150;
+    const shouldWatermark = formData ? formData.get('watermark') !== 'false' : jsonBody?.watermark !== false;
+    const isFree = formData ? formData.get('isFree') !== 'false' : jsonBody?.isFree !== false;
+    const isLive = formData ? formData.get('isLive') !== 'false' : jsonBody?.isLive !== false;
 
     if (!file && !externalDriveUrl) {
       return NextResponse.json(
@@ -82,7 +97,7 @@ export async function POST(req: NextRequest) {
     const customToken =
       req.headers.get('x-github-token') ||
       cookieStore.get('nursing_sync_token')?.value ||
-      ((formData.get('githubToken') as string) || '').trim();
+      getString('githubToken');
 
     let savedPdf = {
       url: externalDriveUrl,

@@ -25,17 +25,48 @@ export async function POST(req: NextRequest) {
   try {
     if (!checkAdminAuth(req)) {
       return NextResponse.json(
-        { success: false, message: 'غير مصرح لك برفع محتوى الفيديو' },
+        { success: false, message: 'غير مصرح لك برفع المحتوى' },
         { status: 401 }
       );
     }
 
+    const { searchParams } = new URL(req.url);
     const contentType = req.headers.get('content-type') || '';
+
+    // Check for raw binary / octet-stream chunk upload (Ultra-fast, immune to multipart issues)
+    const rawUploadId =
+      searchParams.get('uploadId') ||
+      req.headers.get('x-upload-id') ||
+      '';
+    const rawChunkIndex =
+      searchParams.get('chunkIndex') ??
+      req.headers.get('x-chunk-index');
+
+    if (rawUploadId && rawChunkIndex !== null && rawChunkIndex !== undefined && rawChunkIndex !== '') {
+      const chunkIndex = Number(rawChunkIndex);
+      const arrayBuf = await req.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuf);
+
+      if (bytes.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'بيانات الجزء فارغة' },
+          { status: 400 }
+        );
+      }
+
+      await saveUploadChunk(rawUploadId, chunkIndex, bytes);
+
+      return NextResponse.json({
+        success: true,
+        chunkIndex,
+        receivedBytes: bytes.length,
+      });
+    }
 
     // A. Handle JSON payloads (init, complete, abort)
     if (contentType.includes('application/json')) {
-      const body = await req.json();
-      const action = body.action;
+      const body = await req.json().catch(() => ({}));
+      const action = body.action || searchParams.get('action');
 
       if (action === 'init') {
         const { filename, totalChunks, totalSize } = body;
@@ -46,7 +77,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        const uploadId = `vid_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        const uploadId = `chunk_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         initChunkedUpload(uploadId, filename, Number(totalChunks), Number(totalSize || 0));
 
         return NextResponse.json({
@@ -84,7 +115,7 @@ export async function POST(req: NextRequest) {
           url: result.url,
           sizeFormatted: result.sizeFormatted,
           duration: duration || '',
-          message: 'تم تجميع وحفظ الفيديو بنجاح وجاهز للبث المباشر 🎥🚀',
+          message: 'تم تجميع وحفظ الملف بنجاح 🚀',
         });
       }
 
@@ -99,7 +130,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'إجراء غير معروف' }, { status: 400 });
     }
 
-    // B. Handle multipart form data (Chunk upload)
+    // B. Handle multipart form data (Fallback chunk upload)
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const uploadId = (formData.get('uploadId') as string) || '';

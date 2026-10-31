@@ -29,41 +29,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const ankiFile = formData.get('ankiFile') as File | null;
-    const pptFile = formData.get('pptFile') as File | null;
-    const mindmapFile = formData.get('mindmapFile') as File | null;
-    const audioFile = formData.get('audioFile') as File | null;
-    const questionsFile = formData.get('questionsFile') as File | null;
-    const videoFile = formData.get('videoFile') as File | null;
+    const contentType = req.headers.get('content-type') || '';
+    const isMultipart = contentType.includes('multipart/form-data');
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isMultipart) {
+      formData = await req.formData();
+    } else {
+      jsonBody = await req.json().catch(() => ({}));
+    }
+
+    const getString = (key: string): string => {
+      if (formData) return ((formData.get(key) as string) || '').trim();
+      return jsonBody?.[key] !== undefined ? String(jsonBody[key]).trim() : '';
+    };
+
+    const file = formData ? (formData.get('file') as File | null) : null;
+    const ankiFile = formData ? (formData.get('ankiFile') as File | null) : null;
+    const pptFile = formData ? (formData.get('pptFile') as File | null) : null;
+    const mindmapFile = formData ? (formData.get('mindmapFile') as File | null) : null;
+    const audioFile = formData ? (formData.get('audioFile') as File | null) : null;
+    const questionsFile = formData ? (formData.get('questionsFile') as File | null) : null;
+    const videoFile = formData ? (formData.get('videoFile') as File | null) : null;
 
     const customToken =
       req.headers.get('x-github-token') ||
       cookieStore.get('nursing_sync_token')?.value ||
-      ((formData.get('githubToken') as string) || '').trim();
+      getString('githubToken');
 
-    const externalPdfUrl = ((formData.get('externalPdfUrl') as string) || '').trim();
-    const externalPptUrl = ((formData.get('externalPptUrl') as string) || '').trim();
-    const externalMindmapUrl = ((formData.get('externalMindmapUrl') as string) || '').trim();
-    const externalAudioUrl = ((formData.get('externalAudioUrl') as string) || '').trim();
-    const audioFileSize = ((formData.get('audioFileSize') as string) || '').trim();
-    const externalQuestionsUrl = ((formData.get('externalQuestionsUrl') as string) || '').trim();
-    const externalVideoUrl = ((formData.get('externalVideoUrl') as string) || (formData.get('videoUrl') as string) || '').trim();
-    const videoFileSize = ((formData.get('videoFileSize') as string) || '').trim();
-    const videoDuration = ((formData.get('videoDuration') as string) || '').trim();
+    const externalPdfUrl = getString('externalPdfUrl');
+    const externalPptUrl = getString('externalPptUrl');
+    const externalMindmapUrl = getString('externalMindmapUrl');
+    const externalAudioUrl = getString('externalAudioUrl');
+    const audioFileSize = getString('audioFileSize');
+    const externalQuestionsUrl = getString('externalQuestionsUrl');
+    const externalVideoUrl = getString('externalVideoUrl') || getString('videoUrl');
+    const videoFileSize = getString('videoFileSize');
+    const videoDuration = getString('videoDuration');
 
-    const subjectId = (formData.get('subjectId') as string) || 'anatomy';
-    const yearId = (formData.get('yearId') as string) || '1';
-    const rawSemester = ((formData.get('semester') as string) || '').trim();
+    const subjectId = getString('subjectId') || 'anatomy';
+    const yearId = getString('yearId') || '1';
+    const rawSemester = getString('semester');
     const semester: '1' | '2' = rawSemester === '2' ? '2' : '1';
-    const lectureTitle = (formData.get('lectureTitle') as string) || '';
-    const lectureNumber = Number(formData.get('lectureNumber')) || 1;
-    const adminNote = (formData.get('adminNote') as string) || '';
-    const overview = (formData.get('overview') as string) || '';
-    const shouldWatermark = formData.get('watermark') !== 'false';
-    const isFree = formData.get('isFree') !== 'false';
-    const rawPrice = formData.get('price');
+    const lectureTitle = getString('lectureTitle');
+    const lectureNumber = Number(getString('lectureNumber')) || 1;
+    const adminNote = getString('adminNote');
+    const overview = getString('overview');
+    const shouldWatermark = formData ? formData.get('watermark') !== 'false' : jsonBody?.watermark !== false;
+    const isFree = formData ? formData.get('isFree') !== 'false' : jsonBody?.isFree !== false;
+    const rawPrice = getString('price');
     const price = !isFree ? (rawPrice ? Number(rawPrice) : 50) : 0;
 
     const hasPdf = Boolean(file || externalPdfUrl);
@@ -72,7 +87,7 @@ export async function POST(req: NextRequest) {
     const hasAudio = Boolean(audioFile || externalAudioUrl);
     const hasQuestions = Boolean(questionsFile || externalQuestionsUrl);
     const hasVideo = Boolean(videoFile || externalVideoUrl);
-    const flashcardsJsonRaw = (formData.get('flashcardsJson') as string | null) || '';
+    const flashcardsJsonRaw = formData ? ((formData.get('flashcardsJson') as string | null) || '') : (jsonBody?.flashcardsJson ? JSON.stringify(jsonBody.flashcardsJson) : '');
     const hasAnki = Boolean(ankiFile || (flashcardsJsonRaw && flashcardsJsonRaw !== '[]'));
 
     if (!lectureTitle.trim() || (!hasPdf && !hasPpt && !hasMindmap && !hasAudio && !hasAnki && !hasQuestions && !hasVideo)) {
@@ -113,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Process Flashcards (Anki .apkg / JSON / TXT extraction strictly from user file)
     let flashcards: Flashcard[] = [];
-    const flashcardsJson = formData.get('flashcardsJson') as string | null;
+    const flashcardsJson = flashcardsJsonRaw || null;
     if (flashcardsJson) {
       try {
         const parsed = JSON.parse(flashcardsJson);
