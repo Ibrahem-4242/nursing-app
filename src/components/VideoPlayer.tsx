@@ -16,6 +16,7 @@ import {
   Check,
   PictureInPicture2,
   AlertCircle,
+  Lock,
   Clock,
 } from 'lucide-react';
 import { useStudentAuth } from '@/context/StudentAuthContext';
@@ -59,6 +60,10 @@ export default function VideoPlayer({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAuthError, setIsAuthError] = useState(false);
+  const retryCountRef = useRef(0);
+  const [cacheBuster, setCacheBuster] = useState(0);
   const [resumeNotice, setResumeNotice] = useState<number | null>(null);
 
   // Moving watermark coordinates for protection
@@ -83,25 +88,78 @@ export default function VideoPlayer({
   // Convert raw URL to proxied streaming URL if needed
   const streamSrc = React.useMemo(() => {
     if (!videoUrl) return '';
+    let src = videoUrl;
     if (videoUrl.startsWith('/api/video-stream')) {
       if (lectureId && !videoUrl.includes('lectureId=')) {
-        return `${videoUrl}${videoUrl.includes('?') ? '&' : '?'}lectureId=${encodeURIComponent(lectureId)}`;
+        src = `${videoUrl}${videoUrl.includes('?') ? '&' : '?'}lectureId=${encodeURIComponent(lectureId)}`;
       }
-      return videoUrl;
-    }
-    if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-      return `/api/video-stream?url=${encodeURIComponent(videoUrl)}${
+    } else if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+      src = `/api/video-stream?url=${encodeURIComponent(videoUrl)}${
         lectureId ? `&lectureId=${encodeURIComponent(lectureId)}` : ''
       }`;
-    }
-    if (videoUrl.startsWith('/api/files/')) {
+    } else if (videoUrl.startsWith('/api/files/')) {
       const fileId = videoUrl.replace('/api/files/', '');
-      return `/api/video-stream?fileId=${encodeURIComponent(fileId)}${
+      src = `/api/video-stream?fileId=${encodeURIComponent(fileId)}${
         lectureId ? `&lectureId=${encodeURIComponent(lectureId)}` : ''
       }`;
     }
-    return videoUrl;
-  }, [videoUrl, lectureId]);
+    if (cacheBuster > 0) {
+      src = `${src}${src.includes('?') ? '&' : '?'}_cb=${cacheBuster}`;
+    }
+    return src;
+  }, [videoUrl, lectureId, cacheBuster]);
+
+  const handleVideoError = useCallback(async () => {
+    // 1. Automatic silent retry up to 2 times for transient network drops
+    if (retryCountRef.current < 2) {
+      retryCountRef.current += 1;
+      setIsLoading(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.load();
+        }
+      }, 1200);
+      return;
+    }
+
+    setIsLoading(false);
+    setHasError(true);
+
+    // 2. Probe the endpoint to detect real HTTP status
+    try {
+      const probeRes = await fetch(streamSrc, {
+        headers: { Range: 'bytes=0-10' },
+        cache: 'no-store',
+      });
+      if (probeRes.status === 403) {
+        setIsAuthError(true);
+        const errJson = await probeRes.json().catch(() => null);
+        setErrorMessage(errJson?.error || 'المحاضرة مدفوعة وغير مفعلة في حسابك بعد 🔒');
+        return;
+      }
+      if (probeRes.status === 404) {
+        setErrorMessage('ملف الفيديو غير متوفر حالياً على الخادم');
+        return;
+      }
+    } catch {
+      setErrorMessage('تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت ثم إعادة المحاولة');
+    }
+  }, [streamSrc]);
+
+  const handleManualRetry = () => {
+    retryCountRef.current = 0;
+    setHasError(false);
+    setErrorMessage(null);
+    setIsAuthError(false);
+    setIsLoading(true);
+    setCacheBuster(Date.now());
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.load();
+        videoRef.current.play().catch(() => {});
+      }
+    }, 150);
+  };
 
   // Handle Controls Timeout
   const resetControlsTimeout = useCallback(() => {
@@ -404,12 +462,11 @@ export default function VideoPlayer({
         onPlaying={() => {
           setIsLoading(false);
           setIsPlaying(true);
+          setHasError(false);
+          retryCountRef.current = 0;
         }}
         onPause={() => setIsPlaying(false)}
-        onError={() => {
-          setIsLoading(false);
-          setHasError(true);
-        }}
+        onError={handleVideoError}
         onEnded={() => {
           setIsPlaying(false);
           if (onEnded) onEnded();
@@ -428,27 +485,32 @@ export default function VideoPlayer({
         </div>
       )}
 
-      {/* 3. Error State */}
+      {/* 3. Resilient Error State */}
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-center p-6 space-y-3 z-30">
-          <AlertCircle className="w-12 h-12 text-rose-500 animate-pulse" />
-          <h4 className="text-base font-bold text-white">تعذر تشغيل مسار الفيديو</h4>
-          <p className="text-xs text-slate-400 max-w-sm leading-relaxed" dir="rtl">
-            تأكد من اتصالك بالإنترنت، أو أن صلاحية المحاضرة مفعلة بحسابك. إذا استمرت المشكلة أبلغ إدارة المنصة.
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 text-center p-6 space-y-3 z-30 animate-in fade-in" dir="rtl">
+          {isAuthError ? (
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <Lock className="w-6 h-6 animate-pulse" />
+            </div>
+          ) : (
+            <AlertCircle className="w-12 h-12 text-rose-500 animate-pulse" />
+          )}
+          <h4 className="text-base font-bold text-white">
+            {isAuthError ? 'محتوى مخصص للمشتركين 🔒' : 'تعذر تشغيل مسار الفيديو'}
+          </h4>
+          <p className="text-xs text-slate-300 max-w-sm leading-relaxed">
+            {errorMessage || 'تأكد من اتصالك بالإنترنت، أو أن صلاحية المحاضرة مفعلة بحسابك. إذا استمرت المشكلة أبلغ إدارة المنصة.'}
           </p>
-          <button
-            onClick={() => {
-              setHasError(false);
-              setIsLoading(true);
-              if (videoRef.current) {
-                videoRef.current.load();
-                videoRef.current.play().catch(() => {});
-              }
-            }}
-            className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-lg shadow-teal-600/30"
-          >
-            إعادة المحاولة 🔄
-          </button>
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleManualRetry}
+              className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-lg shadow-teal-600/30 flex items-center gap-1.5"
+            >
+              <span>إعادة المحاولة</span>
+              <span>🔄</span>
+            </button>
+          </div>
         </div>
       )}
 

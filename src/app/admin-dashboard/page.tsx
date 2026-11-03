@@ -17,6 +17,7 @@ import {
   Eye,
   ExternalLink,
   Layers,
+  ArrowRightLeft,
   Sparkles,
   Loader2,
   Users,
@@ -75,6 +76,7 @@ import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
 import PackageManagementSection from '@/components/admin/PackageManagementSection';
 import GrantPackageModal from '@/components/admin/GrantPackageModal';
+import ConvertItemModal, { ConvertItemTarget } from '@/components/admin/ConvertItemModal';
 import {
   PurchaseOrder,
   StudentUser,
@@ -422,6 +424,8 @@ export default function AdminDashboardPage() {
   const [isLoadingPackages, setIsLoadingPackages] = useState(false);
   const [grantModalStudent, setGrantModalStudent] = useState<StudentUser | null>(null);
   const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<ConvertItemTarget | null>(null);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [financialPeriod, setFinancialPeriod] = useState<'all' | 'this_month' | 'last_month' | 'today'>('this_month');
   const [subscribersFilter, setSubscribersFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
   const [subscriberSearchQuery, setSubscriberSearchQuery] = useState<string>('');
@@ -5821,6 +5825,26 @@ export default function AdminDashboardPage() {
                                   <Pencil className="w-4 h-4" />
                                 </button>
 
+                                {/* Convert Lecture to Quiz or Change Subject */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConvertTarget({
+                                      type: 'lecture',
+                                      id: lec.id,
+                                      title: lec.title,
+                                      currentSubjectId: lec.subjectId,
+                                      currentSubjectTitle: lec.subjectTitle,
+                                      currentSemester: lec.semester,
+                                    });
+                                    setIsConvertModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition"
+                                  title="تغيير مادة المحاضرة أو تحويلها إلى قسم أسئلة الكويزات 🔄"
+                                >
+                                  <ArrowRightLeft className="w-4 h-4" />
+                                </button>
+
                                 {/* Anki import button */}
                                 <label
                                   className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 cursor-pointer transition flex items-center"
@@ -5888,6 +5912,35 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <form onSubmit={handleSaveLectureEdit} className="space-y-4">
+                    {/* Quick Category Convert Banner */}
+                    <div className="p-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-bold text-xs text-indigo-950 dark:text-indigo-200 block">
+                          تحويل هذه المحاضرة إلى قسم أسئلة الكويزات ❓
+                        </span>
+                        <span className="text-[10px] text-indigo-700/80 dark:text-indigo-300/80">
+                          نقل كافة ملفات المحاضرة وشروحاتها إلى قسم بنك أسئلة الكويزات للمادة.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConvertTarget({
+                            type: 'lecture',
+                            id: editingLecture.id,
+                            title: editTitle || editingLecture.title,
+                            currentSubjectId: editSubjectId || editingLecture.subjectId,
+                            currentSubjectTitle: editingLecture.subjectTitle,
+                            currentSemester: editSemester,
+                          });
+                          setIsConvertModalOpen(true);
+                        }}
+                        className="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 shrink-0"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        <span>تحويل لكويز 🔄</span>
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -7879,6 +7932,26 @@ export default function AdminDashboardPage() {
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
+
+                                {/* Convert Quiz to Lecture or Change Subject */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConvertTarget({
+                                      type: 'quiz',
+                                      id: qId,
+                                      title: quiz.title,
+                                      currentSubjectId: quiz.subjectId,
+                                      currentSubjectTitle: subObj?.title || quiz.subjectId,
+                                      currentSemester: qSem,
+                                    });
+                                    setIsConvertModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 hover:bg-teal-100 transition inline-flex items-center"
+                                  title="تغيير مادة الكويز أو تحويله إلى محاضرة رسمية 📚"
+                                >
+                                  <ArrowRightLeft className="w-4 h-4" />
+                                </button>
                                 <Link
                                   href={`/subject/${quiz.subjectId}`}
                                   target="_blank"
@@ -7923,6 +7996,35 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <form onSubmit={handleSaveQuizEdit} className="space-y-4">
+                    {/* Quick Category Convert Banner */}
+                    <div className="p-3 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-bold text-xs text-teal-950 dark:text-teal-200 block">
+                          تحويل هذا الكويز إلى محاضرة رسمية 📚
+                        </span>
+                        <span className="text-[10px] text-teal-700/80 dark:text-teal-300/80">
+                          إنشاء محاضرة رسمية كاملة تضم كافة ملفات ومرفقات هذا الكويز.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConvertTarget({
+                            type: 'quiz',
+                            id: editingQuiz.id || editingQuiz.subjectId,
+                            title: editQuizTitle || editingQuiz.title,
+                            currentSubjectId: editQuizSubjectId || editingQuiz.subjectId,
+                            currentSubjectTitle: editingQuiz.subjectTitle,
+                            currentSemester: editQuizSemester,
+                          });
+                          setIsConvertModalOpen(true);
+                        }}
+                        className="py-1.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 shrink-0"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        <span>تحويل لمحاضرة 🔄</span>
+                      </button>
+                    </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                           عنوان ملف الكويز:
@@ -12770,6 +12872,23 @@ export default function AdminDashboardPage() {
           }}
           getAdminHeaders={getAdminHeaders}
         />
+      {/* Convert Item Category & Subject Modal */}
+      <ConvertItemModal
+        isOpen={isConvertModalOpen}
+        target={convertTarget}
+        subjects={subjects.length > 0 ? subjects : MOCK_SUBJECTS}
+        onClose={() => {
+          setIsConvertModalOpen(false);
+          setConvertTarget(null);
+        }}
+        onSuccess={() => {
+          loadLectures();
+          loadSubjectQuizzes();
+          if (editingLecture) setEditingLecture(null);
+          if (editingQuiz) setEditingQuiz(null);
+        }}
+        getAdminHeaders={getAdminHeaders}
+      />
       </div>
     </div>
   );

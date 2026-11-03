@@ -59,7 +59,7 @@ export function invalidateReleaseAssetsCache(): void {
 }
 
 export async function listReleaseAssets(customToken?: string, forceRefresh = false): Promise<ReleaseAssetItem[]> {
-  if (!forceRefresh && cachedAssets && Date.now() - cachedAssets.timestamp < 30000) {
+  if (!forceRefresh && cachedAssets && Date.now() - cachedAssets.timestamp < 300000) {
     return cachedAssets.data;
   }
 

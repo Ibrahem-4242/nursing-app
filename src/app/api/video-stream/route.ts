@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
+import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
 import { listReleaseAssets } from '@/lib/github-release-storage';
 import { CmsService, checkStudentPackageAccess } from '@/lib/cms-db';
 
@@ -254,20 +254,28 @@ export async function GET(req: NextRequest) {
           upstreamHeaders['Range'] = rangeHeader;
         }
 
-        // 1a. Try GitHub Release Asset CDN directly
-        const ghReleaseUrl = `https://github.com/${repo}/releases/download/v-media-storage/${encodeURIComponent(safeId)}`;
-        let ghRes = await fetch(ghReleaseUrl, {
-          headers: upstreamHeaders,
-          cache: 'no-store',
-        });
+        const hasNonAscii = /[^\x00-\x7F]/.test(safeId);
+        let ghRes: Response | null = null;
 
-        // 1b. If not found in release (e.g. non-ASCII Arabic characters converted to dots by GitHub Releases API),
-        // resolve asset by unique fileId prefix (e.g. "1793457581853-6810ut")
-        if (!ghRes.ok && ghRes.status !== 206) {
-          const prefix = safeId.split('_')[0];
+        // 1a. Try GitHub Release Asset CDN directly only if clean ASCII filename
+        if (!hasNonAscii) {
+          const ghReleaseUrl = `https://github.com/${repo}/releases/download/v-media-storage/${encodeURIComponent(safeId)}`;
+          try {
+            ghRes = await fetch(ghReleaseUrl, {
+              headers: upstreamHeaders,
+              cache: 'no-store',
+            });
+          } catch {}
+        }
+
+        // 1b. If not found or filename has non-ASCII / Arabic characters converted to dots by GitHub Release API,
+        // resolve asset instantly from cached release catalog by unique timestamp prefix
+        if (!ghRes || (!ghRes.ok && ghRes.status !== 206)) {
+          const prefixMatch = safeId.match(/^([0-9]{10,14}-[a-z0-9]+)/i);
+          const prefix = prefixMatch ? prefixMatch[1] : safeId.split('_')[0];
           if (prefix && prefix.length > 5) {
             const assets = await listReleaseAssets(token);
-            const matching = assets.find((a) => a.name.startsWith(prefix));
+            const matching = assets.find((a) => a.name.startsWith(prefix) || a.name.includes(prefix));
             if (matching?.browser_download_url) {
               ghRes = await fetch(matching.browser_download_url, {
                 headers: upstreamHeaders,
@@ -278,7 +286,7 @@ export async function GET(req: NextRequest) {
         }
 
         // 2. Fallback to raw GitHub repo contents if not found in release
-        if (!ghRes.ok && ghRes.status !== 206) {
+        if (!ghRes || (!ghRes.ok && ghRes.status !== 206)) {
           const ghRawUrl = `https://raw.githubusercontent.com/${repo}/main/public/uploads/${encodeURIComponent(safeId)}`;
           ghRes = await fetch(ghRawUrl, {
             headers: upstreamHeaders,
@@ -286,7 +294,7 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        if (ghRes.ok || ghRes.status === 206) {
+        if (ghRes && (ghRes.ok || ghRes.status === 206)) {
           const ext = path.extname(safeId).toLowerCase();
           const contentType = getContentTypeForExt(ext) || 'video/mp4';
 
@@ -377,4 +385,9 @@ export async function GET(req: NextRequest) {
     console.error('[VideoStream API Error]:', err);
     return new NextResponse('Internal Video Streaming Error', { status: 500 });
   }
+}
+
+
+export async function HEAD(req: NextRequest) {
+  return GET(req);
 }
