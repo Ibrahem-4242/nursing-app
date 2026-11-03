@@ -91,7 +91,7 @@ export default async function LecturePage({ params }: LecturePageProps) {
   const hasAccess =
     lecture.isFree ||
     isAdmin ||
-    CmsService.hasAccessToLecture(student, lecture.id, lecture.yearId);
+    CmsService.hasAccessToLecture(student, lecture.id, lecture.yearId, lecture.subjectId, lecture.semester);
 
   const liveSubjects = await CmsService.getLiveSubjects();
   const subject =

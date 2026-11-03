@@ -5,7 +5,7 @@ import path from 'path';
 import { Readable } from 'stream';
 import { findLocalFilePath, getContentTypeForExt } from '@/lib/file-storage';
 import { listReleaseAssets } from '@/lib/github-release-storage';
-import { CmsService } from '@/lib/cms-db';
+import { CmsService, checkStudentPackageAccess } from '@/lib/cms-db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -95,14 +95,15 @@ async function verifyLectureAccess(
     try {
       const lecture = await CmsService.getLectureById(resolvedLectureId);
       if (lecture && !lecture.isFree) {
-        if (student.shakibRakibSubscription?.isActive) {
-          const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-          if (expires > Date.now()) {
-            const subYear = student.shakibRakibSubscription.yearId;
-            if (!lecture.yearId || !subYear || subYear === 'all' || subYear === lecture.yearId) {
-              return { allowed: true };
-            }
-          }
+        if (
+          checkStudentPackageAccess(student, {
+            yearId: lecture.yearId,
+            subjectId: lecture.subjectId,
+            semester: lecture.semester,
+            contentType: 'video',
+          })
+        ) {
+          return { allowed: true };
         }
 
         if (Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(resolvedLectureId)) {
@@ -122,11 +123,14 @@ async function verifyLectureAccess(
       const allQuizzes = await CmsService.getAllSubjectQuizFilesList();
       const quiz = allQuizzes.find((q) => q.id === resolvedQuizId || q.subjectId === resolvedQuizId);
       if (quiz && quiz.isFree === false) {
-        if (student.shakibRakibSubscription?.isActive) {
-          const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-          if (expires > Date.now()) {
-            return { allowed: true };
-          }
+        if (
+          checkStudentPackageAccess(student, {
+            subjectId: quiz.subjectId,
+            semester: quiz.semester,
+            contentType: 'video',
+          })
+        ) {
+          return { allowed: true };
         }
         return { allowed: false, reason: 'ملف أسئلة الكويز مخصص للمشتركين فقط 🔒' };
       }

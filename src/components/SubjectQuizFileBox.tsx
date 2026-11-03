@@ -32,8 +32,8 @@ interface SubjectQuizFileBoxProps {
 export default function SubjectQuizFileBox({ quizFile }: SubjectQuizFileBoxProps) {
   if (quizFile.isLive === false) return null;
 
-  const { student, openAuthModal } = useStudentAuth();
-  const isUnlocked = quizFile.isFree !== false || Boolean(student?.shakibRakibSubscription?.isActive);
+  const { student, openAuthModal, hasContentAccess } = useStudentAuth();
+  const isUnlocked = quizFile.isFree !== false || hasContentAccess({ subjectId: quizFile.subjectId, semester: quizFile.semester, contentType: 'quiz' });
   const canWatchVideo = Boolean(student) && isUnlocked;
 
   const [isDownloading, setIsDownloading] = useState(false);

@@ -10,7 +10,7 @@
   "title": "المحاضرة الرابعة",
   "subtitle": "شرح وملخص معتمد لمادة علم الأمراض (باثولوجي)",
   "isFree": true,
-  "price": 0,
+  "price": 50,
   "viewCount": 1,
   "readingMinutes": 10,
   "threeDModelType": "heart",
@@ -88,7 +88,7 @@
       "front": "تصنيف الخلايا التكاثري (Cell Proliferation Types)",
       "back": "ما هو التعريف الدقيق للخلايا المستقرة (Stable / Quiescent Cells) وأين تقبع في الدورة الخلوية؟",
       "category": "كروت استذكار",
-      "clinicalPearl": "هي خلايا نسيجية عالية التمايز تتميز بال��تي:\nتقضي معظم حياتها في الطور الساكن الكامن المعروف بـ G0 phase خارج الدورة التضاعفية النشطة.تتوقف عن الانقسام الميتوزي بمجرد اكتمال نمو العضو إلى حجمه البالغ.خاصيتها الفريدة: تحتفظ بقدرتها الكامنة على الانقسام السريع عند تعرضها لتحفيز كيميائي، هرموني، أو أذية نسيجية؛ حيث تغادر طور G0 وتدخل طور G1 لتعويض النقص."
+      "clinicalPearl": "هي خلايا نسيجية عالية التمايز تتميز بالآتي:\nتقضي معظم حياتها في الطور الساكن الكامن المعروف بـ G0 phase خارج الدورة التضاعفية النشطة.تتوقف عن الانقسام الميتوزي بمجرد اكتمال نمو العضو إلى حجمه البالغ.خاصيتها الفريدة: تحتفظ بقدرتها الكامنة على الانقسام السريع عند تعرضها لتحفيز كيميائي، هرموني، أو أذية نسيجية؛ حيث تغادر طور G0 وتدخل طور G1 لتعويض النقص."
     },
     {
       "id": 11,
@@ -376,29 +376,32 @@
     {
       "type": "pdf",
       "title": "المحاضرة الرابعة",
-      "fileSize": "رابط سحابي 🌐",
+      "fileSize": "رابط خارجي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1pQof7bLc6q9QPSgVFeCjzYf8p-EI0D7p/view?usp=sharing",
       "pageCount": "ملف PDF معتمد",
-      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٢:٤٤ م",
-      "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة"
+      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٥:٥٨ م",
+      "customNote": "ملف رسمي بعلامة مائية معتمدة جاهز للتنزيل والطباعة",
+      "fileUrl": "https://drive.google.com/file/d/1pQof7bLc6q9QPSgVFeCjzYf8p-EI0D7p/view?usp=sharing"
     },
     {
       "type": "ppt",
       "title": "عروض بوربوينت - المحاضرة الرابعة",
-      "fileSize": "رابط درايف 🌐",
+      "fileSize": "رابط خارجي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1S7jQUeLCs6XeySLZGKUSUElwY_s0cEQO/view?usp=sharing",
       "pageCount": "سلايدات PowerPoint",
-      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٢:٤٤ م",
-      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي عبر رابط مباشر"
+      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٥:٥٨ م",
+      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي عبر رابط مباشر",
+      "fileUrl": "https://drive.google.com/file/d/1S7jQUeLCs6XeySLZGKUSUElwY_s0cEQO/view?usp=sharing"
     },
     {
       "type": "mindmap",
-      "title": "الخريطة الذهنية الشاملة - المحاضرة الرابعة",
-      "fileSize": "رابط درايف 🌐",
+      "title": "الخريطة الذهنية - المحاضرة الرابعة",
+      "fileSize": "رابط خارجي 🌐",
       "downloadUrl": "https://drive.google.com/file/d/1LCCe2QAZ3KSi-i4whVnKr2PH4qgaccAD/view?usp=sharing",
       "pageCount": "خريطة ذهنية عالية الدقة",
-      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٢:٤٤ م",
-      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر"
+      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٥:٥٨ م",
+      "customNote": "رسم تخطيطي وهيكلي لربط محاور المحاضرة عبر رابط مباشر",
+      "fileUrl": "https://drive.google.com/file/d/1LCCe2QAZ3KSi-i4whVnKr2PH4qgaccAD/view?usp=sharing"
     },
     {
       "type": "audio",
@@ -406,10 +409,22 @@
       "fileSize": "21.6 MB",
       "downloadUrl": "/api/files/1793450663280-cxwp24_%D8%A8%D8%A7%D8%AB%D9%88__%D8%B5%D9%88%D8%AA_.mp3",
       "pageCount": "ريكورد شرح المحاضرة 🎧",
-      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٢:٤٤ م",
-      "customNote": "تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل"
+      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٥:٥٨ م",
+      "customNote": "تسجيل صوتي واضح لشرح المحاضرة جاهز للاستماع المباشر بالموجة الصوتية أو التحميل",
+      "fileUrl": "/api/files/1793450663280-cxwp24_%D8%A8%D8%A7%D8%AB%D9%88__%D8%B5%D9%88%D8%AA_.mp3"
+    },
+    {
+      "type": "video",
+      "title": "فيديو شرح المحاضرة - المحاضرة الرابعة",
+      "downloadUrl": "/api/video-stream?fileId=1793462330410-j15d91_%D8%A8%D8%A7%D8%AB%D9%88__video_.mp4",
+      "fileUrl": "/api/video-stream?fileId=1793462330410-j15d91_%D8%A8%D8%A7%D8%AB%D9%88__video_.mp4",
+      "fileSize": "35.5 MB",
+      "pageCount": "فيديو شرح وتدريب",
+      "updatedAt": "السبت، ٣١ أكتوبر ٢٠٢٦ في ٥:٥٨ م",
+      "customNote": "شرح مصور تفاعلي للمحاضرة بجودة عالية مع تحكم بالسرعة وحفظ نقطة التوقف",
+      "videoDuration": "07:23"
     }
   ],
   "adminNote": "تأكد من قراءة التلخيص وحل أسئلة الامتحانات السابقة لتثبيت المعلومة.",
-  "lastModified": 1793450677370
+  "lastModified": 1793462338714
 }

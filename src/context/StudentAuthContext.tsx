@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { StudentUser, ActiveDeviceSession } from '@/lib/types';
+import { StudentUser, ActiveDeviceSession, StudentPackageSubscription, PackageContentType } from '@/lib/types';
 
 interface StudentAuthContextType {
   student: StudentUser | null;
@@ -26,9 +26,13 @@ interface StudentAuthContextType {
   register: (phone: string, name: string, university: string, pass: string, yearId?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshStudent: () => Promise<void>;
-  isLecturePurchased: (lectureId: string, yearId?: string) => boolean;
+  isLecturePurchased: (lectureId: string, yearId?: string, subjectId?: string, semester?: '1' | '2', contentType?: PackageContentType) => boolean;
   hasShakibRakib: boolean;
   shakibRakibDaysRemaining: number;
+  hasActivePackage: boolean;
+  activePackage?: StudentPackageSubscription;
+  packageDaysRemaining: number;
+  hasContentAccess: (opts: { yearId?: string; subjectId?: string; semester?: '1' | '2'; contentType?: PackageContentType }) => boolean;
   isAuthModalOpen: boolean;
   authModalMode: 'login' | 'register';
   openAuthModal: (mode?: 'login' | 'register') => void;
@@ -215,23 +219,67 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       )
     : 0;
 
-  const isLecturePurchased = useCallback(
-    (lectureId: string, yearId?: string) => {
-      if (!student) return false;
-      // 1. Check Shakib Rakib monthly subscription
+  const activePackage = student?.activePackage;
+  const hasActivePackage = Boolean(
+    (activePackage?.isActive && new Date(activePackage.expiresAt).getTime() > Date.now()) ||
+    hasShakibRakib
+  );
+
+  const packageDaysRemaining = activePackage?.expiresAt
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(activePackage.expiresAt).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : shakibRakibDaysRemaining;
+
+  const hasContentAccess = useCallback(
+    (opts: { yearId?: string; subjectId?: string; semester?: '1' | '2'; contentType?: PackageContentType }) => {
+      if (!student || student.isSuspended) return false;
+      const now = Date.now();
+
+      // 1. Check activePackage
+      if (student.activePackage?.isActive) {
+        const exp = new Date(student.activePackage.expiresAt).getTime();
+        if (exp > now) {
+          const perms = student.activePackage.permissions || {};
+          const yearOk = !opts.yearId || !perms.yearId || perms.yearId === 'all' || perms.yearId === opts.yearId;
+          const semOk = !opts.semester || !perms.semesters || perms.semesters === 'all' || perms.semesters === opts.semester;
+          const subOk = perms.allSubjects !== false || (Array.isArray(perms.subjectIds) && Boolean(opts.subjectId && perms.subjectIds.includes(opts.subjectId)));
+          const cTypes = perms.contentTypes || ['all'];
+          const contentOk = !opts.contentType || cTypes.includes('all') || cTypes.includes(opts.contentType);
+
+          if (yearOk && semOk && subOk && contentOk) return true;
+        }
+      }
+
+      // 2. Check legacy shakibRakibSubscription
       if (student.shakibRakibSubscription?.isActive) {
-        const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-        if (expires > Date.now()) {
+        const exp = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+        if (exp > now) {
           const subYear = student.shakibRakibSubscription.yearId;
-          if (!yearId || !subYear || subYear === 'all' || subYear === yearId) {
+          if (!opts.yearId || !subYear || subYear === 'all' || subYear === opts.yearId) {
             return true;
           }
         }
       }
-      // 2. Check individual lecture purchases
-      return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
+
+      return false;
     },
     [student]
+  );
+
+  const isLecturePurchased = useCallback(
+    (lectureId: string, yearId?: string, subjectId?: string, semester?: '1' | '2', contentType?: PackageContentType) => {
+      if (!student) return false;
+      if (hasContentAccess({ yearId, subjectId, semester, contentType })) {
+        return true;
+      }
+      return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
+    },
+    [student, hasContentAccess]
   );
 
   const openAuthModal = (mode: 'login' | 'register' = 'login') => {
@@ -257,6 +305,10 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
         isLecturePurchased,
         hasShakibRakib,
         shakibRakibDaysRemaining,
+        hasActivePackage,
+        activePackage,
+        packageDaysRemaining,
+        hasContentAccess,
         isAuthModalOpen,
         authModalMode,
         openAuthModal,

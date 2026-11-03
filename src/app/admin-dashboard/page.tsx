@@ -73,6 +73,8 @@ import {
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { parseAnkiPackage } from '@/lib/anki-parser';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
+import PackageManagementSection from '@/components/admin/PackageManagementSection';
+import GrantPackageModal from '@/components/admin/GrantPackageModal';
 import {
   PurchaseOrder,
   StudentUser,
@@ -83,6 +85,7 @@ import {
   StudentActivityLog,
   PlatformFlashcardsAnalytics,
   MisunderstoodConceptReportItem,
+  PlatformPackage,
 } from '@/lib/types';
 
 export default function AdminDashboardPage() {
@@ -413,6 +416,12 @@ export default function AdminDashboardPage() {
   const [shakibFeedback, setShakibFeedback] = useState<string | null>(null);
   const [shakibStudentSearch, setShakibStudentSearch] = useState('');
   const [isGrantingShakib, setIsGrantingShakib] = useState(false);
+
+  // Custom Platform Packages & Granular Grant Modal
+  const [packages, setPackages] = useState<PlatformPackage[]>([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(false);
+  const [grantModalStudent, setGrantModalStudent] = useState<StudentUser | null>(null);
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
   const [financialPeriod, setFinancialPeriod] = useState<'all' | 'this_month' | 'last_month' | 'today'>('this_month');
   const [subscribersFilter, setSubscribersFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
   const [subscriberSearchQuery, setSubscriberSearchQuery] = useState<string>('');
@@ -604,6 +613,7 @@ export default function AdminDashboardPage() {
     loadShakibConfig();
     loadCoupons();
     loadPlatformFeatures();
+    loadPackages();
   };
 
   const loadOrders = async () => {
@@ -729,6 +739,24 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.warn('Failed to load shakib config:', err);
+    }
+  };
+
+  const loadPackages = async () => {
+    setIsLoadingPackages(true);
+    try {
+      const res = await fetch(`/api/admin/packages?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.packages)) {
+        setPackages(data.packages);
+      }
+    } catch (e) {
+      console.warn('Failed to load packages:', e);
+    } finally {
+      setIsLoadingPackages(false);
     }
   };
 
@@ -10527,6 +10555,15 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* 📦 قسم إدارة الباقات والاشتراكات المخصصة */}
+            <PackageManagementSection
+              packages={packages}
+              subjects={subjects.length > 0 ? subjects : MOCK_SUBJECTS}
+              isLoading={isLoadingPackages}
+              onRefresh={loadPackages}
+              getAdminHeaders={getAdminHeaders}
+            />
+
             {/* 1. Financial Analytics & Accounting Export Section */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-4">
@@ -10760,7 +10797,19 @@ export default function AdminDashboardPage() {
                               className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition flex items-center gap-1"
                             >
                               <Crown className="w-3.5 h-3.5 text-yellow-200" />
-                              <span>{isActive ? 'تجديد شهر إضافي (30 يوم) 🔄' : 'تفعيل شاكب راكب 30 يوم 🚀'}</span>
+                              <span>{isActive ? 'تجديد شهر (30 يوم) 🔄' : 'تفعيل سريع (30 يوم) 🚀'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGrantModalStudent(s);
+                                setIsGrantModalOpen(true);
+                              }}
+                              className="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition flex items-center gap-1"
+                            >
+                              <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                              <span>تخصيص الباقة والصلاحيات ⚡️</span>
                             </button>
                           </div>
                         </div>
@@ -10863,6 +10912,18 @@ export default function AdminDashboardPage() {
                             <td className="py-3.5 px-3">
                               <span className="font-bold text-slate-900 dark:text-white block">{s.name}</span>
                               <span className="text-[11px] text-slate-500 block mt-0.5">{s.university}</span>
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 text-[10px] font-black border border-amber-300 dark:border-amber-800">
+                                  {s.activePackage?.packageName || sub.monthLabel || 'باقة شاكب راكب'}
+                                </span>
+                                {s.activePackage?.permissions && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    {s.activePackage.permissions.allSubjects !== false
+                                      ? 'كل المواد 📚'
+                                      : `${s.activePackage.permissions.subjectIds?.length || 0} مواد 🩺`}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3.5 px-3 font-mono text-teal-600 font-bold" dir="ltr">
                               {s.phone}
@@ -10905,6 +10966,20 @@ export default function AdminDashboardPage() {
                                   <MessageCircle className="w-3 h-3" />
                                   <span>تذكير واتساب 💬</span>
                                 </a>
+
+                                {/* Customize Package / Granular Permissions Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setGrantModalStudent(s);
+                                    setIsGrantModalOpen(true);
+                                  }}
+                                  title="تخصيص الباقة، تعديل الصلاحيات والمواد، أو تحديد مدة مخصصة"
+                                  className="py-1 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] shadow-sm transition flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-yellow-300" />
+                                  <span>تخصيص الصلاحيات ⚡️</span>
+                                </button>
 
                                 {/* 30-Day Extension / Renewal Button */}
                                 <button
@@ -12679,6 +12754,22 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         )}
+        {/* Grant & Customize Package Modal */}
+        <GrantPackageModal
+          isOpen={isGrantModalOpen}
+          student={grantModalStudent}
+          packages={packages}
+          subjects={subjects.length > 0 ? subjects : MOCK_SUBJECTS}
+          onClose={() => {
+            setIsGrantModalOpen(false);
+            setGrantModalStudent(null);
+          }}
+          onSuccess={() => {
+            loadStudents();
+            loadPackages();
+          }}
+          getAdminHeaders={getAdminHeaders}
+        />
       </div>
     </div>
   );

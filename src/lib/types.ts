@@ -236,6 +236,42 @@ export interface ShakibRakibSubscription {
   monthLabel: string;
 }
 
+export type PackageContentType = 'all' | 'pdf' | 'video' | 'audio' | 'quiz' | 'mindmap' | 'flashcards';
+
+export interface PackagePermissions {
+  allSubjects?: boolean;
+  subjectIds?: string[];
+  yearId?: 'all' | '1' | '2' | string;
+  semesters?: 'all' | '1' | '2';
+  contentTypes?: PackageContentType[];
+}
+
+export interface PlatformPackage {
+  id: string;
+  name: string;
+  description?: string;
+  badgeText?: string;
+  colorTheme?: 'amber' | 'teal' | 'indigo' | 'rose' | 'emerald' | 'purple' | 'blue';
+  price: number;
+  durationDays: number;
+  permissions: PackagePermissions;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StudentPackageSubscription {
+  packageId: string;
+  packageName: string;
+  isActive: boolean;
+  startDate: string;
+  expiresAt: string;
+  yearId?: string;
+  permissions: PackagePermissions;
+  notes?: string;
+  grantedBy?: string;
+}
+
 export interface ShakibRakibConfig {
   price: number;
   isEnabled: boolean;
@@ -458,6 +494,8 @@ export interface StudentUser {
   createdAt: string;
   purchasedLectureIds: string[];
   shakibRakibSubscription?: ShakibRakibSubscription;
+  activePackage?: StudentPackageSubscription;
+  packageSubscriptions?: StudentPackageSubscription[];
   bookmarks?: StudentBookmarks;
   flashcardReviews?: Record<string, StudentFlashcardProgressRecord>;
   isActive?: boolean;

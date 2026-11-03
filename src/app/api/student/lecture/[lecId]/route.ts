@@ -62,7 +62,7 @@ export async function GET(
     const hasAccess =
       lecture.isFree ||
       isAdmin ||
-      CmsService.hasAccessToLecture(student, lecture.id, lecture.yearId);
+      CmsService.hasAccessToLecture(student, lecture.id, lecture.yearId, lecture.subjectId, lecture.semester);
 
     // If student has full authorized access, return full lecture
     if (hasAccess) {

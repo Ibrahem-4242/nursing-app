@@ -37,6 +37,10 @@ import {
   DailyReviewQueueItem,
   DailyReviewQueueResponse,
   StudentStudyStreak,
+  PlatformPackage,
+  PackagePermissions,
+  StudentPackageSubscription,
+  PackageContentType,
 } from './types';
 import {
   calculateNextSpacedReview,
@@ -75,6 +79,8 @@ interface CmsStore {
   notifications?: AppNotification[];
   deletedNotificationIds?: string[];
   studentActivityLogs?: StudentActivityLog[];
+  customPackages?: PlatformPackage[];
+  deletedPackageIds?: string[];
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -107,6 +113,126 @@ export const DEFAULT_SHAKIB_RAKIB_CONFIG: ShakibRakibConfig = {
   monthLabel: 'اشتراك الشهر الحالي (شامل كل المواد)',
   updatedAt: new Date().toISOString(),
 };
+
+export const DEFAULT_PLATFORM_PACKAGES: PlatformPackage[] = [
+  {
+    id: 'shakib-rakib',
+    name: 'باقة شاكب راكب الشاملة VIP 👑',
+    description: 'فتح شامل لجميع مواد ومحاضرات سنتك الدراسية، تشمل ملخصات الفلوسكاب، الفيديوهات، التسجيلات الصوتية، بنوك الأسئلة والكويزات، والخرائط الذهنية.',
+    badgeText: 'VIP 👑',
+    colorTheme: 'amber',
+    price: 10,
+    durationDays: 30,
+    permissions: {
+      allSubjects: true,
+      yearId: 'all',
+      semesters: 'all',
+      contentTypes: ['all'],
+    },
+    isActive: true,
+  },
+  {
+    id: 'pkg-term-1',
+    name: 'باقة الترم الأول المتكاملة 📚',
+    description: 'اشتراك فصلي يتيح الوصول الكامل لجميع مواد ومحاضرات وبنوك أسئلة الترم الأول حتى موعد امتحانات الفاينل.',
+    badgeText: 'ترم كامل ⏳',
+    colorTheme: 'teal',
+    price: 25,
+    durationDays: 90,
+    permissions: {
+      allSubjects: true,
+      yearId: 'all',
+      semesters: '1',
+      contentTypes: ['all'],
+    },
+    isActive: true,
+  },
+  {
+    id: 'pkg-quizzes-only',
+    name: 'باقة بنوك الأسئلة والكويزات ❓',
+    description: 'مخصصة للتدريب المكثف على أسئلة MCQ، امتحانات الميدتيرم، والفاينل لجميع المواد بدون الشروحات.',
+    badgeText: 'كويزات فقط 📝',
+    colorTheme: 'indigo',
+    price: 15,
+    durationDays: 30,
+    permissions: {
+      allSubjects: true,
+      yearId: 'all',
+      semesters: 'all',
+      contentTypes: ['quiz'],
+    },
+    isActive: true,
+  },
+  {
+    id: 'pkg-summaries-only',
+    name: 'باقة مذكرات الفلوسكاب والـ PDF 📄',
+    description: 'تتيح تحميل وقراءة جميع مذكرات الفلوسكاب والخرائط الذهنية الطبية لجميع المواد بصيغة PDF قابلة للطباعة.',
+    badgeText: 'مذكرات فقط 📄',
+    colorTheme: 'purple',
+    price: 15,
+    durationDays: 30,
+    permissions: {
+      allSubjects: true,
+      yearId: 'all',
+      semesters: 'all',
+      contentTypes: ['pdf', 'mindmap'],
+    },
+    isActive: true,
+  },
+];
+
+export function checkStudentPackageAccess(
+  student: StudentUser | null | undefined,
+  target: {
+    yearId?: string;
+    subjectId?: string;
+    semester?: '1' | '2';
+    contentType?: PackageContentType;
+  }
+): boolean {
+  if (!student || student.isSuspended) return false;
+
+  const now = Date.now();
+
+  // 1. Check activePackage
+  const pkg = student.activePackage;
+  if (pkg && pkg.isActive) {
+    const expiry = new Date(pkg.expiresAt).getTime();
+    if (expiry > now) {
+      const perms = pkg.permissions || {};
+      
+      // Check year
+      const yearOk = !target.yearId || !perms.yearId || perms.yearId === 'all' || perms.yearId === target.yearId;
+      
+      // Check semester
+      const semOk = !target.semester || !perms.semesters || perms.semesters === 'all' || perms.semesters === target.semester;
+      
+      // Check subject
+      const subOk = perms.allSubjects !== false || (Array.isArray(perms.subjectIds) && Boolean(target.subjectId && perms.subjectIds.includes(target.subjectId)));
+      
+      // Check content type
+      const cTypes = perms.contentTypes || ['all'];
+      const contentOk = !target.contentType || cTypes.includes('all') || cTypes.includes(target.contentType);
+
+      if (yearOk && semOk && subOk && contentOk) {
+        return true;
+      }
+    }
+  }
+
+  // 2. Check legacy shakibRakibSubscription
+  if (student.shakibRakibSubscription?.isActive) {
+    const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+    if (expires > now) {
+      const subYear = student.shakibRakibSubscription.yearId;
+      if (!target.yearId || !subYear || subYear === 'all' || subYear === target.yearId) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 export const DEFAULT_PLATFORM_FEATURES: PlatformFeaturesConfig = {
   shakibRakib: true,
@@ -495,6 +621,22 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
         ...(existing.shakibRakibConfig || {}),
         ...(store.shakibRakibConfig || {}),
       };
+
+      // Safely merge deletedPackageIds
+      const allDeletedPkgs = new Set<string>();
+      (store.deletedPackageIds || []).forEach((id) => allDeletedPkgs.add(id));
+      (existing.deletedPackageIds || []).forEach((id) => allDeletedPkgs.add(id));
+      store.deletedPackageIds = Array.from(allDeletedPkgs);
+
+      // Safely merge customPackages
+      const pkgMap = new Map<string, PlatformPackage>();
+      (existing.customPackages || []).forEach((p) => {
+        if (p && p.id && !allDeletedPkgs.has(p.id)) pkgMap.set(p.id, p);
+      });
+      (store.customPackages || []).forEach((p) => {
+        if (p && p.id && !allDeletedPkgs.has(p.id)) pkgMap.set(p.id, p);
+      });
+      store.customPackages = Array.from(pkgMap.values());
 
       store.platformFeatures = {
         ...DEFAULT_PLATFORM_FEATURES,
@@ -985,6 +1127,20 @@ async function getFreshStore(): Promise<CmsStore> {
     } else if (!store.platformFeatures) {
       store.platformFeatures = DEFAULT_PLATFORM_FEATURES;
     }
+
+    const deletedPkgSet = new Set<string>();
+    (store.deletedPackageIds || []).forEach((id) => deletedPkgSet.add(id));
+    (cloudStore.deletedPackageIds || []).forEach((id) => deletedPkgSet.add(id));
+    store.deletedPackageIds = Array.from(deletedPkgSet);
+
+    const mergedPkgMap = new Map<string, PlatformPackage>();
+    (store.customPackages || []).forEach((p) => {
+      if (p && p.id && !deletedPkgSet.has(p.id)) mergedPkgMap.set(p.id, p);
+    });
+    (cloudStore.customPackages || []).forEach((p) => {
+      if (p && p.id && !deletedPkgSet.has(p.id)) mergedPkgMap.set(p.id, p);
+    });
+    store.customPackages = Array.from(mergedPkgMap.values());
 
     store = maskRawGithubUrls(store);
     memoryStore = store;
@@ -2786,21 +2942,201 @@ export const CmsService = {
   hasAccessToLecture(
     student: StudentUser | null | undefined,
     lectureId: string,
-    yearId?: string
+    yearId?: string,
+    subjectId?: string,
+    semester?: '1' | '2',
+    contentType?: PackageContentType
   ): boolean {
     if (!student || student.isSuspended) return false;
-    // Check Shakib Rakib monthly subscription
-    if (student.shakibRakibSubscription?.isActive) {
-      const expires = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-      if (expires > Date.now()) {
-        const subYear = student.shakibRakibSubscription.yearId;
-        if (!yearId || !subYear || subYear === 'all' || subYear === yearId) {
-          return true;
+
+    // 1. Check granular package access or legacy Shakib Rakib subscription
+    if (checkStudentPackageAccess(student, { yearId, subjectId, semester, contentType })) {
+      return true;
+    }
+
+    // 2. Check individual purchased lectures
+    return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
+  },
+
+  async getPlatformPackages(): Promise<PlatformPackage[]> {
+    const store = await getFreshStore();
+    const deletedSet = new Set(store.deletedPackageIds || []);
+    const customList = (store.customPackages || []).filter((p) => p && !deletedSet.has(p.id));
+
+    // Combine default packages with custom packages (avoiding duplicates)
+    const customIds = new Set(customList.map((p) => p.id));
+    const merged = [
+      ...customList,
+      ...DEFAULT_PLATFORM_PACKAGES.filter((p) => !customIds.has(p.id) && !deletedSet.has(p.id)),
+    ];
+    return merged;
+  },
+
+  async savePlatformPackage(pkg: PlatformPackage, customToken?: string): Promise<PlatformPackage> {
+    const store = await getFreshStore();
+    if (!store.customPackages) store.customPackages = [];
+    if (!store.deletedPackageIds) store.deletedPackageIds = [];
+
+    const id = pkg.id?.trim() || `pkg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    store.deletedPackageIds = store.deletedPackageIds.filter((dId) => dId !== id);
+
+    const normalized: PlatformPackage = {
+      ...pkg,
+      id,
+      name: pkg.name?.trim() || 'باقة دراسية مخصصة',
+      price: Number(pkg.price) >= 0 ? Number(pkg.price) : 10,
+      durationDays: Number(pkg.durationDays) > 0 ? Number(pkg.durationDays) : 30,
+      isActive: pkg.isActive !== false,
+      permissions: {
+        allSubjects: pkg.permissions?.allSubjects !== false,
+        subjectIds: Array.isArray(pkg.permissions?.subjectIds) ? pkg.permissions.subjectIds : [],
+        yearId: pkg.permissions?.yearId || 'all',
+        semesters: pkg.permissions?.semesters || 'all',
+        contentTypes: Array.isArray(pkg.permissions?.contentTypes) && pkg.permissions.contentTypes.length > 0 ? pkg.permissions.contentTypes : ['all'],
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    const existingIdx = store.customPackages.findIndex((p) => p.id === id);
+    if (existingIdx >= 0) {
+      store.customPackages[existingIdx] = normalized;
+    } else {
+      store.customPackages.push(normalized);
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return normalized;
+  },
+
+  async deletePlatformPackage(id: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.deletedPackageIds) store.deletedPackageIds = [];
+    if (!store.deletedPackageIds.includes(id)) {
+      store.deletedPackageIds.push(id);
+    }
+    if (store.customPackages) {
+      store.customPackages = store.customPackages.filter((p) => p.id !== id);
+    }
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
+  },
+
+  async grantPackageToStudent(
+    studentId: string,
+    subData: {
+      packageId?: string;
+      packageName?: string;
+      days?: number;
+      expiresAt?: string;
+      permissions: PackagePermissions;
+      notes?: string;
+      yearId?: string;
+      monthLabel?: string;
+    },
+    customToken?: string
+  ): Promise<{ success: boolean; message: string; student?: StudentUser }> {
+    const store = await getFreshStore();
+    if (!store.students) return { success: false, message: 'قائمة الطلاب فارغة' };
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return { success: false, message: 'الطالب غير موجود' };
+
+    const now = new Date();
+    let baseTime = now.getTime();
+    let originalStartDate = now.toISOString();
+
+    // Check if student currently has active package
+    if (student.activePackage?.isActive && student.activePackage.expiresAt) {
+      const curExpiry = new Date(student.activePackage.expiresAt).getTime();
+      if (curExpiry > baseTime) {
+        baseTime = curExpiry;
+        if (student.activePackage.startDate) {
+          originalStartDate = student.activePackage.startDate;
+        }
+      }
+    } else if (student.shakibRakibSubscription?.isActive && student.shakibRakibSubscription.expiresAt) {
+      const curExpiry = new Date(student.shakibRakibSubscription.expiresAt).getTime();
+      if (curExpiry > baseTime) {
+        baseTime = curExpiry;
+        if (student.shakibRakibSubscription.startDate) {
+          originalStartDate = student.shakibRakibSubscription.startDate;
         }
       }
     }
-    // Check individual purchased lectures
-    return Array.isArray(student.purchasedLectureIds) && student.purchasedLectureIds.includes(lectureId);
+
+    let finalExpiresAt: string;
+    if (subData.expiresAt && !subData.days) {
+      finalExpiresAt = new Date(subData.expiresAt).toISOString();
+    } else {
+      const daysToAdd = subData.days && subData.days > 0 ? subData.days : 30;
+      finalExpiresAt = new Date(baseTime + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    const pkgId = subData.packageId || 'custom';
+    const pkgName = subData.packageName || 'باقة مخصصة 🚀';
+    const effectiveYear = subData.yearId || subData.permissions?.yearId || student.yearId || '1';
+
+    const newPackageSub: StudentPackageSubscription = {
+      packageId: pkgId,
+      packageName: pkgName,
+      isActive: true,
+      startDate: originalStartDate,
+      expiresAt: finalExpiresAt,
+      yearId: effectiveYear,
+      permissions: {
+        allSubjects: subData.permissions?.allSubjects !== false,
+        subjectIds: Array.isArray(subData.permissions?.subjectIds) ? subData.permissions.subjectIds : [],
+        yearId: effectiveYear,
+        semesters: subData.permissions?.semesters || 'all',
+        contentTypes: Array.isArray(subData.permissions?.contentTypes) && subData.permissions.contentTypes.length > 0 ? subData.permissions.contentTypes : ['all'],
+      },
+      notes: subData.notes,
+    };
+
+    student.activePackage = newPackageSub;
+    if (!student.packageSubscriptions) student.packageSubscriptions = [];
+    student.packageSubscriptions.push(newPackageSub);
+
+    // Keep ShakibRakibSubscription backwards-compatible
+    student.shakibRakibSubscription = {
+      isActive: true,
+      yearId: effectiveYear,
+      startDate: originalStartDate,
+      expiresAt: finalExpiresAt,
+      monthLabel: subData.monthLabel || pkgName,
+    };
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+
+    return {
+      success: true,
+      message: `تم تفعيل "${pkgName}" للطالب ${student.name} بنجاح حتى ${new Date(finalExpiresAt).toLocaleDateString('ar-EG')}! 🚀`,
+      student,
+    };
+  },
+
+  async revokeStudentPackage(studentId: string, customToken?: string): Promise<boolean> {
+    const store = await getFreshStore();
+    if (!store.students) return false;
+    const student = store.students.find((s) => s.id === studentId || s.phone === studentId);
+    if (!student) return false;
+
+    if (student.activePackage) {
+      student.activePackage.isActive = false;
+    }
+    if (student.shakibRakibSubscription) {
+      student.shakibRakibSubscription.isActive = false;
+    }
+
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return true;
   },
 
   async updateStudentShakibRakib(
