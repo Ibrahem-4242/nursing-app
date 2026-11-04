@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Flashcard, FlashcardReviewState } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
+import { normalizeFlashcard } from '@/lib/anki-parser';
 import { useStudentAuth } from '@/context/StudentAuthContext';
 import {
   ChevronRight,
@@ -66,13 +67,16 @@ interface StoredProgress {
 }
 
 export default function Flashcards3D({
-  cards,
+  cards: rawCards,
   subjectTitle = 'مقرر التمريض',
   lectureTitle,
   lectureId,
   navigationLock = true,
 }: Flashcards3DProps) {
   const { student } = useStudentAuth();
+
+  // Ensure all cards are strictly normalized (Question on front, Answer on back, Topic in category)
+  const cards = useMemo(() => (rawCards || []).map(normalizeFlashcard), [rawCards]);
 
   // Storage key scoped to lectureId or subjectTitle + student phone (or guest)
   const storageKey = useMemo(() => {
@@ -82,7 +86,7 @@ export default function Flashcards3D({
   }, [lectureId, subjectTitle, student?.phone]);
 
   // Deck states
-  const [activeDeck, setActiveDeck] = useState<Flashcard[]>(cards);
+  const [activeDeck, setActiveDeck] = useState<Flashcard[]>(() => (rawCards || []).map(normalizeFlashcard));
   const [isFilterMode, setIsFilterMode] = useState(false); // true if reviewing only difficult cards
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);

@@ -3,6 +3,99 @@ import initSqlJs from 'sql.js';
 import { Flashcard } from './types';
 import { cleanLatexMath } from './text-cleaner';
 
+
+export function isQuestionPrompt(text?: string): boolean {
+  if (!text) return false;
+  const t = text.trim();
+  if (t.includes('؟') || t.includes('?') || t.includes('_____') || t.includes('.....')) return true;
+  return /^(ما\s|كيف\s|لماذا\s|ماذا\s|اذكر\s|قارن\s|علل\s|لخص\s|رتب\s|حدد\s|مِمَّ\s|هل\s|إلى\sكم\s|كم\s|اشرح\s|بين\s|وضح\s|صف\s|عرف\s|أكمل\s|What\s|How\s|Why\s|Which\s|Define\s|Compare\s|Explain\s|List\s|Describe\s)/i.test(t);
+}
+
+export function buildFlashcardFromFields(
+  id: number,
+  fields: string[],
+  tags?: string
+): Flashcard | null {
+  const f0 = cleanHtmlText(fields[0] || '');
+  const f1 = cleanHtmlText(fields[1] || '');
+  const f2 = cleanHtmlText(fields[2] || '');
+  const f3 = cleanHtmlText(fields[3] || '');
+
+  if (!f0 && !f1) return null;
+
+  let category = 'كروت استذكار';
+  if (tags && tags.trim()) {
+    const cleanTags = tags.trim().replace(/^_+|_+$/g, '');
+    if (cleanTags) {
+      category = cleanTags.split(/\s+/)[0] || category;
+    }
+  }
+
+  let front = f0;
+  let back = f1;
+  let clinicalPearl: string | undefined = f2 || undefined;
+
+  // Smart Inverted 3-Field Detection:
+  // If field 0 is a topic heading (e.g., 'طبقات الجسم واللفافة') and field 1 is the question (e.g. 'ما هو الترتيب...؟') and field 2 is the detailed answer:
+  if (fields.length >= 3 && !isQuestionPrompt(f0) && isQuestionPrompt(f1) && f2 && f2.length > 15) {
+    category = f0.replace(/nursingsum\.live/gi, '').trim() || category;
+    front = f1;
+    back = f2;
+    clinicalPearl = f3 || undefined;
+  } else if (!tags && clinicalPearl && clinicalPearl.length <= 80 && !isQuestionPrompt(clinicalPearl)) {
+    category = clinicalPearl.replace(/nursingsum\.live/gi, '').trim() || category;
+    clinicalPearl = undefined;
+  }
+
+  return normalizeFlashcard({
+    id,
+    front: front || `سؤال ${id}`,
+    back: back || 'لا توجد إجابة مسجلة',
+    category,
+    clinicalPearl,
+  });
+}
+
+export function normalizeFlashcard(card: Flashcard): Flashcard {
+  if (!card) return card;
+
+  let category = card.category || 'كروت استذكار';
+  let front = card.front || '';
+  let back = card.back || '';
+  let clinicalPearl = card.clinicalPearl;
+
+  const frontIsQ = isQuestionPrompt(front);
+  const backIsQ = isQuestionPrompt(back);
+
+  // Case 1: Inverted 3-field card (front has topic, back has question, pearl has answer)
+  if (!frontIsQ && backIsQ && clinicalPearl && clinicalPearl.trim().length > 15) {
+    category = front.replace(/nursingsum\.live/gi, '').trim() || category;
+    front = back;
+    back = clinicalPearl;
+    clinicalPearl = undefined;
+  }
+  // Case 2: Standard card where pearl was actually storing the topic heading
+  else if (category === 'كروت استذكار' && clinicalPearl && clinicalPearl.trim().length <= 80 && !isQuestionPrompt(clinicalPearl)) {
+    category = clinicalPearl.replace(/nursingsum\.live/gi, '').trim() || category;
+    clinicalPearl = undefined;
+  }
+
+  if (front.includes('nursingsum.live')) {
+    front = front.replace(/nursingsum\.live/gi, '').trim();
+  }
+  if (category.includes('nursingsum.live')) {
+    category = category.replace(/nursingsum\.live/gi, '').trim();
+  }
+
+  return {
+    ...card,
+    category,
+    front,
+    back,
+    clinicalPearl,
+  };
+}
+
 function cleanHtmlText(html: string): string {
   if (!html) return '';
 
@@ -180,25 +273,9 @@ function parseSqliteFallback(dbBytes: Uint8Array): Flashcard[] {
 
           if (fldsCol) {
             const parts = fldsCol.split('\x1f');
-            const front = cleanHtmlText(parts[0] || '');
-            const back = cleanHtmlText(parts[1] || '');
-            const pearl = cleanHtmlText(parts[2] || '');
-
-            let category = 'كروت استذكار';
-            if (tagsCol && tagsCol.trim()) {
-              category = cleanHtmlText(tagsCol).split(/\s+/)[0] || category;
-            } else if (pearl && pearl.length < 60) {
-              category = pearl;
-            }
-
-            if (front || back) {
-              cards.push({
-                id: cardId++,
-                front: front || `سؤال ${cardId}`,
-                back: back || 'لا توجد إجابة مسجلة',
-                category,
-                clinicalPearl: pearl && pearl !== category ? pearl : undefined,
-              });
+            const card = buildFlashcardFromFields(cardId++, parts, tagsCol || undefined);
+            if (card) {
+              cards.push(card);
             }
           }
         }
@@ -221,13 +298,16 @@ export async function parseAnkiPackage(buffer: Buffer | ArrayBuffer | Uint8Array
     if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item: any, idx: number) => ({
-          id: idx + 1,
-          front: cleanHtmlText(item.front || item.question || item.q || `سؤال ${idx + 1}`),
-          back: cleanHtmlText(item.back || item.answer || item.a || 'الإجابة'),
-          category: item.category || 'كروت استذكار',
-          clinicalPearl: item.clinicalPearl || item.pearl || undefined,
-        }));
+        return parsed.map((item: any, idx: number) => {
+          const raw: Flashcard = {
+            id: idx + 1,
+            front: cleanHtmlText(item.front || item.question || item.q || `سؤال ${idx + 1}`),
+            back: cleanHtmlText(item.back || item.answer || item.a || 'الإجابة'),
+            category: item.category || 'كروت استذكار',
+            clinicalPearl: item.clinicalPearl || item.pearl || undefined,
+          };
+          return normalizeFlashcard(raw);
+        });
       }
     }
   } catch {}
@@ -277,32 +357,9 @@ export async function parseAnkiPackage(buffer: Buffer | ArrayBuffer | Uint8Array
           const tagsRaw = row[1] ? String(row[1]) : '';
 
           const fields = fldsRaw.split('\x1f');
-          const frontRaw = fields[0] || '';
-          const backRaw = fields[1] || '';
-          const pearlRaw = fields[2] || '';
-
-          const front = cleanHtmlText(frontRaw);
-          const back = cleanHtmlText(backRaw);
-          const clinicalPearl = pearlRaw ? cleanHtmlText(pearlRaw) : undefined;
-
-          let category = 'كروت استذكار';
-          if (tagsRaw) {
-            const cleanTags = tagsRaw.trim().replace(/^_+|_+$/g, '');
-            if (cleanTags) {
-              category = cleanTags.split(/\s+/)[0] || category;
-            }
-          } else if (clinicalPearl && clinicalPearl.length < 60) {
-            category = clinicalPearl;
-          }
-
-          if (front || back) {
-            cards.push({
-              id: i + 1,
-              front: front || `سؤال ${i + 1}`,
-              back: back || 'لا توجد إجابة مسجلة',
-              category,
-              clinicalPearl: clinicalPearl || undefined,
-            });
+          const card = buildFlashcardFromFields(i + 1, fields, tagsRaw);
+          if (card) {
+            cards.push(card);
           }
         }
 
