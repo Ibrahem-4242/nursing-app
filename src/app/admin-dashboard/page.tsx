@@ -5543,7 +5543,7 @@ export default function AdminDashboardPage() {
                       <span className="text-xs font-bold text-amber-800 dark:text-amber-300">جنيه مصري (EGP)</span>
                     </div>
                     <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      * سيتطلب من الطالب تسجيل الدخول أو إنشاء حساب لشراء هذه المحاضرة والتحويل عبر محفظة 01148243443
+                      * سيتطلب من الطالب تسجيل الدخول أو إنشاء حساب لشراء هذه المحاضرة والتحويل عبر محفظة 01148283443
                     </p>
                   </div>
                 )}

@@ -170,7 +170,7 @@ export default function PurchaseLectureModal({
     );
   }
 
-  const WALLET_NUMBER = '01148243443';
+  const WALLET_NUMBER = '01148283443';
 
   const handleCopyWallet = () => {
     navigator.clipboard.writeText(WALLET_NUMBER);
