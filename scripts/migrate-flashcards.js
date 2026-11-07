@@ -73,6 +73,25 @@ function splitCombinedQuestionAndAnswer(text) {
     }
   }
 
+  // Pattern 5: Two blocks separated by double newline
+  const doubleNewline = mainText.split(/\r?\n\s*\r?\n+/);
+  if (doubleNewline.length >= 2) {
+    const first = doubleNewline[0].replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '').trim();
+    const second = doubleNewline.slice(1).join('\n\n').trim();
+    if (first.length <= 250 && second.length >= 5) {
+      return { question: first, answer: second, pearl };
+    }
+  }
+
+  // Pattern 6: First line is a short term/concept (<120 chars) and there are remaining lines
+  if (lines.length >= 2) {
+    const firstLine = lines[0].replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '').trim();
+    const remaining = lines.slice(1).join('\n').trim();
+    if (firstLine.length <= 120 && remaining.length >= 5) {
+      return { question: firstLine, answer: remaining, pearl };
+    }
+  }
+
   return null;
 }
 
@@ -87,7 +106,7 @@ function normalizeFlashcard(card) {
   const frontIsQ = isQuestionPrompt(front);
   const backIsQ = isQuestionPrompt(back);
 
-  if (!frontIsQ && backIsQ && clinicalPearl && clinicalPearl.length > 0) {
+  if (!frontIsQ && clinicalPearl && clinicalPearl.length > 0 && (backIsQ || front.length <= 80)) {
     category = front.replace(/nursingsum\.live/gi, '').trim() || category;
     front = back;
     back = clinicalPearl;
@@ -99,7 +118,7 @@ function normalizeFlashcard(card) {
       front = split.question;
       back = split.answer;
       if (split.pearl) clinicalPearl = split.pearl;
-    } else if (backIsQ && front.length > 50) {
+    } else if (backIsQ || (front.length <= 80 && back.length > 80)) {
       const temp = front;
       front = back;
       back = temp;

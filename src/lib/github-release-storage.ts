@@ -186,9 +186,20 @@ export async function fetchReleaseAssetBuffer(
   let assetId: number | null = typeof assetIdOrName === 'number' ? assetIdOrName : null;
 
   if (assetId === null) {
-    const cleanName = String(assetIdOrName).replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+    const rawStr = String(assetIdOrName);
+    const cleanName = rawStr.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+    const prefixMatch = rawStr.match(/^([0-9]{10,14}-[a-z0-9]+)/i);
+    const prefix = prefixMatch ? prefixMatch[1] : rawStr.split('_')[0];
+    const extMatch = rawStr.match(/\.[a-zA-Z0-9]+$/);
+    const ext = extMatch ? extMatch[0].toLowerCase() : '';
     const assets = await listReleaseAssets(customToken);
-    const found = assets.find((a) => a.name === cleanName);
+    const found = assets.find((a) => {
+      if (a.name === cleanName || a.name === rawStr) return true;
+      if (prefix && prefix.length > 5 && (a.name.startsWith(prefix) || a.name.includes(prefix)) && (!ext || a.name.endsWith(ext))) {
+        return true;
+      }
+      return false;
+    });
     if (found) {
       assetId = found.id;
     }

@@ -4,6 +4,7 @@ import {
   uploadReleaseAsset,
   fetchReleaseAssetBuffer,
   cleanupUploadParts,
+  listReleaseAssets,
   MEDIA_RELEASE_TAG,
   getGitHubStorageToken,
   getGitHubStorageRepo,
@@ -259,7 +260,26 @@ export async function getUploadedFileAsync(
     const relHeaders: Record<string, string> = { 'User-Agent': 'NursingStudyHubApp' };
     if (token) relHeaders['Authorization'] = `token ${token}`;
 
-    const relRes = await fetch(releaseUrl, { headers: relHeaders, cache: 'no-store' });
+    let relRes = await fetch(releaseUrl, { headers: relHeaders, cache: 'no-store' });
+    if (!relRes.ok) {
+      try {
+        const assets = await listReleaseAssets(token);
+        const prefixMatch = safeName.match(/^([0-9]{10,14}-[a-z0-9]+)/i);
+        const prefix = prefixMatch ? prefixMatch[1] : safeName.split('_')[0];
+        const cleanName = safeName.replace(/[^a-zA-Z0-9_\u0600-\u06FF.-]/g, '_');
+        const matched = assets.find((a: any) => {
+          if (a.name === safeName || a.name === cleanName) return true;
+          if (prefix && prefix.length > 5 && (a.name.startsWith(prefix) || a.name.includes(prefix)) && a.name.endsWith(ext)) return true;
+          return false;
+        });
+        if (matched?.browser_download_url) {
+          relRes = await fetch(matched.browser_download_url, { headers: relHeaders, cache: 'no-store' });
+        }
+      } catch (assetErr) {
+        console.warn('[Storage] Asset prefix lookup error:', assetErr);
+      }
+    }
+
     if (relRes.ok) {
       const arrayBuf = await relRes.arrayBuffer();
       const buffer = Buffer.from(arrayBuf);
