@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Crown,
   Calendar,
@@ -56,7 +56,7 @@ export default function GrantPackageModal({
 }: GrantPackageModalProps) {
   const [selectedPackageId, setSelectedPackageId] = useState<string>('shakib-rakib');
   const [packageName, setPackageName] = useState<string>('باقة شاكب راكب الشاملة 🚀');
-  const [durationMode, setDurationMode] = useState<'days' | 'date'>('days');
+  const [durationAction, setDurationAction] = useState<'set_from_now' | 'extend_balance' | 'exact_date'>('set_from_now');
   const [days, setDays] = useState<number>(30);
   const [targetDate, setTargetDate] = useState<string>('');
   const [allSubjects, setAllSubjects] = useState<boolean>(true);
@@ -67,25 +67,57 @@ export default function GrantPackageModal({
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Normalize student current active subscription (activePackage or shakibRakibSubscription)
+  const currentActiveSub = useMemo(() => {
+    if (!student) return null;
+    if (student.activePackage && student.activePackage.expiresAt) {
+      return student.activePackage;
+    }
+    if (student.shakibRakibSubscription && student.shakibRakibSubscription.expiresAt) {
+      return {
+        packageId: 'shakib-rakib',
+        packageName: student.shakibRakibSubscription.monthLabel || 'باقة شاكب راكب الشاملة 🚀',
+        isActive: student.shakibRakibSubscription.isActive,
+        startDate: student.shakibRakibSubscription.startDate,
+        expiresAt: student.shakibRakibSubscription.expiresAt,
+        yearId: student.shakibRakibSubscription.yearId,
+        permissions: {
+          allSubjects: true,
+          subjectIds: [],
+          yearId: student.shakibRakibSubscription.yearId,
+          semesters: 'all' as any,
+          contentTypes: ['all'] as any,
+        },
+      };
+    }
+    return null;
+  }, [student]);
+
+  const isCurrentSubActive = Boolean(
+    currentActiveSub?.isActive && new Date(currentActiveSub.expiresAt).getTime() > Date.now()
+  );
+
   // When student or packages change, initialize form
   useEffect(() => {
     if (!student) return;
 
-    if (student.activePackage) {
-      const active = student.activePackage;
-      setSelectedPackageId(active.packageId || 'custom');
-      setPackageName(active.packageName || 'باقة مخصصة');
-      setYearId(active.yearId || student.yearId || 'all');
-      const perms = active.permissions || {};
+    if (currentActiveSub) {
+      setSelectedPackageId(currentActiveSub.packageId || 'custom');
+      setPackageName(currentActiveSub.packageName || 'باقة مخصصة');
+      setYearId(currentActiveSub.yearId || student.yearId || 'all');
+      const perms = currentActiveSub.permissions || {};
       setAllSubjects(perms.allSubjects !== false);
       setSelectedSubjectIds(perms.subjectIds || []);
       setSemester((perms.semesters as any) || 'all');
       setContentTypes(
         Array.isArray(perms.contentTypes) && perms.contentTypes.length > 0 ? perms.contentTypes : ['all']
       );
-      if (active.expiresAt) {
-        setTargetDate(new Date(active.expiresAt).toISOString().split('T')[0]);
+      if (currentActiveSub.expiresAt) {
+        setTargetDate(new Date(currentActiveSub.expiresAt).toISOString().split('T')[0]);
+        const remDays = Math.max(1, Math.ceil((new Date(currentActiveSub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        setDays(remDays);
       }
+      setDurationAction('set_from_now');
     } else {
       // Default to first active package or shakib-rakib
       const defaultPkg = packages.find((p) => p.isActive) || packages[0];
@@ -101,8 +133,9 @@ export default function GrantPackageModal({
         setSemester('all');
         setContentTypes(['all']);
       }
+      setDurationAction('set_from_now');
     }
-  }, [student, packages]);
+  }, [student, currentActiveSub, packages]);
 
   const applyPackageTemplate = (pkg: PlatformPackage) => {
     setSelectedPackageId(pkg.id);
@@ -163,13 +196,16 @@ export default function GrantPackageModal({
 
     setIsSubmitting(true);
     try {
+      const calculatedExpiresAt = previewExpiry ? previewExpiry.toISOString() : undefined;
+
       const payload = {
         studentId: student.id,
         action: 'grant',
         packageId: selectedPackageId,
         packageName: packageName.trim() || 'باقة دراسية 🚀',
-        days: durationMode === 'days' ? days : undefined,
-        expiresAt: durationMode === 'date' && targetDate ? new Date(targetDate).toISOString() : undefined,
+        days: durationAction !== 'exact_date' ? days : undefined,
+        calculationMode: durationAction,
+        expiresAt: calculatedExpiresAt,
         yearId,
         permissions: {
           allSubjects,
@@ -232,12 +268,32 @@ export default function GrantPackageModal({
     }
   };
 
-  if (!isOpen || !student) return null;
+  const previewExpiry = useMemo(() => {
+    const now = Date.now();
+    const existingExpiry =
+      currentActiveSub?.isActive && currentActiveSub.expiresAt
+        ? new Date(currentActiveSub.expiresAt).getTime()
+        : 0;
 
-  const isCurrentSubActive =
-    (student.activePackage?.isActive && new Date(student.activePackage.expiresAt).getTime() > Date.now()) ||
-    (student.shakibRakibSubscription?.isActive &&
-      new Date(student.shakibRakibSubscription.expiresAt).getTime() > Date.now());
+    if (durationAction === 'exact_date') {
+      if (!targetDate) return null;
+      return new Date(`${targetDate}T23:59:59.999Z`);
+    }
+
+    const safeDays = Math.max(1, Number(days) || 1);
+    if (durationAction === 'extend_balance' && existingExpiry > now) {
+      return new Date(existingExpiry + safeDays * 24 * 60 * 60 * 1000);
+    }
+    return new Date(now + safeDays * 24 * 60 * 60 * 1000);
+  }, [currentActiveSub, durationAction, days, targetDate]);
+
+  const previewDaysLeft = useMemo(() => {
+    if (!previewExpiry) return 0;
+    const diff = previewExpiry.getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [previewExpiry]);
+
+  if (!isOpen || !student) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -280,14 +336,17 @@ export default function GrantPackageModal({
             <div>
               <span className="font-black block text-xs">
                 {isCurrentSubActive
-                  ? `اشتراك نشط: ${student.activePackage?.packageName || student.shakibRakibSubscription?.monthLabel || 'باقة شاكب راكب'} 🟢`
+                  ? `اشتراك نشط: ${currentActiveSub?.packageName || 'باقة شاكب راكب'} 🟢`
                   : 'الطالب غير مشترك في أي باقة حالياً ⏹️'}
               </span>
               <span className="text-[11px] opacity-80">
                 {isCurrentSubActive
-                  ? `ينتهي في: ${new Date(
-                      student.activePackage?.expiresAt || student.shakibRakibSubscription!.expiresAt
-                    ).toLocaleDateString('ar-EG')}`
+                  ? `ينتهي في: ${new Date(currentActiveSub!.expiresAt).toLocaleDateString('ar-EG', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })} (متبقي ${Math.max(0, Math.ceil((new Date(currentActiveSub!.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} يوم)`
                   : 'اختر باقة لتفعيلها وتحديد مدتها وصلاحياتها بالكامل.'}
               </span>
             </div>
@@ -340,36 +399,57 @@ export default function GrantPackageModal({
 
           {/* 2. DURATION SECTION */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-amber-600" />
-                <span>تحديد مدة الاشتراك:</span>
+                <span>تحديد مدة الاشتراك وطريقة الاحتساب:</span>
               </label>
 
               <div className="flex items-center gap-1 bg-white dark:bg-slate-700 p-0.5 rounded-lg border border-slate-200 dark:border-slate-600 text-[11px]">
                 <button
                   type="button"
-                  onClick={() => setDurationMode('days')}
+                  onClick={() => setDurationAction('set_from_now')}
                   className={`px-2.5 py-1 rounded font-bold transition ${
-                    durationMode === 'days' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300'
+                    durationAction === 'set_from_now' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300'
                   }`}
+                  title="تعديل وضبط المدة لتبدأ من الآن وتستمر لعدد الأيام المختار"
                 >
-                  بعدد الأيام
+                  تعيين من اليوم ⏱️
                 </button>
+                {isCurrentSubActive && (
+                  <button
+                    type="button"
+                    onClick={() => setDurationAction('extend_balance')}
+                    className={`px-2.5 py-1 rounded font-bold transition ${
+                      durationAction === 'extend_balance' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                    title="إضافة الأيام فوق تاريخ الانتهاء الحالي للطالب دون إضاعة رصيده"
+                  >
+                    تمديد إضافي (+) 🔄
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setDurationMode('date')}
+                  onClick={() => setDurationAction('exact_date')}
                   className={`px-2.5 py-1 rounded font-bold transition ${
-                    durationMode === 'date' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300'
+                    durationAction === 'exact_date' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300'
                   }`}
+                  title="اختيار تاريخ انتهاء محدد باليوم والشهر والسنة"
                 >
-                  تاريخ انتهاء محدد 📅
+                  تاريخ محدد 📅
                 </button>
               </div>
             </div>
 
-            {durationMode === 'days' ? (
+            {durationAction !== 'exact_date' ? (
               <div className="space-y-2">
+                {/* Mode indicator description */}
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {durationAction === 'set_from_now'
+                    ? '⚡️ سيتم احتساب المدة من اليوم وتنتهي بعد عدد الأيام المختار أدناه (استبدال / تعديل مدة الباقة بدقة).'
+                    : '🔄 سيتم إضافة عدد الأيام المختار فوق الرصيد الحالي للطالب دون تصفير أيامه المتبقية.'}
+                </p>
+
                 {/* Quick Chips */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {[
@@ -396,26 +476,21 @@ export default function GrantPackageModal({
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
-                  <span className="text-slate-600 dark:text-slate-400 font-bold">عدد الأيام المخصص:</span>
+                  <span className="text-slate-600 dark:text-slate-400 font-bold">عدد الأيام المطلوب:</span>
                   <input
                     type="number"
                     min="1"
                     value={days}
-                    onChange={(e) => setDays(Number(e.target.value))}
+                    onChange={(e) => setDays(Math.max(1, Number(e.target.value)))}
                     className="w-28 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 font-bold text-center text-sm"
                   />
                   <span className="text-slate-500 font-bold">يوم</span>
-                  {isCurrentSubActive && (
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                      (تُضاف فوق الأيام المتبقية الحالية دون إضاعة رصيده 🔄)
-                    </span>
-                  )}
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-slate-600 dark:text-slate-400 font-bold mb-1">
-                  اختر تاريخ الانتهاء الدقيق:
+                  اختر تاريخ الانتهاء الدقيق (ينتهي بنهاية هذا اليوم 23:59):
                 </label>
                 <input
                   type="date"
@@ -426,6 +501,27 @@ export default function GrantPackageModal({
                 />
               </div>
             )}
+
+            {/* Live Expiry Preview Banner */}
+            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-300/80 dark:border-emerald-700/80 flex flex-wrap items-center justify-between gap-2 shadow-xs">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">تاريخ الانتهاء الجديد الناتج:</span>
+                <span className="font-black text-xs text-emerald-800 dark:text-emerald-200">
+                  {previewExpiry
+                    ? previewExpiry.toLocaleDateString('ar-EG', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : '—'}
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-black text-[10px]">
+                متبقي {previewDaysLeft} يوم
+              </span>
+            </div>
           </div>
 
           {/* 3. GRANULAR PERMISSIONS SECTION */}

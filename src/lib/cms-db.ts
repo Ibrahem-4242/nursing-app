@@ -3032,6 +3032,7 @@ export const CmsService = {
       packageName?: string;
       days?: number;
       expiresAt?: string;
+      calculationMode?: 'set_from_now' | 'extend_balance' | 'exact_date';
       permissions: PackagePermissions;
       notes?: string;
       yearId?: string;
@@ -3045,34 +3046,43 @@ export const CmsService = {
     if (!student) return { success: false, message: 'الطالب غير موجود' };
 
     const now = new Date();
-    let baseTime = now.getTime();
     let originalStartDate = now.toISOString();
 
-    // Check if student currently has active package
-    if (student.activePackage?.isActive && student.activePackage.expiresAt) {
-      const curExpiry = new Date(student.activePackage.expiresAt).getTime();
-      if (curExpiry > baseTime) {
-        baseTime = curExpiry;
-        if (student.activePackage.startDate) {
-          originalStartDate = student.activePackage.startDate;
-        }
-      }
-    } else if (student.shakibRakibSubscription?.isActive && student.shakibRakibSubscription.expiresAt) {
-      const curExpiry = new Date(student.shakibRakibSubscription.expiresAt).getTime();
-      if (curExpiry > baseTime) {
-        baseTime = curExpiry;
-        if (student.shakibRakibSubscription.startDate) {
-          originalStartDate = student.shakibRakibSubscription.startDate;
-        }
-      }
+    const existingExpiry =
+      student.activePackage?.isActive && student.activePackage.expiresAt
+        ? new Date(student.activePackage.expiresAt).getTime()
+        : student.shakibRakibSubscription?.isActive && student.shakibRakibSubscription.expiresAt
+        ? new Date(student.shakibRakibSubscription.expiresAt).getTime()
+        : 0;
+
+    if (student.activePackage?.startDate) {
+      originalStartDate = student.activePackage.startDate;
+    } else if (student.shakibRakibSubscription?.startDate) {
+      originalStartDate = student.shakibRakibSubscription.startDate;
     }
 
     let finalExpiresAt: string;
-    if (subData.expiresAt && !subData.days) {
-      finalExpiresAt = new Date(subData.expiresAt).toISOString();
+
+    if (subData.expiresAt) {
+      // Direct explicit expiry date
+      let d = new Date(subData.expiresAt);
+      if (typeof subData.expiresAt === 'string' && subData.expiresAt.length <= 10) {
+        d = new Date(`${subData.expiresAt}T23:59:59.999Z`);
+      }
+      finalExpiresAt = d.toISOString();
     } else {
-      const daysToAdd = subData.days && subData.days > 0 ? subData.days : 30;
-      finalExpiresAt = new Date(baseTime + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+      const daysToAdd = typeof subData.days === 'number' && subData.days > 0 ? subData.days : 30;
+      const mode = subData.calculationMode || 'set_from_now';
+
+      if (mode === 'extend_balance' && existingExpiry > now.getTime()) {
+        // Extend on top of existing remaining balance
+        finalExpiresAt = new Date(existingExpiry + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        // 'set_from_now' (default when editing package duration):
+        // Overwrite / set duration to exactly daysToAdd from today
+        finalExpiresAt = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+        originalStartDate = now.toISOString();
+      }
     }
 
     const pkgId = subData.packageId || 'custom';

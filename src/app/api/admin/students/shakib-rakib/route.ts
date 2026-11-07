@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
     const action = String(body.action || 'grant'); // 'grant' | 'revoke'
     const days = body.days !== undefined && body.days !== null ? Number(body.days) : 30;
     const expiresAt = body.expiresAt ? String(body.expiresAt).trim() : undefined;
+    const calculationMode = body.calculationMode
+      ? String(body.calculationMode).trim()
+      : expiresAt
+      ? 'exact_date'
+      : 'set_from_now';
     const packageId = String(body.packageId || 'shakib-rakib').trim();
     const packageName = String(body.packageName || body.monthLabel || 'باقة شاكب راكب الشاملة 🚀').trim();
     const yearId = String(body.yearId || '1').trim();
@@ -53,8 +58,9 @@ export async function POST(req: NextRequest) {
     const grantRes = await CmsService.grantPackageToStudent(studentId, {
       packageId,
       packageName,
-      days: expiresAt ? undefined : days,
+      days: calculationMode === 'exact_date' && expiresAt ? undefined : days,
       expiresAt,
+      calculationMode: calculationMode as any,
       permissions,
       notes,
       yearId,

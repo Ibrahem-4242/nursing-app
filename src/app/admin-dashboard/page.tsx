@@ -9607,6 +9607,19 @@ export default function AdminDashboardPage() {
 
                                 <button
                                   type="button"
+                                  onClick={() => {
+                                    setGrantModalStudent(student);
+                                    setIsGrantModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/60 dark:to-yellow-950/60 hover:from-amber-100 hover:to-yellow-100 text-amber-800 dark:text-amber-200 font-bold text-[11px] border border-amber-300 dark:border-amber-700 flex items-center gap-1 transition shadow-xs"
+                                  title="تعديل وتخصيص باقة الطالب، تحديد أو تعديل المدة، والصلاحيات"
+                                >
+                                  <Crown className="w-3 h-3 text-amber-600" />
+                                  <span>تخصيص الباقة والمدة 👑</span>
+                                </button>
+
+                                <button
+                                  type="button"
                                   onClick={() => handleOpenStudentActivity(student)}
                                   className="px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition shadow-xs"
                                   title="عرض سجل نشاط ومذاكرة الطالب بالتفصيل (ماذا فتح والوقت المستغرق)"
