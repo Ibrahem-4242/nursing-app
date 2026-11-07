@@ -99,7 +99,7 @@
     },
     {
       "id": 14,
-      "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا البالعة الرئيسية) during inflammation?",
+      "front": "Which leukocyte types serve as the principal phagocytic cells (الخلايا البالعة الرئي��ية) during inflammation?",
       "back": "Neutrophils (العدلات) and Macrophages (الخلايا البلعمية الكبيرة) serve as the principal phagocytic cells.",
       "category": "علم الأمراض والالتهاب (Pathology & Inflammation)"
     },
@@ -339,7 +339,7 @@
       "downloadUrl": "/api/files/1791657101916-1k0o9w_المحاضرة_الاولي__باثولوجي__PowerPoint.pdf",
       "pageCount": "سلايدات PowerPoint",
       "updatedAt": "١٠‏/١٠‏/٢٠٢٦، ٩:٣١ م",
-      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي ا��رسمية"
+      "customNote": "عروض تقديمية وسلايدات الشرح الجامعي الرسمية"
     },
     {
       "type": "mindmap",

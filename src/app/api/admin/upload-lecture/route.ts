@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { applyWatermarkToPdf } from '@/lib/pdf-watermark';
 import { saveUploadedFile } from '@/lib/file-storage';
-import { parseAnkiPackage } from '@/lib/anki-parser';
+import { parseAnkiPackage, normalizeFlashcard } from '@/lib/anki-parser';
 import { CmsService } from '@/lib/cms-db';
 import { MOCK_SUBJECTS } from '@/lib/mock-data';
 import { sendTelegramMessage, getArabicFormattedDate } from '@/lib/telegram';
@@ -151,13 +151,17 @@ export async function POST(req: NextRequest) {
 
     // Clean any raw LaTeX, math symbols, and ugly brackets from card texts
     if (flashcards.length > 0) {
-      flashcards = flashcards.map((c) => ({
-        ...c,
-        front: cleanLatexMath(c.front),
-        back: cleanLatexMath(c.back),
-        clinicalPearl: c.clinicalPearl ? cleanLatexMath(c.clinicalPearl) : undefined,
-      }));
+      flashcards = flashcards.map((c) => {
+        const norm = normalizeFlashcard(c);
+        return {
+          ...norm,
+          front: cleanLatexMath(norm.front),
+          back: cleanLatexMath(norm.back),
+          clinicalPearl: norm.clinicalPearl ? cleanLatexMath(norm.clinicalPearl) : undefined,
+        };
+      });
     }
+    
     // Zero fake cards - strictly uses what the user uploaded!
 
     // 4. Construct Files Array (PDF, PPT, Mindmap, Audio) - Only push resources that actually have content!

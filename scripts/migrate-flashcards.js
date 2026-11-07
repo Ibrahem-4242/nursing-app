@@ -12,28 +12,116 @@ function isQuestionPrompt(text) {
   return /^(ما\s|كيف\s|لماذا\s|ماذا\s|اذكر\s|قارن\s|علل\s|لخص\s|رتب\s|حدد\s|مِمَّ\s|هل\s|إلى\sكم\s|كم\s|اشرح\s|بين\s|وضح\s|صف\s|عرف\s|أكمل\s|What\s|How\s|Why\s|Which\s|Define\s|Compare\s|Explain\s|List\s|Describe\s)/i.test(t);
 }
 
+function splitCombinedQuestionAndAnswer(text) {
+  if (!text) return null;
+  const t = text.trim();
+  if (t.length < 5) return null;
+
+  let mainText = t;
+  let pearl = undefined;
+  const pearlMarkerRegex = /(?:(?:\r?\n|^)\s*(?:💡\s*)?(?:فكرة\s+البطاقة\s+الجوهرية|نقطة\s+تركيز\s+للامتحان|معلومة\s+للامتحان|Exam\s*Pearl|Key\s*Idea)\s*[:：\-–]\s*)([\s\S]+)$/i;
+  const pearlMatch = mainText.match(pearlMarkerRegex);
+  if (pearlMatch && pearlMatch.index !== undefined) {
+    pearl = pearlMatch[1].trim();
+    mainText = mainText.substring(0, pearlMatch.index).trim();
+  }
+
+  const answerMarkerRegex = /(?:(?:\r?\n|^)\s*(?:•\s*)?(?:الجواب(?:\s+الصحيح)?|الإجابة(?:\s+النموذجية|\s+الصحيحة)?|الحل|الرد|Answer|Ans)\s*[:：\-–]\s*)/i;
+  const match = mainText.match(answerMarkerRegex);
+  if (match && match.index !== undefined) {
+    const qPart = mainText.substring(0, match.index)
+      .replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '')
+      .trim();
+    const aPart = mainText.substring(match.index + match[0].length).trim();
+    if (qPart && aPart) {
+      return { question: qPart, answer: aPart, pearl };
+    }
+  }
+
+  const qMarkNewlineMatch = mainText.match(/([؟?])(?:\r?\n+)/);
+  if (qMarkNewlineMatch && qMarkNewlineMatch.index !== undefined) {
+    const splitIndex = qMarkNewlineMatch.index + 1;
+    const qPart = mainText.substring(0, splitIndex)
+      .replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '')
+      .trim();
+    const aPart = mainText.substring(splitIndex).trim();
+    if (qPart && aPart) {
+      return { question: qPart, answer: aPart, pearl };
+    }
+  }
+
+  const qMarkMatch = mainText.match(/([؟?])\s+([\s\S]+)$/);
+  if (qMarkMatch && qMarkMatch.index !== undefined) {
+    const splitIndex = qMarkMatch.index + 1;
+    const qPart = mainText.substring(0, splitIndex)
+      .replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '')
+      .trim();
+    const aPart = mainText.substring(splitIndex).trim();
+    if (qPart && aPart && aPart.length >= 3) {
+      return { question: qPart, answer: aPart, pearl };
+    }
+  }
+
+  const lines = mainText.split(/\r?\n+/).map(l => l.trim()).filter(Boolean);
+  if (lines.length >= 2) {
+    const firstLine = lines[0].replace(/^(?:•\s*)?(?:السؤال|س|Question|Q)\s*[:：\-–]\s*/i, '').trim();
+    if (isQuestionPrompt(firstLine)) {
+      const remaining = lines.slice(1).join('\n').trim();
+      if (remaining) {
+        return { question: firstLine, answer: remaining, pearl };
+      }
+    }
+  }
+
+  return null;
+}
+
 function normalizeFlashcard(card) {
   if (!card) return card;
 
   let category = card.category || 'كروت استذكار';
-  let front = card.front || '';
-  let back = card.back || '';
-  let clinicalPearl = card.clinicalPearl;
+  let front = (card.front || '').trim();
+  let back = (card.back || '').trim();
+  let clinicalPearl = card.clinicalPearl ? card.clinicalPearl.trim() : undefined;
 
   const frontIsQ = isQuestionPrompt(front);
   const backIsQ = isQuestionPrompt(back);
 
-  // Case 1: Inverted 3-field card (front has topic, back has question, pearl has answer)
-  if (!frontIsQ && backIsQ && clinicalPearl && clinicalPearl.trim().length > 15) {
+  if (!frontIsQ && backIsQ && clinicalPearl && clinicalPearl.length > 0) {
     category = front.replace(/nursingsum\.live/gi, '').trim() || category;
     front = back;
     back = clinicalPearl;
     clinicalPearl = undefined;
-  }
-  // Case 2: Standard card where pearl was actually storing the topic heading
-  else if (category === 'كروت استذكار' && clinicalPearl && clinicalPearl.trim().length <= 80 && !isQuestionPrompt(clinicalPearl)) {
+  } else if (!frontIsQ && (!clinicalPearl || clinicalPearl.length === 0)) {
+    const split = splitCombinedQuestionAndAnswer(back);
+    if (split) {
+      category = front.replace(/nursingsum\.live/gi, '').trim() || category;
+      front = split.question;
+      back = split.answer;
+      if (split.pearl) clinicalPearl = split.pearl;
+    } else if (backIsQ && front.length > 50) {
+      const temp = front;
+      front = back;
+      back = temp;
+    }
+  } else if (!backIsQ && (!clinicalPearl || clinicalPearl.length === 0)) {
+    const split = splitCombinedQuestionAndAnswer(front);
+    if (split && back.length <= 100) {
+      category = back.replace(/nursingsum\.live/gi, '').trim() || category;
+      front = split.question;
+      back = split.answer;
+      if (split.pearl) clinicalPearl = split.pearl;
+    }
+  } else if (category === 'كروت استذكار' && clinicalPearl && clinicalPearl.length <= 100 && !isQuestionPrompt(clinicalPearl)) {
     category = clinicalPearl.replace(/nursingsum\.live/gi, '').trim() || category;
     clinicalPearl = undefined;
+  } else if (frontIsQ && (!back || back.length < 5)) {
+    const split = splitCombinedQuestionAndAnswer(front);
+    if (split) {
+      front = split.question;
+      back = split.answer;
+      if (split.pearl) clinicalPearl = split.pearl;
+    }
   }
 
   if (front.includes('nursingsum.live')) {
@@ -65,7 +153,7 @@ function normalizeLecturesArray(lectures) {
         const norm = normalizeFlashcard(c);
         if (norm.front !== c.front || norm.back !== c.back || norm.category !== c.category || norm.clinicalPearl !== c.clinicalPearl) {
           lecModified = true;
-          if (norm.front === c.back) {
+          if (norm.front === c.back || norm.front.length > 0) {
             invertedFixedCount++;
           }
         }
@@ -83,7 +171,7 @@ function normalizeLecturesArray(lectures) {
 }
 
 async function updateGist(filesObj) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const payload = JSON.stringify({ files: filesObj });
     const req = https.request(
       {
@@ -131,7 +219,7 @@ async function main() {
   console.log('--- Migrating CMS Store ---');
   let store = JSON.parse(fs.readFileSync(storePath, 'utf8'));
   const storeStats = normalizeLecturesArray(store.lectures || []);
-  console.log(`CMS Store stats: ${storeStats.modifiedCount} lectures modified, ${storeStats.invertedFixedCount} inverted cards repaired out of ${storeStats.totalCardsCount} cards.`);
+  console.log(`CMS Store stats: ${storeStats.modifiedCount} lectures modified, ${storeStats.invertedFixedCount} cards repaired out of ${storeStats.totalCardsCount} cards.`);
   fs.writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf8');
 
   console.log('--- Migrating Lectures Vault ---');
@@ -145,7 +233,7 @@ async function main() {
       vaultStats = normalizeLecturesArray(vault.lectures);
       fs.writeFileSync(vaultPath, JSON.stringify(vault, null, 2), 'utf8');
     }
-    console.log(`Vault stats: ${vaultStats.modifiedCount} lectures modified, ${vaultStats.invertedFixedCount} inverted cards repaired.`);
+    console.log(`Vault stats: ${vaultStats.modifiedCount} lectures modified, ${vaultStats.invertedFixedCount} cards repaired.`);
   }
 
   console.log('--- Migrating lectures-data directory ---');
@@ -160,7 +248,7 @@ async function main() {
           let mod = false;
           item.flashcards = item.flashcards.map((c) => {
             const norm = normalizeFlashcard(c);
-            if (norm.front !== c.front || norm.back !== c.back || norm.category !== c.category) {
+            if (norm.front !== c.front || norm.back !== c.back || norm.category !== c.category || norm.clinicalPearl !== c.clinicalPearl) {
               mod = true;
             }
             return norm;
