@@ -32,7 +32,7 @@ interface GrantPackageModalProps {
   packages: PlatformPackage[];
   subjects: Subject[];
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedStudent?: StudentUser) => void;
   getAdminHeaders: (extra?: Record<string, string>) => Record<string, string>;
 }
 
@@ -117,7 +117,7 @@ export default function GrantPackageModal({
         const remDays = Math.max(1, Math.ceil((new Date(currentActiveSub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
         setDays(remDays);
       }
-      setDurationAction('set_from_now');
+      setDurationAction(isCurrentSubActive ? 'extend_balance' : 'set_from_now');
     } else {
       // Default to first active package or shakib-rakib
       const defaultPkg = packages.find((p) => p.isActive) || packages[0];
@@ -226,7 +226,7 @@ export default function GrantPackageModal({
       const data = await res.json();
       if (data.success) {
         alert(data.message || 'تم تفعيل وتخصيص الباقة للطالب بنجاح! 🚀');
-        onSuccess();
+        onSuccess(data.student);
         onClose();
       } else {
         alert(data.message || 'فشل تفعيل الباقة');
@@ -256,7 +256,15 @@ export default function GrantPackageModal({
       const data = await res.json();
       if (data.success) {
         alert(data.message || 'تم إيقاف الاشتراك بنجاح ⏹️');
-        onSuccess();
+        if (student) {
+          onSuccess({
+            ...student,
+            activePackage: student.activePackage ? { ...student.activePackage, isActive: false } : undefined,
+            shakibRakibSubscription: student.shakibRakibSubscription ? { ...student.shakibRakibSubscription, isActive: false } : undefined,
+          });
+        } else {
+          onSuccess();
+        }
         onClose();
       } else {
         alert(data.message || 'تعذر إيقاف الاشتراك');

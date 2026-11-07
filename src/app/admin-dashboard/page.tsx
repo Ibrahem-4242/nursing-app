@@ -869,6 +869,10 @@ export default function AdminDashboardPage() {
     setIsGrantingShakib(true);
     try {
       const studentObj = students.find((s) => s.id === studentId || s.phone === studentId);
+      const isAlreadyActive = Boolean(
+        (studentObj?.activePackage?.isActive && new Date(studentObj.activePackage.expiresAt).getTime() > Date.now()) ||
+        (studentObj?.shakibRakibSubscription?.isActive && new Date(studentObj.shakibRakibSubscription.expiresAt).getTime() > Date.now())
+      );
       const res = await fetch('/api/admin/students/shakib-rakib', {
         method: 'POST',
         headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
@@ -876,6 +880,7 @@ export default function AdminDashboardPage() {
           studentId,
           action: 'grant',
           days,
+          calculationMode: isAlreadyActive ? 'extend_balance' : 'set_from_now',
           yearId: studentObj?.yearId || '1',
           monthLabel: shakibMonthLabel,
         }),
@@ -883,6 +888,9 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success) {
         alert(data.message || 'تم تفعيل باقة شاكب راكب للطالب بنجاح! 🚀');
+        if (data.student) {
+          setStudents((prev) => prev.map((s) => (s.id === data.student.id ? data.student : s)));
+        }
         loadStudents();
       } else {
         alert(data.message || 'تعذر تفعيل الباقة للطالب');
@@ -909,6 +917,20 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success) {
         alert(data.message || 'تم إيقاف الاشتراك بنجاح ⏹️');
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id === studentId || s.phone === studentId) {
+              return {
+                ...s,
+                activePackage: s.activePackage ? { ...s.activePackage, isActive: false } : undefined,
+                shakibRakibSubscription: s.shakibRakibSubscription
+                  ? { ...s.shakibRakibSubscription, isActive: false }
+                  : undefined,
+              };
+            }
+            return s;
+          })
+        );
         loadStudents();
       } else {
         alert(data.message || 'تعذر إيقاف الاشتراك');
@@ -3948,13 +3970,16 @@ export default function AdminDashboardPage() {
     .filter((o) => o.orderType === 'shakib_rakib')
     .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
 
-  // All subscribers with a record
-  const allSubscribersWithRecord = students.filter((s) => s.shakibRakibSubscription);
+  // All subscribers with a record (activePackage or shakibRakibSubscription)
+  const allSubscribersWithRecord = students.filter(
+    (s) => s.shakibRakibSubscription || (s.activePackage && s.activePackage.expiresAt)
+  );
   const filteredSubscribers = allSubscribersWithRecord.filter((s) => {
-    const sub = s.shakibRakibSubscription!;
+    const rawSub = s.activePackage || s.shakibRakibSubscription;
+    if (!rawSub || !rawSub.expiresAt) return false;
     const nowMs = Date.now();
-    const expiryMs = new Date(sub.expiresAt).getTime();
-    const isActive = sub.isActive && expiryMs > nowMs;
+    const expiryMs = new Date(rawSub.expiresAt).getTime();
+    const isActive = rawSub.isActive && expiryMs > nowMs;
     const daysLeft = Math.ceil((expiryMs - nowMs) / (1000 * 60 * 60 * 24));
 
     if (subscriberSearchQuery.trim()) {
@@ -11015,7 +11040,7 @@ export default function AdminDashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                       {filteredSubscribers.map((s) => {
-                        const sub = s.shakibRakibSubscription!;
+                        const sub = (s.activePackage || s.shakibRakibSubscription)!;
                         const nowMs = Date.now();
                         const expiryMs = new Date(sub.expiresAt).getTime();
                         const isActive = sub.isActive && expiryMs > nowMs;
@@ -11029,7 +11054,7 @@ export default function AdminDashboardPage() {
                               <span className="text-[11px] text-slate-500 block mt-0.5">{s.university}</span>
                               <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                                 <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 text-[10px] font-black border border-amber-300 dark:border-amber-800">
-                                  {s.activePackage?.packageName || sub.monthLabel || 'باقة شاكب راكب'}
+                                  {s.activePackage?.packageName || ('monthLabel' in sub ? (sub as any).monthLabel : '') || 'باقة شاكب راكب'}
                                 </span>
                                 {s.activePackage?.permissions && (
                                   <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
@@ -11096,17 +11121,37 @@ export default function AdminDashboardPage() {
                                   <span>تخصيص الصلاحيات ⚡️</span>
                                 </button>
 
-                                {/* 30-Day Extension / Renewal Button */}
-                                <button
-                                  type="button"
-                                  disabled={isGrantingShakib}
-                                  onClick={() => handleGrantShakib(s.id, 30)}
-                                  title="تمديد الاشتراك 30 يوماً إضافية"
-                                  className="py-1 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-sm transition flex items-center gap-1"
-                                >
-                                  <RefreshCw className="w-3 h-3" />
-                                  <span>تجديد شهر 🔄</span>
-                                </button>
+                                {/* Quick Duration Renewal Chips */}
+                                <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 p-0.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
+                                  <button
+                                    type="button"
+                                    disabled={isGrantingShakib}
+                                    onClick={() => handleGrantShakib(s.id, 7)}
+                                    title="تمديد الاشتراك 7 أيام إضافية"
+                                    className="py-0.5 px-1.5 rounded-md bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-200 font-black text-[10px] transition"
+                                  >
+                                    +7ي
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isGrantingShakib}
+                                    onClick={() => handleGrantShakib(s.id, 15)}
+                                    title="تمديد الاشتراك 15 يوماً إضافية"
+                                    className="py-0.5 px-1.5 rounded-md bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-200 font-black text-[10px] transition"
+                                  >
+                                    +15ي
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isGrantingShakib}
+                                    onClick={() => handleGrantShakib(s.id, 30)}
+                                    title="تمديد الاشتراك 30 يوماً إضافية"
+                                    className="py-0.5 px-2 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-xs transition flex items-center gap-0.5"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>+30ي</span>
+                                  </button>
+                                </div>
 
                                 {/* Revoke / Stop Button */}
                                 {isActive ? (
@@ -12879,7 +12924,10 @@ export default function AdminDashboardPage() {
             setIsGrantModalOpen(false);
             setGrantModalStudent(null);
           }}
-          onSuccess={() => {
+          onSuccess={(updatedStudent?: StudentUser) => {
+            if (updatedStudent) {
+              setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+            }
             loadStudents();
             loadPackages();
           }}
