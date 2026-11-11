@@ -559,7 +559,7 @@ export default function LectureContentTabs({
                       <span>تسجيل الدخول مطلوب لمشاهدة الفيديو 🔒</span>
                     </div>
                     <h3 className="text-xl sm:text-2xl font-black text-white">
-                      فيديوهات الشروحات متاحة فقط لطلاب المنصة المسجلين
+                      مشاهدة الفيديو تتطلب تسجيل الدخول أو إنشاء حساب مجاناً 🎬
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
                       لمشاهدة فيديو هذه المحاضرة، يرجى تسجيل الدخول بحسابك على المنصة أو إنشاء حساب طالب جديد مجاناً في ثوانٍ.

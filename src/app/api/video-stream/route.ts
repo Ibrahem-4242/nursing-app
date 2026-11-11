@@ -24,55 +24,13 @@ async function verifyLectureAccess(
   // 1. Admin is always allowed
   if (isAdmin) return { allowed: true };
 
-  const resolvedLectureId = lectureId && !lectureId.startsWith('quiz-') ? lectureId : undefined;
-  const resolvedQuizId = quizId || (lectureId && lectureId.startsWith('quiz-') ? lectureId.replace(/^quiz-/, '') : undefined);
-
-  // 2. Check if this is a FREE lecture (anyone can watch free educational lectures!)
-  if (resolvedLectureId) {
-    try {
-      const lecture = await CmsService.getLectureById(resolvedLectureId);
-      if (lecture && lecture.isFree) {
-        return { allowed: true };
-      }
-    } catch {}
-  }
-
-  // 3. Check if this is a FREE quiz
-  if (resolvedQuizId) {
-    try {
-      const allQuizzes = await CmsService.getAllSubjectQuizFilesList();
-      const quiz = allQuizzes.find((q) => q.id === resolvedQuizId || q.subjectId === resolvedQuizId);
-      if (quiz && quiz.isFree !== false) {
-        return { allowed: true };
-      }
-    } catch {}
-  }
-
-  // 4. If neither lectureId nor quizId passed directly, check if the video file belongs to ANY free lecture
-  if (fileId || externalUrl) {
-    try {
-      const targetQuery = fileId || externalUrl || '';
-      const prefix = fileId ? fileId.split('_')[0] : '';
-      const allLecs = await CmsService.getAllLectures();
-      const matchedLec = allLecs.find((l) =>
-        (l.videoUrl && l.videoUrl.includes(targetQuery)) ||
-        (prefix && l.videoUrl && l.videoUrl.includes(prefix)) ||
-        JSON.stringify(l).includes(targetQuery) ||
-        (prefix && JSON.stringify(l).includes(prefix))
-      );
-      if (matchedLec && matchedLec.isFree) {
-        return { allowed: true };
-      }
-    } catch {}
-  }
-
-  // 5. If not verified as free, enforce student session check
+  // 2. Strict Requirement: Only authenticated students or admin can stream videos (both free and paid)
   const cookieStore = cookies();
   const rawVal = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
   if (!rawVal) {
     return {
       allowed: false,
-      reason: 'مشاهدة هذا الفيديو مخصصة فقط للطلاب المسجلين بالمنصة. يرجى تسجيل الدخول بحسابك أو إنشاء حساب مجاني 🔒',
+      reason: 'مشاهدة هذا الفيديو تتطلب تسجيل الدخول بحسابك أولاً أو إنشاء حساب مجاني 🔒',
     };
   }
 
@@ -88,6 +46,48 @@ async function verifyLectureAccess(
 
   if (student.isSuspended) {
     return { allowed: false, reason: 'تم تعليق وتجميد الحساب من قبل الإدارة ⛔' };
+  }
+
+  const resolvedLectureId = lectureId && !lectureId.startsWith('quiz-') ? lectureId : undefined;
+  const resolvedQuizId = quizId || (lectureId && lectureId.startsWith('quiz-') ? lectureId.replace(/^quiz-/, '') : undefined);
+
+  // 3. Free lecture check (allowed for logged-in students!)
+  if (resolvedLectureId) {
+    try {
+      const lecture = await CmsService.getLectureById(resolvedLectureId);
+      if (lecture && lecture.isFree) {
+        return { allowed: true };
+      }
+    } catch {}
+  }
+
+  // 4. Free quiz check (allowed for logged-in students!)
+  if (resolvedQuizId) {
+    try {
+      const allQuizzes = await CmsService.getAllSubjectQuizFilesList();
+      const quiz = allQuizzes.find((q) => q.id === resolvedQuizId || q.subjectId === resolvedQuizId);
+      if (quiz && quiz.isFree !== false) {
+        return { allowed: true };
+      }
+    } catch {}
+  }
+
+  // 5. If neither lectureId nor quizId passed directly, check if the video file belongs to ANY free lecture
+  if (fileId || externalUrl) {
+    try {
+      const targetQuery = fileId || externalUrl || '';
+      const prefix = fileId ? fileId.split('_')[0] : '';
+      const allLecs = await CmsService.getAllLectures();
+      const matchedLec = allLecs.find((l) =>
+        (l.videoUrl && l.videoUrl.includes(targetQuery)) ||
+        (prefix && l.videoUrl && l.videoUrl.includes(prefix)) ||
+        JSON.stringify(l).includes(targetQuery) ||
+        (prefix && JSON.stringify(l).includes(prefix))
+      );
+      if (matchedLec && matchedLec.isFree) {
+        return { allowed: true };
+      }
+    } catch {}
   }
 
   // If lecture is provided and it is a PAID lecture:
@@ -167,9 +167,10 @@ export async function GET(req: NextRequest) {
     // 2. Permissions check
     const access = await verifyLectureAccess(lectureId, quizId, isAdmin, fileId || undefined, externalUrl || undefined);
     if (!access.allowed) {
+      const isUnauthenticated = !isAdmin && !cookieStore.get(STUDENT_COOKIE_NAME)?.value;
       return new NextResponse(
         JSON.stringify({ error: access.reason || 'المحتوى مخصص للمشتركين فقط' }),
-        { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+        { status: isUnauthenticated ? 401 : 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
       );
     }
 

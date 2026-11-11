@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { QuizQuestion } from '@/lib/types';
 import { cleanLatexMath } from '@/lib/text-cleaner';
-import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb, Video } from 'lucide-react';
+import { CheckCircle2, XCircle, HelpCircle, RotateCcw, Award, Lightbulb, Video, Lock } from 'lucide-react';
 import QuestionBookmarkButton from '@/components/QuestionBookmarkButton';
 import StudentActivityTracker from '@/components/StudentActivityTracker';
 import VideoPlayer from '@/components/VideoPlayer';
+import { useStudentAuth } from '@/context/StudentAuthContext';
 import { getMedicalTier } from '@/lib/medical-encouragement';
 import CircularProgressRing from '@/components/CircularProgressRing';
 import CelebratoryConfetti from '@/components/CelebratoryConfetti';
@@ -18,6 +19,7 @@ interface InteractiveQuizProps {
 }
 
 export default function InteractiveQuiz({ questions, lectureTitle = 'المحاضرة', lectureId = 'general' }: InteractiveQuizProps) {
+  const { student, openAuthModal } = useStudentAuth();
   const [selectedAnswers, setSelectedAnswers] = useState<{ [questionId: number]: number }>({});
   const [showResults, setShowResults] = useState(false);
   const [activeVideoQuestionId, setActiveVideoQuestionId] = useState<number | null>(null);
@@ -270,14 +272,42 @@ export default function InteractiveQuiz({ questions, lectureTitle = 'المحا�
                         <span>{activeVideoQuestionId === q.id ? 'إخفاء فيديو الشرح ✕' : 'فيديو شرح وتوضيح السؤال 🎬'}</span>
                       </button>
                       {activeVideoQuestionId === q.id && (
-                        <div className="mt-2 overflow-hidden rounded-2xl border border-indigo-500/30">
-                          <VideoPlayer
-                            videoUrl={q.videoUrl}
-                            title={`شرح السؤال ${qIndex + 1}: ${q.question.slice(0, 45)}`}
-                            lectureId={lectureId}
-                            duration={q.videoDuration}
-                          />
-                        </div>
+                        student ? (
+                          <div className="mt-2 overflow-hidden rounded-2xl border border-indigo-500/30">
+                            <VideoPlayer
+                              videoUrl={q.videoUrl}
+                              title={`شرح السؤال ${qIndex + 1}: ${q.question.slice(0, 45)}`}
+                              lectureId={lectureId}
+                              duration={q.videoDuration}
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-2 p-5 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 text-center space-y-3" dir="rtl">
+                            <div className="w-10 h-10 mx-auto rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                              <Lock className="w-5 h-5" />
+                            </div>
+                            <div className="space-y-1">
+                              <h5 className="text-sm font-black text-white">مشاهدة فيديو شرح السؤال تتطلب تسجيل الدخول 🔒</h5>
+                              <p className="text-xs text-slate-300 font-medium">سجل دخولك بحسابك أو أنشئ حساب طالب مجاني في ثوانٍ لمشاهدة فيديو الشرح.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => openAuthModal('login')}
+                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md"
+                              >
+                                تسجيل الدخول 🔑
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openAuthModal('register')}
+                                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"
+                              >
+                                حساب جديد مجاناً 🎓
+                              </button>
+                            </div>
+                          </div>
+                        )
                       )}
                     </div>
                   )}

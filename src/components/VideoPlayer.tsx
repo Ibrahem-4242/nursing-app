@@ -45,7 +45,7 @@ export default function VideoPlayer({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { student } = useStudentAuth();
+  const { student, openAuthModal } = useStudentAuth();
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -131,10 +131,15 @@ export default function VideoPlayer({
         headers: { Range: 'bytes=0-10' },
         cache: 'no-store',
       });
-      if (probeRes.status === 403) {
+      if (probeRes.status === 401 || probeRes.status === 403) {
         setIsAuthError(true);
         const errJson = await probeRes.json().catch(() => null);
-        setErrorMessage(errJson?.error || 'المحاضرة مدفوعة وغير مفعلة في حسابك بعد 🔒');
+        setErrorMessage(
+          errJson?.error ||
+          (probeRes.status === 401
+            ? 'مشاهدة الفيديو تتطلب تسجيل الدخول بحسابك أولاً أو إنشاء حساب مجاني 🔒'
+            : 'المحاضرة مدفوعة وغير مفعلة في حسابك بعد 🔒')
+        );
         return;
       }
       if (probeRes.status === 404) {
@@ -502,14 +507,34 @@ export default function VideoPlayer({
             {errorMessage || 'تأكد من اتصالك بالإنترنت، أو أن صلاحية المحاضرة مفعلة بحسابك. إذا استمرت المشكلة أبلغ إدارة المنصة.'}
           </p>
           <div className="flex items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleManualRetry}
-              className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-lg shadow-teal-600/30 flex items-center gap-1.5"
-            >
-              <span>إعادة المحاولة</span>
-              <span>🔄</span>
-            </button>
+            {isAuthError && !student ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('login')}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>تسجيل الدخول الآن 🔑</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('register')}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"
+                >
+                  <span>إنشاء حساب مجاناً 🎓</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleManualRetry}
+                className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-lg shadow-teal-600/30 flex items-center gap-1.5"
+              >
+                <span>إعادة المحاولة</span>
+                <span>🔄</span>
+              </button>
+            )}
           </div>
         </div>
       )}
