@@ -81,6 +81,8 @@ interface CmsStore {
   studentActivityLogs?: StudentActivityLog[];
   customPackages?: PlatformPackage[];
   deletedPackageIds?: string[];
+  adminPin?: string;
+  adminPinUpdatedAt?: string;
   // Permanent counters and daily maps to guarantee mathematical accuracy
   cumulativeVisitors?: number;
   cumulativeDownloads?: number;
@@ -646,6 +648,12 @@ export async function syncToCloud(store: CmsStore, customToken?: string): Promis
 
       // Always synchronize authoritative panicMode from PanicEngine
       store.panicMode = await PanicEngine.getPanicMode();
+
+      // Safely preserve admin PIN
+      if (!store.adminPin && existing.adminPin) {
+        store.adminPin = existing.adminPin;
+        store.adminPinUpdatedAt = existing.adminPinUpdatedAt;
+      }
     }
   } catch (safeErr) {
     console.warn('[CMS DB Safeguard] Cloud pre-merge notice:', safeErr);
@@ -1020,6 +1028,10 @@ async function getFreshStore(): Promise<CmsStore> {
         ...cloudStore.maintenance,
       };
     }
+    if (cloudStore.adminPin) {
+      store.adminPin = cloudStore.adminPin;
+      store.adminPinUpdatedAt = cloudStore.adminPinUpdatedAt;
+    }
     const deletedStudentSet = new Set<string>();
     (store.deletedStudentIds || []).forEach((id) => {
       if (id && !/^[0-9]{8,15}$/.test(id)) deletedStudentSet.add(id);
@@ -1284,6 +1296,33 @@ export const CmsService = {
     customToken?: string
   ): Promise<{ success: boolean; isEnabled: boolean; activatedAt?: string }> {
     return PanicEngine.setPanicMode(isEnabled, customToken);
+  },
+
+  // --- ADMIN SECURITY & PIN MANAGEMENT ---
+  async getAdminPin(): Promise<string> {
+    const store = await getFreshStore();
+    return store.adminPin || process.env.ADMIN_PIN || '5143545638';
+  },
+
+  async updateAdminPin(
+    newPin: string,
+    customToken?: string
+  ): Promise<{ success: boolean; message: string; updatedAt?: string }> {
+    const cleanPin = String(newPin || '').trim();
+    if (!cleanPin || cleanPin.length < 4) {
+      return { success: false, message: 'رمز الدخول يجب أن يحتوي على 4 خانات على الأقل 🔒' };
+    }
+    const store = await getFreshStore();
+    store.adminPin = cleanPin;
+    store.adminPinUpdatedAt = new Date().toISOString();
+    memoryStore = store;
+    persistStore(store, customToken);
+    await syncToCloud(store, customToken);
+    return {
+      success: true,
+      message: 'تم تحديث وحفظ رمز دخول لوحة التحكم بنجاح سحابياً! 🔐',
+      updatedAt: store.adminPinUpdatedAt,
+    };
   },
 
   // --- PLATFORM FEATURES & VISIBILITY CONTROLS (التحكم في الميزات والظهور) ---

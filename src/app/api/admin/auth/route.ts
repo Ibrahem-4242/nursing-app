@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!pin || String(pin).trim() !== VALID_PIN) {
+    const validPin = await CmsService.getAdminPin();
+    if (!pin || String(pin).trim() !== validPin) {
       const fail = await CmsService.recordFailedLogin(lockKey);
       if (fail.locked) {
         return NextResponse.json(

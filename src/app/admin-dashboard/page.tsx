@@ -92,9 +92,89 @@ import {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'features' | 'coupons' | 'announcement' | 'maintenance' | 'reports' | 'telegram'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'lectures' | 'subjects' | 'quizzes' | 'orders' | 'students' | 'shakibRakib' | 'features' | 'coupons' | 'announcement' | 'maintenance' | 'reports' | 'telegram' | 'security'>('upload');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [serverCloudToken, setServerCloudToken] = useState<string>('');
+
+  // Security / Admin PIN State
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [showCurrentPin, setShowCurrentPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
+  const [isChangingPin, setIsChangingPin] = useState(false);
+  const [pinFeedback, setPinFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const getPinStrength = (pin: string) => {
+    if (!pin) return { score: 0, label: 'فارغ', color: 'bg-slate-300 dark:bg-slate-700', width: '0%' };
+    let score = 0;
+    if (pin.length >= 6) score += 1;
+    if (pin.length >= 10) score += 1;
+    if (/[0-9]/.test(pin) && /[a-zA-Z\u0600-\u06FF]/.test(pin)) score += 1;
+    if (/[^a-zA-Z0-9\u0600-\u06FF]/.test(pin)) score += 1;
+    if (score <= 1) return { score: 1, label: 'ضعيف', color: 'bg-rose-500', width: '25%' };
+    if (score === 2) return { score: 2, label: 'متوسط', color: 'bg-amber-500', width: '50%' };
+    if (score === 3) return { score: 3, label: 'قوي 🛡️', color: 'bg-teal-500', width: '75%' };
+    return { score: 4, label: 'قوي جداً ومثالي 👑', color: 'bg-emerald-500', width: '100%' };
+  };
+
+  const handleChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinFeedback(null);
+
+    const cleanCurrent = currentPinInput.trim();
+    const cleanNew = newPinInput.trim();
+    const cleanConfirm = confirmPinInput.trim();
+
+    if (!cleanCurrent) {
+      setPinFeedback({ type: 'error', message: 'يرجى إدخال رمز الدخول الحالي أولاً للتحقق من هويتك' });
+      return;
+    }
+    if (cleanNew.length < 4) {
+      setPinFeedback({ type: 'error', message: 'رمز الدخول الجديد يجب أن يتكون من 4 خانات على الأقل 🔒' });
+      return;
+    }
+    if (cleanNew === cleanCurrent) {
+      setPinFeedback({ type: 'error', message: 'الرمز الجديد مطابق للرمز الحالي، يرجى كتابة رمز مختلف 💡' });
+      return;
+    }
+    if (cleanNew !== cleanConfirm) {
+      setPinFeedback({ type: 'error', message: 'تأكيد الرمز الجديد غير مطابق للرمز المدخل ❌' });
+      return;
+    }
+
+    setIsChangingPin(true);
+    try {
+      const res = await fetch('/api/admin/change-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer secret_session_5143545638_verified',
+        },
+        body: JSON.stringify({
+          currentPin: cleanCurrent,
+          newPin: cleanNew,
+          confirmPin: cleanConfirm,
+          customToken: serverCloudToken,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPinFeedback({ type: 'success', message: data.message });
+        setCurrentPinInput('');
+        setNewPinInput('');
+        setConfirmPinInput('');
+      } else {
+        setPinFeedback({ type: 'error', message: data.message || 'فشل تحديث رمز الدخول' });
+      }
+    } catch (err: any) {
+      setPinFeedback({ type: 'error', message: err?.message || 'حدث خطأ في الاتصال بالخادم أثناء تحديث الرمز' });
+    } finally {
+      setIsChangingPin(false);
+    }
+  };
+
 
   // Subject Quizzes Form state
   const [quizSubjectId, setQuizSubjectId] = useState('anatomy');
@@ -4553,6 +4633,21 @@ export default function AdminDashboardPage() {
           >
             <Send className="w-4 h-4" />
             <span>تتبع وتنبيهات تيليجرام</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('security');
+              setPinFeedback(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'security'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>أمان ورمز الدخول 🔐</span>
           </button>
         </div>
 
@@ -12745,6 +12840,168 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* TAB 6: Security & Admin PIN Management */}
+        {activeTab === 'security' && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-indigo-600" />
+                  <span>إدارة وتغيير رمز دخول لوحة التحكم (Admin PIN Management)</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  يمكنك تحديث رمز المرور السري للدخول إلى لوحة التحكم فورياً. يتم حفظ الرمز الجديد سحابياً في Cloud Store بدون الحاجة لتعديل الأكواد.
+                </p>
+              </div>
+
+              <span className="self-start sm:self-auto text-xs font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>حماية سحابية مشفرة 🔐</span>
+              </span>
+            </div>
+
+            {/* Change PIN Form */}
+            <form onSubmit={handleChangePin} className="max-w-xl mx-auto space-y-5 bg-slate-50 dark:bg-slate-850 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md">
+              <div className="space-y-1 text-center pb-2 border-b border-slate-200 dark:border-slate-800">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 shadow-inner">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <h4 className="text-base font-black text-slate-900 dark:text-white">تحديث رمز الدخول السري</h4>
+                <p className="text-xs text-slate-500">أدخل الرمز الحالي للتأكيد ثم الرمز الجديد</p>
+              </div>
+
+              {/* Feedback Alert */}
+              {pinFeedback && (
+                <div
+                  className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-2.5 animate-in fade-in ${
+                    pinFeedback.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-rose-50 dark:bg-rose-950/50 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+                  }`}
+                >
+                  {pinFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  )}
+                  <span>{pinFeedback.message}</span>
+                </div>
+              )}
+
+              {/* Current PIN Field */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  رمز الدخول الحالي (Current PIN) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPin ? 'text' : 'password'}
+                    value={currentPinInput}
+                    onChange={(e) => setCurrentPinInput(e.target.value)}
+                    placeholder="أدخل رمز الدخول الحالي..."
+                    required
+                    className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-mono tracking-wider focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPin(!showCurrentPin)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                    title={showCurrentPin ? 'إخفاء' : 'إظهار'}
+                  >
+                    {showCurrentPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New PIN Field */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  رمز الدخول الجديد (New PIN) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPin ? 'text' : 'password'}
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    placeholder="أدخل رمز الدخول الجديد (4 خانات على الأقل)..."
+                    required
+                    minLength={4}
+                    className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-mono tracking-wider focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPin(!showNewPin)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                    title={showNewPin ? 'إخفاء' : 'إظهار'}
+                  >
+                    {showNewPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Password Strength Indicator */}
+                {newPinInput && (
+                  <div className="pt-1.5 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-slate-500">قوة الرمز:</span>
+                      <span className="text-slate-800 dark:text-slate-200">{getPinStrength(newPinInput).label}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${getPinStrength(newPinInput).color}`}
+                        style={{ width: getPinStrength(newPinInput).width }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm New PIN Field */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  تأكيد رمز الدخول الجديد (Confirm PIN) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type={showNewPin ? 'text' : 'password'}
+                  value={confirmPinInput}
+                  onChange={(e) => setConfirmPinInput(e.target.value)}
+                  placeholder="أعد إدخال الرمز الجديد للتأكيد..."
+                  required
+                  minLength={4}
+                  className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-mono tracking-wider focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isChangingPin}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-sm shadow-xl shadow-indigo-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-98"
+              >
+                {isChangingPin ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري حفظ الرمز الجديد وتحديث السحابة...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>تغيير وحفظ رمز الدخول فوراً 🔐</span>
+                  </>
+                )}
+              </button>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 space-y-1 leading-relaxed">
+                <p className="font-bold flex items-center gap-1">
+                  <span>💡 تنبيه أمان هام:</span>
+                </p>
+                <p>
+                  بمجرد تغيير الرمز، ستحتاج لاستخدامه في أي تسجيل دخول جديد للوحة التحكم. احرص على تدوينه أو حفظه جيداً لتجنب فقدان الوصول للوحة.
+                </p>
+              </div>
+            </form>
           </div>
         )}
         {/* Quick Add Subject Modal (Interactive Modal callable from any form or dropdown) */}
